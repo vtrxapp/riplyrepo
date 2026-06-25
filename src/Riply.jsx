@@ -4298,13 +4298,13 @@ function AuthScreen({ setScreen, showToast }) {
               <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
                 <div style={{ width:14, height:14, borderRadius:'50%',
                               background: code[i] ? C.primary : '#E4E8EF',
-                              transition:'background .2s' }}/>
+                              transition:'background .2s', pointerEvents:'none' }}/>
                 <input ref={codeRefs[i]} value={code[i]} onChange={e=>handleKey(i,e)}
                   maxLength={1} inputMode="numeric"
-                  style={{ width:36, height:4, border:'none',
+                  style={{ width:44, height:44, border:'none',
                            borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,
                            background:'none', outline:'none', textAlign:'center',
-                           fontSize:0, caretColor:'transparent' }}/>
+                           fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary }}/>
               </div>
             ))}
           </div>

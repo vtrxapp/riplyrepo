@@ -460,9 +460,11 @@ function HomeScreen({ liked, setLiked, saved, setSaved, following, setFollowing,
 function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast }) {
   const TABS = [{id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'}];
 
-  let list = SPACES.slice();
+  const { spaces: liveSpaces } = useSpaces();
+  const spaceData = liveSpaces.length > 0 ? liveSpaces : SPACES;
+  let list = spaceData.slice();
   if(spaceTab==='today'||spaceTab==='tomorrow') list=list.filter(s=>s.day===spaceTab);
-  else list=list.filter(s=>s.cat===spaceTab);
+  else list=list.filter(s=>(s.cat||s.category)===spaceTab);
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -494,7 +496,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
         {list.map(sp => {
           const isJoined = !!spaceJoined[sp.id];
           const count = sp.participants + (isJoined?1:0);
-          const isFull = count >= sp.max;
+          const isFull = count >= (sp.max_spots || sp.max || 10);
           const notifyOn = !!spaceNotify[sp.id];
           const prog = sp.started ? (progress[sp.id]??0) : 0;
           const done = prog>=100;
@@ -505,18 +507,18 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div onClick={()=>navigate('space-details',{spaceId:sp.id})} style={{ fontSize:16, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{sp.title}</div>
-                  <div style={{ fontSize:11, color:'#7B8499', marginTop:3, lineHeight:1.4 }}>{sp.desc}</div>
+                  <div style={{ fontSize:11, color:'#7B8499', marginTop:3, lineHeight:1.4 }}>{sp.desc || sp.description || ""}</div>
                   <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
                     <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
                   </div>
                 </div>
-                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor, boxShadow:'0 4px 10px rgba(16,24,40,0.12)' }}>{sp.avatarInitial}</div>
+                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)' }}>{sp.avatarInitial || sp.avatar_initial || "S"}</div>
               </div>
 
               {/* Stats row */}
               <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginTop:15 }}>
-                {[{label:'Participants',val:`${count}/${sp.max}`,color:isFull?'#FF3B6B':C.body},{label:'Time',val:sp.time,color:C.primary},{label:'Duration',val:sp.duration,color:C.body}].map(s=>(
+                {[{label:'Participants',val:`${count}/${sp.max_spots || sp.max || 10}`,color:C.body},{label:'Time',val:sp.time,color:C.primary},{label:'Duration',val:sp.duration,color:C.body}].map(s=>(
                   <div key={s.label} style={{ flex:1 }}>
                     <div style={{ fontSize:8.5, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:C.subtle }}>{s.label}</div>
                     <div style={{ fontSize:14, fontWeight:800, color:s.color, marginTop:3 }}>{s.val}</div>
@@ -569,7 +571,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               )}
 
               {/* Host */}
-              <div style={{ fontSize:9.5, color:C.subtle, textAlign:'center', marginTop:10 }}>{sp.hostText}</div>
+              <div style={{ fontSize:9.5, color:C.subtle, textAlign:'center', marginTop:10 }}>{sp.hostText || sp.host_text || ""}</div>
             </div>
           );
         })}
@@ -589,8 +591,10 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoined, navigate, showToast }) {
   const TABS = [{id:'popular',label:'Popular'},{id:'all',label:'All'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
 
-  let list = GROUPS.slice();
-  if(discoverTab!=='popular'&&discoverTab!=='all') list=list.filter(g=>g.cat.includes(discoverTab));
+const { groups: liveGroups } = useGroups();
+  const groupData = liveGroups.length > 0 ? liveGroups : GROUPS;
+  let list = groupData.slice();
+  if(discoverTab!=='popular'&&discoverTab!=='all') list=list.filter(g=>((g.cat || g.category || [])||g.category||[]).includes(discoverTab));
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -621,8 +625,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
         {list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
         {list.map(g => {
           const localJoined = !!groupJoined[g.id];
-          const isJoined = g.state==='joined' || localJoined;
-          const isReq = g.state==='request' && !localJoined;
+          const isJoined = g.state || "join"==='joined' || localJoined;
+          const isReq = g.state || "join"==='request' && !localJoined;
 
           let joinLabel;
           let joinStyle = {};
@@ -633,8 +637,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
           return (
             <div key={g.id} style={{ background:C.card, borderRadius:20, boxShadow:'0 6px 20px rgba(16,24,40,0.06)', marginBottom:14, padding:15 }}>
               <div onClick={()=>navigate('group-profile',{groupId:g.id})} style={{ display:'flex', gap:13, cursor:'pointer' }}>
-                <div style={{ width:58, height:58, borderRadius:16, flexShrink:0, background:g.logoColor, position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(16,24,40,0.1)' }}>
-                  <span style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{g.initial}</span>
+                <div style={{ width:58, height:58, borderRadius:16, flexShrink:0, background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(16,24,40,0.1)' }}>
+                  <span style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
                   <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 13px)' }} />
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
@@ -642,15 +646,15 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                     <span style={{ fontSize:14, fontWeight:800, letterSpacing:-0.3, color:C.ink, lineHeight:1.2 }}>{g.name}</span>
                     {isReq && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><rect x="5" y="11" width="14" height="9" rx="2.2" stroke={C.subtle} strokeWidth="1.9"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke={C.subtle} strokeWidth="1.9"/></svg>}
                   </div>
-                  <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{g.desc}</div>
+                  <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{g.desc || g.description || ""}</div>
                 </div>
               </div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:13 }}>
                 <div style={{ display:'flex', alignItems:'center' }}>
-                  {g.members.map((m,i)=>(
-                    <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:9, fontWeight:800, background:m.color }}>{m.initial}</div>
+                 {['S','M','J','A','R'].slice(0, 5).map((initial,i)=>(
+                    <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:9, fontWeight:800, background:['#FF5A8A','#0098F0','#10B981','#7C5CFF','#FF8A3D'][i] }}>{initial}</div>
                   ))}
-                  <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.count}</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.count || g.member_count || 0}</span>
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
                 </div>
                 <button onClick={()=>setGroupJoined(j=>({...j,[g.id]:!j[g.id]}))} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
@@ -773,7 +777,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast }) {
 // SCREEN: CREATE POST
 // ─────────────────────────────────────────────────────────────
 function CreatePostScreen({ goBack, groupId, showToast }) {
-  const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => g.state === 'joined') || GROUPS[0];
+  const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => g.state || "join" === 'joined') || GROUPS[0];
 
   const [text,       setText]       = useState('');
   const [hasPhoto,   setHasPhoto]   = useState(false);
@@ -782,7 +786,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const [group,      setGroup]      = useState(defaultGroup.name);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const joinedGroups = GROUPS.filter(g => g.state === 'joined');
+  const joinedGroups = GROUPS.filter(g => g.state || "join" === 'joined');
 
   const canPost = hasPoll
     ? text.trim().length > 0 && pollOpts.filter(o => o.trim()).length >= 2
@@ -910,11 +914,11 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                                cursor:'pointer', background: group===g.name ? '#EAF6FF' : '#fff',
                                borderBottom:`1px solid ${C.divider}` }}>
                       <div style={{ width:28, height:28, borderRadius:8, flexShrink:0,
-                                    background:g.logoColor, display:'flex', alignItems:'center',
+                                    background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                                     justifyContent:'center', color:'#fff',
                                     fontSize:11, fontWeight:800, position:'relative',
                                     overflow:'hidden' }}>
-                        <span>{g.initial}</span>
+                        <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
                         <div style={{ position:'absolute', inset:0, background:
                           'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 8px)'}}/>
                       </div>
@@ -1834,8 +1838,8 @@ function FiltersScreen({ from, goBack, showToast }) {
 function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
   const g = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
 
-  const [joinState,  setJoinState]  = useState(g.state);   // 'join'|'joined'|'request'|'requested'
-  const [notifyOn,   setNotifyOn]   = useState(g.state === 'joined');
+  const [joinState,  setJoinState]  = useState(g.state || "join");   // 'join'|'joined'|'request'|'requested'
+  const [notifyOn,   setNotifyOn]   = useState(g.state || "join" === 'joined');
   const [activeTab,  setActiveTab]  = useState('posts');
   const [postLikes,  setPostLikes]  = useState({});
   const [commentsOpen, setCommentsOpen] = useState(null);
@@ -1845,7 +1849,7 @@ function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
   const isPrivate  = joinState === 'request' || joinState === 'requested';
   const isJoined   = joinState === 'joined';
   const isRequested= joinState === 'requested';
-  const canSee     = isJoined || g.state === 'joined';
+  const canSee     = isJoined || g.state || "join" === 'joined';
 
   const handlePrimary = () => {
     if      (joinState === 'join')      setJoinState('joined');
@@ -1921,11 +1925,11 @@ function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
         {/* ── Avatar ──────────────────────────────────────── */}
         <div style={{ display:'flex', justifyContent:'center', marginTop:-42, position:'relative', zIndex:2 }}>
           <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
-                        background:g.logoColor, display:'flex', alignItems:'center',
+                        background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                         justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,
                         position:'relative', overflow:'hidden',
                         boxShadow:'0 6px 16px rgba(16,24,40,0.18)' }}>
-            <span>{g.initial}</span>
+            <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
             <div style={{ position:'absolute', inset:0, background:
               'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 13px)' }}/>
           </div>
@@ -1934,12 +1938,12 @@ function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
         {/* ── Name + desc ─────────────────────────────────── */}
         <div style={{ padding:'11px 24px 0', textAlign:'center' }}>
           <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink }}>{g.name}</div>
-          <div style={{ fontSize:13, lineHeight:1.5, color:'#7B8499', marginTop:6 }}>{g.desc}</div>
+          <div style={{ fontSize:13, lineHeight:1.5, color:'#7B8499', marginTop:6 }}>{g.desc || g.description || ""}</div>
         </div>
 
         {/* ── Stats ───────────────────────────────────────── */}
         <div style={{ display:'flex', justifyContent:'center', gap:34, marginTop:16 }}>
-          {[{v:g.count,l:'Members'},{v:g.posts,l:'Posts'},{v:g.events,l:'Events'}].map(s => (
+          {[{v:g.count || g.member_count || 0,l:'Members'},{v:g.posts || g.post_count || 0,l:'Posts'},{v:g.events || g.event_count || 0,l:'Events'}].map(s => (
             <div key={s.l} style={{ textAlign:'center' }}>
               <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>{s.v}</div>
               <div style={{ fontSize:12, color:C.subtle, fontWeight:600, marginTop:1 }}>{s.l}</div>
@@ -2888,8 +2892,8 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
   }, [sp.started]);
 
   const count = sp.participants + (joined ? 1 : 0);
-  const isFull = count >= sp.max;
-  const pct = Math.round((count / sp.max) * 100);
+  const isFull = count >= (sp.max_spots || sp.max || 10);
+  const pct = Math.round((count / sp.max_spots || sp.max || 10) * 100);
   const done = progress >= 100;
 
   const PARTICIPANTS = [
@@ -2897,8 +2901,8 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
     {i:'R',c:'#7C5CFF'},{i:'K',c:'#FF8A3D'},{i:'T',c:'#06B6D4'},
   ];
 
-  const ABOUT_SHORT = `${sp.desc}. A recurring space open to all skill levels — come alone or bring friends.`;
-  const ABOUT_FULL  = `${sp.desc}. A recurring space open to all skill levels — come alone or bring friends. Hosted by ${sp.hostText.replace('Created by ','').replace('Organized by ','')}, this space runs ${sp.time} for ${sp.duration} at ${sp.location}. All equipment is provided on site. Whether you're a beginner or experienced, everyone is welcome.`;
+  const ABOUT_SHORT = `${sp.desc || sp.description || ""}. A recurring space open to all skill levels — come alone or bring friends.`;
+  const ABOUT_FULL  = `${sp.desc || sp.description || ""}. A recurring space open to all skill levels — come alone or bring friends. Hosted by ${sp.hostText || sp.host_text || "".replace('Created by ','').replace('Organized by ','')}, this space runs ${sp.time} for ${sp.duration} at ${sp.location}. All equipment is provided on site. Whether you're a beginner or experienced, everyone is welcome.`;
 
   const RULES = [
     'Respect other participants',
@@ -2993,15 +2997,15 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'12px 15px',
                       display:'flex', alignItems:'center', gap:11 }}>
           <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
-                        background:sp.avatarColor, display:'flex', alignItems:'center',
+                        background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                         justifyContent:'center', color:'#fff', fontSize:16, fontWeight:800 }}>
-            {sp.avatarInitial}
+            {sp.avatarInitial || sp.avatar_initial || "S"}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>
-              {sp.hostText.replace('Created by ','').replace('Organized by ','')}
+              {sp.hostText || sp.host_text || "".replace('Created by ','').replace('Organized by ','')}
             </div>
-            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>{sp.hostText.split(' ')[0]}</div>
+            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>{sp.hostText || sp.host_text || "".split(' ')[0]}</div>
           </div>
           <button onClick={() => setFollowed(v => !v)} style={{
             flexShrink:0, height:30, padding:'0 14px', borderRadius:999,
@@ -3024,14 +3028,14 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
                             textTransform:'uppercase', color:C.subtle }}>Participants</div>
               <div style={{ fontSize:22, fontWeight:800, marginTop:3, lineHeight:1,
                             color: isFull ? '#FF3B6B' : C.ink }}>
-                {count}/{sp.max}{' '}
+                {count}/{sp.max_spots || sp.max || 10}{' '}
                 <span style={{ fontSize:13, fontWeight:700, color:C.subtle }}>spots filled</span>
               </div>
             </div>
             <span style={{ fontSize:10, fontWeight:800, padding:'4px 10px', borderRadius:999,
                            background: isFull ? '#FDE7E4' : '#E6F8F0',
                            color: isFull ? C.danger : '#0E9F6E' }}>
-              {isFull ? 'Full' : `${sp.max - count} left`}
+              {isFull ? 'Full' : `${sp.max_spots || sp.max || 10 - count} left`}
             </span>
           </div>
           {/* Capacity bar */}
@@ -3059,7 +3063,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
             )}
             <span style={{ fontSize:12, color:'#6B7385', marginLeft:10 }}>
               <span style={{ fontWeight:800, color:C.body }}>{count} joined</span>
-              {' '}· {sp.max - count > 0 ? `${sp.max - count} spots left` : 'full'}
+              {' '}· {sp.max_spots || sp.max || 10 - count > 0 ? `${sp.max_spots || sp.max || 10 - count} spots left` : 'full'}
             </span>
           </div>
 
@@ -6056,11 +6060,11 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
                       padding:16, display:'flex', alignItems:'center', gap:14 }}>
           <div style={{ width:62, height:62, borderRadius:'50%', flexShrink:0,
-                        background:g.logoColor, display:'flex', alignItems:'center',
+                        background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                         justifyContent:'center', color:'#fff', fontSize:20,
                         fontWeight:800, position:'relative', overflow:'hidden',
                         boxShadow:`0 0 0 2.5px #fff, 0 0 0 4px ${C.primary}` }}>
-            <span>{g.initial}</span>
+            <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
             <div style={{ position:'absolute', inset:0, background:
               'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 9px)'}}/>
           </div>
@@ -6068,7 +6072,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
             <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.3,
                           color:C.ink }}>{g.name}</div>
             <div style={{ fontSize:12.5, color:C.subtle, marginTop:2 }}>
-              {g.count} members · 156 active today
+              {g.count || g.member_count || 0} members · 156 active today
             </div>
             <div style={{ display:'flex', gap:7, marginTop:8 }}>
               <span style={{ display:'inline-flex', alignItems:'center', height:22,
@@ -6695,8 +6699,8 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
 
   const [tab,        setTab]        = useState(editTab || 'info');
   const [name,       setName]       = useState(g.name);
-  const [desc,       setDesc]       = useState(g.desc);
-  const [category,   setCategory]   = useState(g.cat?.[0] || 'academic');
+  const [desc,       setDesc]       = useState(g.desc || g.description || "");
+  const [category,   setCategory]   = useState((g.cat || g.category || [])?.[0] || 'academic');
   const [visibility, setVisibility] = useState('public');
   const [perms,      setPerms]      = useState({ membersPost:true, requireApproval:false, allowInvites:true });
   const [rules,      setRules]      = useState(g.rules?.length ? [...g.rules] : ['Be respectful and constructive','Original work only — credit sources','No spam or self-promotion','Keep feedback kind and specific']);
@@ -6800,10 +6804,10 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
                 cursor:'pointer', padding:0,
               }}>
                 <div style={{ width:84, height:84, borderRadius:'50%',
-                              background:g.logoColor, display:'flex', alignItems:'center',
+                              background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                               justifyContent:'center', color:'#fff', fontSize:26,
                               fontWeight:800, position:'relative', overflow:'hidden' }}>
-                  <span>{g.initial}</span>
+                  <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
                   <div style={{ position:'absolute', inset:0, background:
                     'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 9px)'}}/>
                 </div>

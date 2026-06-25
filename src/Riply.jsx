@@ -4889,6 +4889,8 @@ function CreateGroupScreen({ goBack, navigate, showToast }) {
   ];
 
   const [cat,      setCat]      = useState('culture');
+  const [coverUrl,  setCoverUrl]  = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [name,     setName]     = useState('');
   const [privacy,  setPrivacy]  = useState('public');
   const [desc,     setDesc]     = useState('');
@@ -4944,7 +4946,23 @@ function CreateGroupScreen({ goBack, navigate, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
 
         {/* Cover */}
-        <button onClick={() => showToast('Tap to pick a cover photo')} style={{
+        <button onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = async (e) => {
+            const file = e.target.files[0];
+            try {
+              const url = await uploadImage(file, 'event-covers', Date.now() + '.jpg');
+              setCoverUrl(url);
+              showToast('Cover photo uploaded ✓');
+            } catch(err) {
+              showToast('Upload failed. Try again.');
+            }
+            input.value = '';
+          };
+          input.click();
+        }} style={{
           width:'100%', height:140, borderRadius:20, border:'2px dashed #C7D2E0',
           background:coverGrad, position:'relative', overflow:'hidden', cursor:'pointer',
           display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
@@ -5317,7 +5335,23 @@ function CreateSpaceScreen({ goBack, navigate, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
 
         {/* Cover */}
-        <button onClick={() => showToast('Tap to pick a cover photo')}
+        <button onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = async (e) => {
+            const file = e.target.files[0];
+            try {
+              const url = await uploadImage(file, 'event-covers', Date.now() + '.jpg');
+              setCoverUrl(url);
+              showToast('Cover photo uploaded ✓');
+            } catch(err) {
+              showToast('Upload failed. Try again.');
+            }
+            input.value = '';
+          };
+          input.click();
+        }}
           style={{ width:'100%', height:148, borderRadius:20,
                    border:'2px dashed #C7D2E0', background:activeCat.grad,
                    position:'relative', overflow:'hidden', cursor:'pointer',
@@ -5741,7 +5775,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
 
         {/* Cover */}
-        <button onClick={() => {
+        <div onClick={() => {
           const input = document.createElement('input');
           input.type = 'file';
           input.accept = 'image/*';
@@ -5752,12 +5786,12 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
             try {
               const url = await uploadImage(file, 'event-covers', `${Date.now()}.jpg`);
               setCoverUrl(url);
-              console.log('Cover URL:', url);
               showToast('Cover photo uploaded ✓');
             } catch(err) {
               showToast('Upload failed. Try again.');
             }
-            setUploading(false);
+           setUploading(false);
+            input.value = '';
           };
           input.click();
         }}
@@ -5765,11 +5799,12 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
                    background: activeCat.grad,
                    cursor:'pointer', display:'flex', flexDirection:'column',
                    alignItems:'center', justifyContent:'center', gap:9,
-                   fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                   fontFamily:"'Montserrat',-apple-system,sans-serif",
+                   position:'relative', overflow:'hidden' }}>
           <div style={{ position:'absolute', inset:0, background:
             'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 16px)' }}/>
           <div style={{ width:46, height:46, borderRadius:14, background:'rgba(255,255,255,0.9)',
-                        display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
+                        display:'flex', alignItems:'center', justifyContent:'center', position:'relative', zIndex:2 }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <rect x="3.5" y="6" width="17" height="13" rx="3" stroke={C.primary} strokeWidth="1.9"/>
               <circle cx="12" cy="12.5" r="3" stroke={C.primary} strokeWidth="1.9"/>
@@ -5784,11 +5819,10 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
             {coverUrl ? 'Tap to change' : 'Recommended 1200×630'}
           </div>
           {coverUrl && (
-            <img src={coverUrl} style={{ position:'absolute', top:0, left:0, right:0, bottom:0, width:'100%',
-              height:'100%', objectFit:'cover', borderRadius:20 }}/>
+            <img src={coverUrl} style={{ position:'absolute', top:0, left:0, width:'100%',
+              height:'155px', objectFit:'cover', borderRadius:18, zIndex:1 }}/>
           )}
-        </button>
-
+        </div>
         {/* Category */}
         <div style={{ marginTop:20 }}>
           <Label>Category</Label>

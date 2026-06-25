@@ -1,15 +1,22 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { useSignIn, useSignUp, useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 
 export function useClerkAuth(showToast, setScreen, go) {
   const { signIn, isLoaded: signInLoaded, setActive: setActiveIn } = useSignIn()
   const { signUp, isLoaded: signUpLoaded, setActive: setActiveUp } = useSignUp()
-  const { user } = useUser()
+  const { user, isLoaded: userLoaded } = useUser()
 
   // Persist signup data across the verify → onboard → role steps,
   // because Clerk clears signUp after setActiveUp() is called.
   const pendingUser = useRef({ id: null, email: null, name: null })
+
+  // Track user?.id in a ref so completeOnboarding always has the latest value
+  // even if the closure was captured before Clerk finished loading the session.
+  const userIdRef = useRef(null)
+  useEffect(() => {
+    if (user?.id) userIdRef.current = user.id
+  }, [user?.id])
 
   const login = async (email, password) => {
     if (!email.trim()) { showToast('Enter your student email'); return; }
@@ -48,27 +55,35 @@ export function useClerkAuth(showToast, setScreen, go) {
     if (!signUpLoaded || !signUp) { showToast('Session expired. Please sign up again.'); go('signup'); return; }
     try {
       const result = await signUp.attemptEmailAddressVerification({ code })
-      console.log('[verify] result status:', result.status, 'userId:', result.createdUserId)
+      console.log('[verify] full result:', JSON.stringify({
+        status: result.status,
+        createdUserId: result.createdUserId,
+        createdSessionId: result.createdSessionId,
+        emailAddress: result.emailAddress,
+        username: result.username,
+        verifications: result.verifications,
+        missingFields: result.missingFields,
+        unverifiedFields: result.unverifiedFields,
+      }))
       if (result.status === 'complete') {
-        // Capture before setActiveUp clears the signUp resource
         pendingUser.current = {
-          id: result.createdUserId || signUp?.createdUserId,
-          email: result.emailAddress || signUp?.emailAddress,
-          name: result.username || signUp?.username,
+          id: result.createdUserId,
+          email: result.emailAddress,
+          name: result.username,
         }
-        console.log('[verify] captured pendingUser:', pendingUser.current)
         await setActiveUp({ session: result.createdSessionId })
         go('onboard')
-      } else if (result.verifications?.emailAddress?.status === 'verified') {
+      } else if (result.status === 'missing_requirements') {
+        // Email verified but Clerk needs more fields — still create session if possible
         pendingUser.current = {
-          id: result.createdUserId || signUp?.createdUserId,
-          email: result.emailAddress || signUp?.emailAddress,
-          name: result.username || signUp?.username,
+          id: result.createdUserId,
+          email: result.emailAddress,
+          name: result.username,
         }
-        go('onboard')
+        showToast('Missing fields: ' + (result.missingFields?.join(', ') || result.status))
       } else {
         const verifyErr = result.verifications?.emailAddress?.error
-        showToast(verifyErr?.longMessage || verifyErr?.message || 'Verification failed. Check your code.')
+        showToast(verifyErr?.longMessage || verifyErr?.message || 'Verification failed: ' + result.status)
       }
     } catch(e) {
       console.error('[verify] error:', e)
@@ -80,10 +95,10 @@ export function useClerkAuth(showToast, setScreen, go) {
     if (!role) { showToast('Please choose an account type'); return; }
     try {
       // Use ref captured at verify time; fall back to live useUser() if already signed in
-      const userId = pendingUser.current.id || user?.id
+      const userId = pendingUser.current.id || userIdRef.current || user?.id
       const email  = pendingUser.current.email || user?.primaryEmailAddress?.emailAddress
       const name   = pendingUser.current.name || user?.username
-      console.log('[onboarding] saving user:', userId, email, name)
+      console.log('[onboarding] saving user:', { userId, email, name, pending: pendingUser.current, userIdRef: userIdRef.current, liveUser: user?.id })
       if (!userId) {
         showToast('Could not save profile — no user ID. Please try again.')
         return

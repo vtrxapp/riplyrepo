@@ -3,6 +3,7 @@ import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useEvents } from "./hooks/useEvents";
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
+import { uploadImage } from "./hooks/useUpload";
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
@@ -5644,6 +5645,8 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
   const [endTime,   setEndTime]   = useState('');
   const [repeat,    setRepeat]    = useState(false);
   const [venue,     setVenue]     = useState('');
+  const [coverUrl,  setCoverUrl]  = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [room,      setRoom]      = useState('');
   const [pricing,   setPricing]   = useState('free');
   const [price,     setPrice]     = useState('');
@@ -5738,9 +5741,28 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
 
         {/* Cover */}
-        <button onClick={() => showToast('Tap to pick a cover photo')}
+        <button onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            setUploading(true);
+            try {
+              const url = await uploadImage(file, 'event-covers', `${Date.now()}.jpg`);
+              setCoverUrl(url);
+              console.log('Cover URL:', url);
+              showToast('Cover photo uploaded ✓');
+            } catch(err) {
+              showToast('Upload failed. Try again.');
+            }
+            setUploading(false);
+          };
+          input.click();
+        }}
           style={{ width:'100%', height:155, borderRadius:20, border:'2px dashed #C7D2E0',
-                   background:activeCat.grad, position:'relative', overflow:'hidden',
+                   background: activeCat.grad,
                    cursor:'pointer', display:'flex', flexDirection:'column',
                    alignItems:'center', justifyContent:'center', gap:9,
                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -5755,12 +5777,16 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
             </svg>
           </div>
           <div style={{ fontSize:12.5, fontWeight:800, color:'#fff', position:'relative' }}>
-            Add cover photo
+            {uploading ? 'Uploading…' : coverUrl ? 'Cover uploaded ✓' : 'Add cover photo'}
           </div>
           <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9.5,
                         color:'rgba(255,255,255,0.85)', position:'relative' }}>
-            Recommended 1200×630
+            {coverUrl ? 'Tap to change' : 'Recommended 1200×630'}
           </div>
+          {coverUrl && (
+            <img src={coverUrl} style={{ position:'absolute', top:0, left:0, right:0, bottom:0, width:'100%',
+              height:'100%', objectFit:'cover', borderRadius:20 }}/>
+          )}
         </button>
 
         {/* Category */}

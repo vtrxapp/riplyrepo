@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useEvents } from "./hooks/useEvents";
+import { useGroups } from "./hooks/useGroups";
+import { useSpaces } from "./hooks/useSpaces";
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
@@ -233,7 +236,9 @@ function HomeScreen({ liked, setLiked, saved, setSaved, following, setFollowing,
   ];
 
   const filterCats = ['career','sports','academic','social'];
-  let list = EVENTS.slice();
+  const { events: liveEvents, loading: eventsLoading } = useEvents({ category: activeCat, search: query });
+  const eventData = liveEvents.length > 0 ? liveEvents : EVENTS;
+  let list = eventData.slice();
   if (filterCats.includes(activeCat)) list = list.filter(e=>e.tags.includes(activeCat));
   else if (activeCat==='new') list = [...list].reverse();
   else if (activeCat==='popular') list = [...list].sort((a,b)=>b.attendees-a.attendees);
@@ -275,7 +280,7 @@ function HomeScreen({ liked, setLiked, saved, setSaved, following, setFollowing,
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No events match your search — try a different term.</div>
         )}
         {list.map(ev => {
-          const th = THEME[ev.primary];
+          const th = THEME[ev.primary] || THEME[ev.category] || THEME.social;
           const isLiked = !!liked[ev.id];
           const isSaved = !!saved[ev.id];
           const isFollowing = !!following[ev.id];
@@ -312,7 +317,7 @@ function HomeScreen({ liked, setLiked, saved, setSaved, following, setFollowing,
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
                   <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>{ev.date}</span>
                 </div>
-                <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc}</div>
+                <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
 
                 {/* Organizer row */}
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:13 }}>
@@ -2682,7 +2687,7 @@ function EventDetailsScreen({ eventId, liked, setLiked, saved, setSaved, followi
             <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>About This Event</span>
           </div>
           <div style={{ fontSize:12.5, lineHeight:1.65, color:C.muted }}>
-            {expanded ? ev.fullDesc : ev.desc}
+            {expanded ? (ev.fullDesc || ev.full_desc || ev.description) : (ev.desc || ev.description)}
           </div>
           <button onClick={() => setExpanded(e => !e)} style={{ marginTop:8, border:'none',
             background:'none', padding:0, fontSize:12, fontWeight:800, color:C.primary,

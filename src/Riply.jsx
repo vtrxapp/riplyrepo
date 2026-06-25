@@ -5882,10 +5882,17 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
         {/* Title */}
         <div style={{ marginTop:20 }}>
           <EventLabel>Event Title</EventLabel>
-          <EventInputField
-            value={title} onChange={e => setTitle(e.target.value)}
-            placeholder="e.g. Karaoke Night"
-          />
+          <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                        border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. Karaoke Night"
+              autoComplete="off"
+              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
+                       fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+            />
+          </div>
         </div>
 
         {/* Date & Time */}

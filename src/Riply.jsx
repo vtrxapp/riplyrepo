@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useEvents } from "./hooks/useEvents";
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
@@ -4027,8 +4028,11 @@ function WelcomeScreen({ navigate, setScreen }) {
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
 function AuthScreen({ setScreen, showToast }) {
+  const { signIn, setActive: setActiveSignIn } = window.Clerk?.client ? 
+    { signIn: window.Clerk.client.signIn, setActive: () => {} } : 
+    { signIn: null, setActive: () => {} };
   // ── step machine ──────────────────────────────────────────
-  const [step,    setStep]    = useState('login');   // login | signup | verify | onboard | role
+  const [step,    setStep]    = useState('login');  // login | signup | verify | onboard | role
   const [animKey, setAnimKey] = useState(0);
   const go = (s) => { setStep(s); setAnimKey(k => k+1); };
 
@@ -4133,10 +4137,21 @@ function AuthScreen({ setScreen, showToast }) {
             right={<EyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
-        <BigBtn onClick={()=>{
+      <BigBtn onClick={async ()=>{
           if(!email.trim()){showToast('Enter your student email');return;}
           if(!password){showToast('Enter your password');return;}
-          setScreen('home');
+          try {
+            const result = await window._clerkSignIn.create({
+              identifier: email,
+              password,
+            });
+            if(result.status === 'complete') {
+              await window._clerkSetActive({ session: result.createdSessionId });
+              setScreen('home');
+            }
+          } catch(e) {
+            showToast(e.errors?.[0]?.message || 'Login failed');
+          }
         }}>Log In</BigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
@@ -8383,6 +8398,16 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
 }
 
 export default function RiplyApp() {
+  const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, setActive: setActiveSignUp } = useSignUp();
+
+  // Expose to auth screens
+  useEffect(() => {
+    window._clerkSignIn = signIn;
+    window._clerkSignUp = signUp;
+    window._clerkSetActive = setActiveSignIn;
+    window._clerkSetActiveSignUp = setActiveSignUp;
+  }, [signIn, signUp, setActiveSignIn, setActiveSignUp]);
   // Font injection
   useEffect(() => {
     const style = document.createElement('style');

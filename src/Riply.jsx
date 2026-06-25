@@ -4065,15 +4065,29 @@ function AuthEyeBtn({ show, onToggle }) {
   );
 }
 
-function AuthBigBtn({ onClick, children, color }) {
+function AuthBigBtn({ onClick, children, color, loading, fullWidth }) {
+  const [pressed, setPressed] = useState(false);
   return (
-    <button onClick={onClick} style={{
-      width:204, height:52, border:'none', borderRadius:999, cursor:'pointer',
-      background: color||'linear-gradient(135deg,#19BFFF,#1499F5)',
-      color:'#fff', fontSize:15, fontWeight:800,
-      fontFamily:"'Montserrat',-apple-system,sans-serif",
-      boxShadow:'0 8px 22px rgba(2,162,240,0.4)',
-    }}>{children}</button>
+    <button
+      onClick={loading ? undefined : onClick}
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      style={{
+        width: fullWidth ? '100%' : 204, height:52, border:'none', borderRadius:999,
+        cursor: loading ? 'default' : 'pointer',
+        background: color||'linear-gradient(135deg,#19BFFF,#1499F5)',
+        color:'#fff', fontSize:15, fontWeight:800,
+        fontFamily:"'Montserrat',-apple-system,sans-serif",
+        boxShadow: pressed ? '0 2px 8px rgba(2,162,240,0.25)' : '0 8px 22px rgba(2,162,240,0.4)',
+        transform: pressed ? 'scale(0.97)' : 'scale(1)',
+        transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+        opacity: loading ? 0.7 : 1,
+        display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+      }}>
+      {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite', flexShrink:0 }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
+      {children}
+    </button>
   );
 }
 
@@ -4101,6 +4115,11 @@ function AuthScreen({ setScreen, showToast }) {
   const [code, setCode] = useState(['','','','','','']);
   const codeRef0=useRef(null),codeRef1=useRef(null),codeRef2=useRef(null),codeRef3=useRef(null),codeRef4=useRef(null),codeRef5=useRef(null);
   const codeRefs=[codeRef0,codeRef1,codeRef2,codeRef3,codeRef4,codeRef5];
+  const [loading, setLoading] = useState(false);
+  const withLoading = (fn) => async (...args) => {
+    setLoading(true);
+    try { await fn(...args); } finally { setLoading(false); }
+  };
   const go = (s) => { setStep(s); setAnimKey(k => k+1); };
   const { login, signup, verify, completeOnboarding } = useClerkAuth(showToast, setScreen, go);
 
@@ -4138,11 +4157,14 @@ function AuthScreen({ setScreen, showToast }) {
   const bgWash = { position:'absolute', top:0, left:0, right:0, height:320,
     background:'radial-gradient(circle at 50% 0%,rgba(25,191,255,0.15),transparent 62%)' };
 
+  const slideStyle = { animation:`authSlide 0.26s cubic-bezier(.4,0,.2,1)` };
+
   // ── LOGIN ─────────────────────────────────────────────────
   if (step === 'login') return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+    <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  overflow:'hidden' }}>
+                  overflow:'hidden', ...slideStyle }}>
+      <style>{`@keyframes authSlide{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
       <div style={bgWash}/>
       <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
                     alignItems:'center', padding:'74px 26px 32px', overflowY:'auto' }}>
@@ -4158,7 +4180,7 @@ function AuthScreen({ setScreen, showToast }) {
             right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
-      <AuthBigBtn onClick={()=>login(email, password)}>Log In</AuthBigBtn>
+      <AuthBigBtn onClick={withLoading(()=>login(email, password))} loading={loading}>Log In</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -4176,9 +4198,9 @@ function AuthScreen({ setScreen, showToast }) {
 
   // ── SIGNUP ────────────────────────────────────────────────
   if (step === 'signup') return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+    <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  overflow:'hidden' }}>
+                  overflow:'hidden', ...slideStyle }}>
       <div style={bgWash}/>
       <div style={{ position:'relative', flex:1, overflowY:'auto', display:'flex',
                     flexDirection:'column', alignItems:'center', padding:'60px 26px 30px' }}>
@@ -4231,7 +4253,7 @@ function AuthScreen({ setScreen, showToast }) {
             right={<AuthEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <AuthBigBtn onClick={()=>signup(name, email, password, confirm)} style={{ marginTop:22 }}>Sign Up</AuthBigBtn>
+        <AuthBigBtn onClick={withLoading(()=>signup(name, email, password, confirm))} loading={loading} style={{ marginTop:22 }}>Sign Up</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -4256,10 +4278,20 @@ function AuthScreen({ setScreen, showToast }) {
       if(v&&i<5) codeRefs[i+1].current?.focus();
       if(!v&&i>0&&e.nativeEvent.inputType==='deleteContentBackward') codeRefs[i-1].current?.focus();
     };
+    const handlePaste = (e) => {
+      const digits = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6).split('');
+      if(!digits.length) return;
+      e.preventDefault();
+      const nc=['','','','','',''];
+      digits.forEach((d,i)=>{ nc[i]=d; });
+      setCode(nc);
+      const focusIdx = Math.min(digits.length, 5);
+      codeRefs[focusIdx].current?.focus();
+    };
     return (
-      <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+      <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                     background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
-                    overflow:'hidden' }}>
+                    overflow:'hidden', ...slideStyle }}>
         <div style={bgWash}/>
         <div style={{ position:'relative', flexShrink:0, padding:'52px 16px 0',
                       display:'flex', alignItems:'center', gap:10 }}>
@@ -4300,11 +4332,13 @@ function AuthScreen({ setScreen, showToast }) {
                               background: code[i] ? C.primary : '#E4E8EF',
                               transition:'background .2s', pointerEvents:'none' }}/>
                 <input ref={codeRefs[i]} value={code[i]} onChange={e=>handleKey(i,e)}
+                  onPaste={i===0 ? handlePaste : undefined}
                   maxLength={1} inputMode="numeric"
                   style={{ width:44, height:44, border:'none',
                            borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,
                            background:'none', outline:'none', textAlign:'center',
-                           fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary }}/>
+                           fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary,
+                           transition:'border-color 0.15s' }}/>
               </div>
             ))}
           </div>
@@ -4317,13 +4351,7 @@ function AuthScreen({ setScreen, showToast }) {
           </div>
         </div>
         <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
-        <button onClick={()=>verify(code.join(''))} style={{ width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
-                      background:'linear-gradient(135deg,#19BFFF,#1499F5)', color:'#fff',
-                      fontSize:15, fontWeight:800,
-                      fontFamily:"'Montserrat',-apple-system,sans-serif",
-                      boxShadow:'0 8px 22px rgba(2,162,240,0.46)' }}>
-            Verify
-          </button>
+        <AuthBigBtn onClick={withLoading(()=>verify(code.join('')))} loading={loading} fullWidth>Verify</AuthBigBtn>
         </div>
       </div>
     );
@@ -4331,9 +4359,9 @@ function AuthScreen({ setScreen, showToast }) {
 
   // ── ONBOARD ───────────────────────────────────────────────
   if (step === 'onboard') return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+    <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  overflow:'hidden' }}>
+                  overflow:'hidden', ...slideStyle }}>
       <div style={bgWash}/>
       <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'60px 26px 24px' }}>
         {/* Progress pip */}
@@ -4429,27 +4457,20 @@ function AuthScreen({ setScreen, showToast }) {
         </div>
       </div>
       <div style={{ position:'relative', flexShrink:0, padding:'12px 26px 32px' }}>
-       <button onClick={()=>{
+       <AuthBigBtn fullWidth onClick={()=>{
           if(!university.trim()){showToast('Enter your university');return;}
           if(!campus){showToast('Select your campus');return;}
-          window._onboardingData = { university, campus, program, year };
           go('role');
-        }} style={{ width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
-                    background:'linear-gradient(135deg,#19BFFF,#1499F5)', color:'#fff',
-                    fontSize:15, fontWeight:800,
-                    fontFamily:"'Montserrat',-apple-system,sans-serif",
-                    boxShadow:'0 8px 22px rgba(2,162,240,0.46)' }}>
-          Continue
-        </button>
+        }}>Continue</AuthBigBtn>
       </div>
     </div>
   );
 
   // ── ROLE ─────────────────────────────────────────────────
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+    <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  overflow:'hidden' }}>
+                  overflow:'hidden', ...slideStyle }}>
       <div style={bgWash}/>
       <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'62px 26px 24px' }}>
         {/* Progress pip */}
@@ -4504,16 +4525,12 @@ function AuthScreen({ setScreen, showToast }) {
         </div>
       </div>
       <div style={{ position:'relative', flexShrink:0, padding:'12px 26px 32px' }}>
-       <button onClick={()=>completeOnboarding(role, university, campus, program, year)} style={{
-          width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
-          background: role?'linear-gradient(135deg,#19BFFF,#1499F5)':'#E4E8EF',
-          color: role?'#fff':'#A8B0BD',
-          fontSize:15, fontWeight:800,
-          fontFamily:"'Montserrat',-apple-system,sans-serif",
-          boxShadow: role?'0 8px 22px rgba(2,162,240,0.46)':'none',
-        }}>
-          {role ? 'Enter Riply' : 'Select an account type'}
-        </button>
+       <AuthBigBtn
+          fullWidth
+          loading={loading}
+          color={role ? 'linear-gradient(135deg,#19BFFF,#1499F5)' : '#E4E8EF'}
+          onClick={withLoading(()=>completeOnboarding(role, university, campus, program, year))}
+        >{role ? 'Enter Riply' : 'Select an account type'}</AuthBigBtn>
       </div>
     </div>
   );

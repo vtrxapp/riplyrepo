@@ -1,9 +1,15 @@
-import { useSignIn, useSignUp } from '@clerk/clerk-react'
+import { useRef } from 'react'
+import { useSignIn, useSignUp, useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 
 export function useClerkAuth(showToast, setScreen, go) {
   const { signIn, isLoaded: signInLoaded, setActive: setActiveIn } = useSignIn()
   const { signUp, isLoaded: signUpLoaded, setActive: setActiveUp } = useSignUp()
+  const { user } = useUser()
+
+  // Persist signup data across the verify → onboard → role steps,
+  // because Clerk clears signUp after setActiveUp() is called.
+  const pendingUser = useRef({ id: null, email: null, name: null })
 
   const login = async (email, password) => {
     if (!email.trim()) { showToast('Enter your student email'); return; }
@@ -42,12 +48,22 @@ export function useClerkAuth(showToast, setScreen, go) {
     if (!signUpLoaded || !signUp) { showToast('Session expired. Please sign up again.'); go('signup'); return; }
     try {
       const result = await signUp.attemptEmailAddressVerification({ code })
-      console.log('[verify] result:', result.status, result)
+      console.log('[verify] result status:', result.status, 'userId:', result.createdUserId)
       if (result.status === 'complete') {
+        // Capture before setActiveUp clears the signUp resource
+        pendingUser.current = {
+          id: result.createdUserId,
+          email: result.emailAddress,
+          name: result.username,
+        }
         await setActiveUp({ session: result.createdSessionId })
         go('onboard')
       } else if (result.verifications?.emailAddress?.status === 'verified') {
-        // Email verified but signup not fully complete — still proceed
+        pendingUser.current = {
+          id: result.createdUserId,
+          email: result.emailAddress,
+          name: result.username,
+        }
         go('onboard')
       } else {
         const verifyErr = result.verifications?.emailAddress?.error
@@ -62,21 +78,21 @@ export function useClerkAuth(showToast, setScreen, go) {
   const completeOnboarding = async (role, university, campus, program, year) => {
     if (!role) { showToast('Please choose an account type'); return; }
     try {
-      const userId = signUp?.createdUserId
+      // Use ref captured at verify time; fall back to live useUser() if already signed in
+      const userId = pendingUser.current.id || user?.id
+      const email  = pendingUser.current.email || user?.primaryEmailAddress?.emailAddress
+      const name   = pendingUser.current.name || user?.username
+      console.log('[onboarding] saving user:', userId, email, name)
       if (userId) {
-        await supabase.from('users').insert({
-          id: userId,
-          email: signUp?.emailAddress,
-          name: signUp?.username,
-          university,
-          campus,
-          program,
-          year,
-          role,
+        const { error } = await supabase.from('users').insert({
+          id: userId, email, name, university, campus, program, year, role,
         })
+        if (error) console.error('[onboarding] supabase error:', error)
+      } else {
+        console.warn('[onboarding] no userId available — skipping Supabase insert')
       }
     } catch(e) {
-      console.log('User save error:', e)
+      console.error('[onboarding] error:', e)
     }
     setScreen('home')
   }

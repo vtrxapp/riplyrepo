@@ -4169,8 +4169,8 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
       <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
                     alignItems:'center', padding:'74px 26px 32px', overflowY:'auto' }}>
         <AuthLogo size={106}/>
-        <div style={{ flex:0.4 }}/>
-        <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:13, marginTop:20 }}>
+        <div style={{ flex:1 }}/>
+        <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:13 }}>
           <AuthPillInput value={email} onChange={e=>setEmail(e.target.value)}
             placeholder="student email" inputMode="email"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.subtle} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>}
@@ -4180,7 +4180,8 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
             right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
-      <AuthBigBtn onClick={withLoading(()=>login(email, password))} loading={loading}>Log In</AuthBigBtn>
+        <div style={{ height:28 }}/>
+        <AuthBigBtn onClick={withLoading(()=>login(email, password))} loading={loading}>Log In</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -4253,7 +4254,8 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
             right={<AuthEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <AuthBigBtn onClick={withLoading(()=>signup(name, email, password, confirm))} loading={loading} style={{ marginTop:22 }}>Sign Up</AuthBigBtn>
+        <div style={{ height:28 }}/>
+        <AuthBigBtn onClick={withLoading(()=>signup(name, email, password, confirm))} loading={loading}>Sign Up</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?

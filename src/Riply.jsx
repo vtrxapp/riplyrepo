@@ -8509,7 +8509,7 @@ export default function RiplyApp() {
   }, []);
 
   // Navigation stack
-  const [navStack, setNavStack] = useState([{ screen: 'home' }]);
+  const [navStack, setNavStack] = useState([{ screen: 'welcome' }]);
   const current = navStack[navStack.length - 1];
   const screen = current.screen;
   const navParams = current;

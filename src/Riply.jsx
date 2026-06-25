@@ -3913,7 +3913,7 @@ function WelcomeScreen({ navigate, setScreen }) {
   const last = slide === SLIDES.length - 1;
 
   const next = () => {
-    if (last) { setScreen('auth'); return; }
+    if (last) { setScreen('auth', { initialStep: 'signup' }); return; }
     setSlide(s => s + 1);
   };
 
@@ -3933,7 +3933,7 @@ function WelcomeScreen({ navigate, setScreen }) {
           <span style={{ fontSize:17, fontWeight:800, letterSpacing:-0.4, color:C.primary }}>Riply</span>
         </div>
         {!last && (
-          <button onClick={() => setScreen('auth')} style={{ border:'none', background:'none',
+          <button onClick={() => setScreen('auth', { initialStep: 'signup' })} style={{ border:'none', background:'none',
             cursor:'pointer', fontSize:13, fontWeight:700, color:C.subtle,
             fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
             Skip
@@ -4108,9 +4108,9 @@ function AuthLogo({ size=100 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
-function AuthScreen({ setScreen, showToast }) {
+function AuthScreen({ setScreen, showToast, initialStep }) {
   // ── step machine ──────────────────────────────────────────
-  const [step,    setStep]    = useState('login');  // login | signup | verify | onboard | role
+  const [step,    setStep]    = useState(initialStep || 'login');  // login | signup | verify | onboard | role
   const [animKey, setAnimKey] = useState(0);
   const [code, setCode] = useState(['','','','','','']);
   const codeRef0=useRef(null),codeRef1=useRef(null),codeRef2=useRef(null),codeRef3=useRef(null),codeRef4=useRef(null),codeRef5=useRef(null);
@@ -8540,8 +8540,8 @@ export default function RiplyApp() {
   }, []);
 
   // setScreen for bottom nav (reset to root tab)
-  const setScreen = useCallback((scr) => {
-    setNavStack([{ screen: scr }]);
+  const setScreen = useCallback((scr, params = {}) => {
+    setNavStack([{ screen: scr, ...params }]);
   }, []);
 
   const [toast, setToast] = useState(null);
@@ -8600,7 +8600,7 @@ export default function RiplyApp() {
   const renderScreen = () => {
     switch(screen) {
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
-      case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} />;
+      case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} />;
       case 'home':      return <HomeScreen liked={liked} setLiked={setLiked} saved={saved} setSaved={setSaved} following={following} setFollowing={setFollowing} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;

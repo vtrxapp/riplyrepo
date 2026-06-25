@@ -52,17 +52,18 @@ export function useClerkAuth(showToast, setScreen, go) {
       if (result.status === 'complete') {
         // Capture before setActiveUp clears the signUp resource
         pendingUser.current = {
-          id: result.createdUserId,
-          email: result.emailAddress,
-          name: result.username,
+          id: result.createdUserId || signUp?.createdUserId,
+          email: result.emailAddress || signUp?.emailAddress,
+          name: result.username || signUp?.username,
         }
+        console.log('[verify] captured pendingUser:', pendingUser.current)
         await setActiveUp({ session: result.createdSessionId })
         go('onboard')
       } else if (result.verifications?.emailAddress?.status === 'verified') {
         pendingUser.current = {
-          id: result.createdUserId,
-          email: result.emailAddress,
-          name: result.username,
+          id: result.createdUserId || signUp?.createdUserId,
+          email: result.emailAddress || signUp?.emailAddress,
+          name: result.username || signUp?.username,
         }
         go('onboard')
       } else {
@@ -83,13 +84,17 @@ export function useClerkAuth(showToast, setScreen, go) {
       const email  = pendingUser.current.email || user?.primaryEmailAddress?.emailAddress
       const name   = pendingUser.current.name || user?.username
       console.log('[onboarding] saving user:', userId, email, name)
-      if (userId) {
-        const { error } = await supabase.from('users').insert({
-          id: userId, email, name, university, campus, program, year, role,
-        })
-        if (error) console.error('[onboarding] supabase error:', error)
-      } else {
-        console.warn('[onboarding] no userId available — skipping Supabase insert')
+      if (!userId) {
+        showToast('Could not save profile — no user ID. Please try again.')
+        return
+      }
+      const { error } = await supabase.from('users').insert({
+        id: userId, email, name, university, campus, program, year, role,
+      })
+      if (error) {
+        console.error('[onboarding] supabase error:', error)
+        showToast('Profile save failed: ' + (error.message || 'unknown error'))
+        return
       }
     } catch(e) {
       console.error('[onboarding] error:', e)

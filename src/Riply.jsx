@@ -4298,7 +4298,7 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
         <div style={{ position:'relative', flexShrink:0, padding:'52px 16px 0',
                       display:'flex', alignItems:'center', gap:10 }}>
           <button onClick={()=>go('signup')} style={{ width:38, height:38, border:'none',
-            borderRadius:12, background:'#fff', boxShadow:`0 2px 8px rgba(16,24,40,0.08)`,
+            borderRadius:999, background:'#fff', boxShadow:`0 2px 8px rgba(16,24,40,0.08)`,
             display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>

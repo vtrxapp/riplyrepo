@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
+import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useEvents } from "./hooks/useEvents";
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
@@ -4094,9 +4095,6 @@ function AuthLogo({ size=100 }) {
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
 function AuthScreen({ setScreen, showToast }) {
-  const { signIn, setActive: setActiveSignIn } = window.Clerk?.client ? 
-    { signIn: window.Clerk.client.signIn, setActive: () => {} } : 
-    { signIn: null, setActive: () => {} };
   // ── step machine ──────────────────────────────────────────
   const [step,    setStep]    = useState('login');  // login | signup | verify | onboard | role
   const [animKey, setAnimKey] = useState(0);
@@ -4104,6 +4102,7 @@ function AuthScreen({ setScreen, showToast }) {
   const codeRef0=useRef(null),codeRef1=useRef(null),codeRef2=useRef(null),codeRef3=useRef(null),codeRef4=useRef(null),codeRef5=useRef(null);
   const codeRefs=[codeRef0,codeRef1,codeRef2,codeRef3,codeRef4,codeRef5];
   const go = (s) => { setStep(s); setAnimKey(k => k+1); };
+  const { login, signup, verify, completeOnboarding } = useClerkAuth(showToast, setScreen, go);
 
   // ── field state ───────────────────────────────────────────
   const [name,     setName]     = useState('');
@@ -4159,22 +4158,7 @@ function AuthScreen({ setScreen, showToast }) {
             right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
-      <AuthBigBtn onClick={async ()=>{
-          if(!email.trim()){showToast('Enter your student email');return;}
-          if(!password){showToast('Enter your password');return;}
-          try {
-            const result = await window._clerkSignIn.create({
-              identifier: email,
-              password,
-            });
-            if(result.status === 'complete') {
-              await window._clerkSetActive({ session: result.createdSessionId });
-              setScreen('home');
-            }
-          } catch(e) {
-            showToast(e.errors?.[0]?.message || 'Login failed');
-          }
-        }}>Log In</AuthBigBtn>
+      <AuthBigBtn onClick={()=>login(email, password)}>Log In</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -4247,25 +4231,7 @@ function AuthScreen({ setScreen, showToast }) {
             right={<AuthEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <AuthBigBtn onClick={async ()=>{
-          if(!name.trim()){showToast('Choose a username');return;}
-          if(!email.includes('@')){showToast('Enter a valid student email');return;}
-          if(password.length<6){showToast('Password must be at least 6 characters');return;}
-          if(password!==confirm){showToast('Passwords do not match');return;}
-          try {
-            await window._clerkSignUp.create({
-              emailAddress: email,
-              password,
-              username: name,
-            });
-            await window._clerkSignUp.prepareEmailAddressVerification({
-              strategy: 'email_code'
-            });
-            go('verify');
-          } catch(e) {
-            showToast(e.errors?.[0]?.message || 'Sign up failed');
-          }
-        }} style={{ marginTop:22 }}>Sign Up</AuthBigBtn>
+        <AuthBigBtn onClick={()=>signup(name, email, password, confirm)} style={{ marginTop:22 }}>Sign Up</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -4351,20 +4317,7 @@ function AuthScreen({ setScreen, showToast }) {
           </div>
         </div>
         <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
-        <button onClick={async ()=>{
-            if(code.join('').length<6){showToast('Enter the full 6-digit code');return;}
-            try {
-              const result = await window._clerkSignUp.attemptEmailAddressVerification({
-                code: code.join('')
-              });
-              if(result.status === 'complete') {
-                await window._clerkSetActiveSignUp({ session: result.createdSessionId });
-                go('onboard');
-              }
-            } catch(e) {
-              showToast(e.errors?.[0]?.message || 'Invalid code. Try again.');
-            }
-          }} style={{ width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
+        <button onClick={()=>verify(code.join(''))} style={{ width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
                       background:'linear-gradient(135deg,#19BFFF,#1499F5)', color:'#fff',
                       fontSize:15, fontWeight:800,
                       fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -4551,28 +4504,7 @@ function AuthScreen({ setScreen, showToast }) {
         </div>
       </div>
       <div style={{ position:'relative', flexShrink:0, padding:'12px 26px 32px' }}>
-       <button onClick={async ()=>{
-          if(!role){showToast('Please choose an account type');return;}
-          try {
-            const { supabase } = await import('./lib/supabase');
-            const userId = window._clerkSignUp?.createdUserId;
-            if(userId) {
-              await supabase.from('users').insert({
-                id: userId,
-                email: window._clerkSignUp?.emailAddress,
-                name: window._clerkSignUp?.username,
-                university: window._onboardingData?.university || 'University of Manitoba',
-                campus: window._onboardingData?.campus || 'Fort Garry',
-                program: window._onboardingData?.program || '',
-                year: window._onboardingData?.year || '',
-                role,
-              });
-            }
-          } catch(e) {
-            console.log('User save error:', e);
-          }
-          setScreen('home');
-        }} style={{
+       <button onClick={()=>completeOnboarding(role, university, campus, program, year)} style={{
           width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
           background: role?'linear-gradient(135deg,#19BFFF,#1499F5)':'#E4E8EF',
           color: role?'#fff':'#A8B0BD',
@@ -5682,6 +5614,67 @@ function CreateSpaceScreen({ goBack, navigate, showToast }) {
   );
 }
 
+function EventLabel({ children }) {
+  return (
+    <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase',
+                  color:C.subtle, marginBottom:7 }}>
+      {children}
+    </div>
+  );
+}
+
+function EventInputField({ value, onChange, placeholder, inputMode, right }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                  border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
+      <input
+        value={value} onChange={onChange} placeholder={placeholder} inputMode={inputMode}
+        style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
+                 fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+      />
+      {right}
+    </div>
+  );
+}
+
+function EventRow({ children, last=false }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
+                  borderBottom: last ? 'none' : `1px solid ${C.divider}` }}>
+      {children}
+    </div>
+  );
+}
+
+function EventSegBtn({ active, onClick, children }) {
+  return (
+    <button onClick={onClick} style={{
+      flex:1, height:44, border: active ? 'none' : `1.5px solid ${C.border}`,
+      borderRadius:12, fontSize:12, fontWeight:700, cursor:'pointer',
+      fontFamily:"'Montserrat',-apple-system,sans-serif",
+      background: active ? C.primary : C.card,
+      color: active ? '#fff' : C.muted,
+      boxShadow: active ? '0 4px 12px rgba(2,162,240,0.3)' : 'none',
+    }}>{children}</button>
+  );
+}
+
+function EventCounterBtn({ onClick, minus }) {
+  return (
+    <button onClick={onClick} style={{
+      width:32, height:32, border:'none', borderRadius:'50%', cursor:'pointer',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      background: minus ? '#E9ECF2' : C.primary,
+      boxShadow: minus ? 'none' : '0 4px 10px rgba(2,162,240,0.3)',
+    }}>
+      {minus
+        ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="#39414F" strokeWidth="2.4" strokeLinecap="round"/></svg>
+        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
+      }
+    </button>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE EVENT
 // ─────────────────────────────────────────────────────────────
@@ -5721,58 +5714,6 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
   const activeCat = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid = pricing === 'paid';
   const canPublish = title.trim().length > 0;
-
-  // ─── sub-components ────────────────────────────────────────
-  const Label = ({ children }) => (
-    <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase',
-                  color:C.subtle, marginBottom:7 }}>
-      {children}
-    </div>
-  );
-
-  const InputField = ({ value, onChange, placeholder, inputMode, right }) => (
-    <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
-                  border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
-      <input
-        value={value} onChange={onChange} placeholder={placeholder} inputMode={inputMode}
-        style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
-                 fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
-      />
-      {right}
-    </div>
-  );
-
-  const Row = ({ children, border=true, last=false }) => (
-    <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
-                  borderBottom: last ? 'none' : `1px solid ${C.divider}` }}>
-      {children}
-    </div>
-  );
-
-  const SegBtn = ({ active, onClick, children }) => (
-    <button onClick={onClick} style={{
-      flex:1, height:44, border: active ? 'none' : `1.5px solid ${C.border}`,
-      borderRadius:12, fontSize:12, fontWeight:700, cursor:'pointer',
-      fontFamily:"'Montserrat',-apple-system,sans-serif",
-      background: active ? C.primary : C.card,
-      color: active ? '#fff' : C.muted,
-      boxShadow: active ? '0 4px 12px rgba(2,162,240,0.3)' : 'none',
-    }}>{children}</button>
-  );
-
-  const CounterBtn = ({ onClick, minus }) => (
-    <button onClick={onClick} style={{
-      width:32, height:32, border:'none', borderRadius:'50%', cursor:'pointer',
-      display:'flex', alignItems:'center', justifyContent:'center',
-      background: minus ? '#E9ECF2' : C.primary,
-      boxShadow: minus ? 'none' : '0 4px 10px rgba(2,162,240,0.3)',
-    }}>
-      {minus
-        ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="#39414F" strokeWidth="2.4" strokeLinecap="round"/></svg>
-        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
-      }
-    </button>
-  );
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -5854,7 +5795,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
         </div>
         {/* Category */}
         <div style={{ marginTop:20 }}>
-          <Label>Category</Label>
+          <EventLabel>Category</EventLabel>
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {CATS.map(c => (
               <button key={c.id} onClick={() => setCat(c.id)} style={{
@@ -5872,16 +5813,23 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Title */}
         <div style={{ marginTop:20 }}>
-          <Label>Event Title</Label>
-          <InputField
-            value={title} onChange={e => setTitle(e.target.value)}
-            placeholder="e.g. Karaoke Night"
-          />
+          <EventLabel>Event Title</EventLabel>
+          <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                        border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. Karaoke Night"
+              autoComplete="off"
+              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
+                       fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+            />
+          </div>
         </div>
 
         {/* Date & Time */}
         <div style={{ marginTop:20 }}>
-          <Label>Date &amp; Time</Label>
+          <EventLabel>Date &amp; Time</EventLabel>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'2px 14px' }}>
             {[
               { label:'Date',       icon:'cal',   val:date,      set:setDate,      ph:'Jan 15, 2026' },
@@ -5931,7 +5879,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Location */}
         <div style={{ marginTop:20 }}>
-          <Label>Location</Label>
+          <EventLabel>Location</EventLabel>
           <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
                         border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46, marginBottom:9 }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
@@ -5960,10 +5908,10 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Pricing */}
         <div style={{ marginTop:20 }}>
-          <Label>Pricing</Label>
+          <EventLabel>Pricing</EventLabel>
           <div style={{ display:'flex', gap:9 }}>
-            <SegBtn active={!isPaid} onClick={() => setPricing('free')}>Free for students</SegBtn>
-            <SegBtn active={ isPaid} onClick={() => setPricing('paid')}>Paid</SegBtn>
+            <EventSegBtn active={!isPaid} onClick={() => setPricing('free')}>Free for students</EventSegBtn>
+            <EventSegBtn active={ isPaid} onClick={() => setPricing('paid')}>Paid</EventSegBtn>
           </div>
           {isPaid && (
             <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:10, background:C.card,
@@ -5981,16 +5929,16 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Capacity */}
         <div style={{ marginTop:20 }}>
-          <Label>Capacity</Label>
+          <EventLabel>Capacity</EventLabel>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'14px 16px' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <span style={{ fontSize:13, fontWeight:700, color:C.body }}>Max attendees</span>
               <div style={{ display:'flex', alignItems:'center', gap:13 }}>
-                <CounterBtn minus onClick={() => !unlimited && setCapacity(v => Math.max(10, v - 10))}/>
+                <EventCounterBtn minus onClick={() => !unlimited && setCapacity(v => Math.max(10, v - 10))}/>
                 <span style={{ fontSize:16, fontWeight:800, color:C.ink, minWidth:34, textAlign:'center' }}>
                   {unlimited ? '∞' : capacity}
                 </span>
-                <CounterBtn onClick={() => !unlimited && setCapacity(v => v + 10)}/>
+                <EventCounterBtn onClick={() => !unlimited && setCapacity(v => v + 10)}/>
               </div>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:9, marginTop:13,
@@ -6011,7 +5959,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* About */}
         <div style={{ marginTop:20 }}>
-          <Label>About</Label>
+          <EventLabel>About</EventLabel>
           <textarea
             value={about} onChange={e => setAbout(e.target.value)}
             placeholder="Describe your event — who should come, what to expect, what to bring…"
@@ -6026,7 +5974,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
         {/* Rules */}
         <div style={{ marginTop:20 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <Label>Rules &amp; Guidelines</Label>
+            <EventLabel>Rules &amp; Guidelines</EventLabel>
             <span style={{ fontSize:10, fontWeight:700, color:C.subtle }}>
               {Object.values(rules).filter(Boolean).length} selected
             </span>
@@ -6090,9 +6038,8 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
               time_range: startTime + ' - ' + endTime,
               price: isPaid ? price : 'Free',
               capacity: unlimited ? 9999 : capacity,
-              cover_url: coverUrl || null,
             });
-            if (error) { showToast('Failed to publish event'); return; }
+            if (error) { showToast('Failed to publish: ' + error.message); return; }
             showToast('Event published! 🎉');
             goBack();
           }}
@@ -8562,7 +8509,7 @@ export default function RiplyApp() {
   }, []);
 
   // Navigation stack
-  const [navStack, setNavStack] = useState([{ screen: 'home' }]);
+  const [navStack, setNavStack] = useState([{ screen: 'welcome' }]);
   const current = navStack[navStack.length - 1];
   const screen = current.screen;
   const navParams = current;

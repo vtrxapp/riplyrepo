@@ -15,7 +15,7 @@ export function useClerkAuth(showToast, setScreen, go) {
         setScreen('home')
       }
     } catch(e) {
-      showToast(e.errors?.[0]?.message || 'Login failed. Try again.')
+      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Login failed. Try again.')
     }
   }
 
@@ -29,7 +29,7 @@ export function useClerkAuth(showToast, setScreen, go) {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
       go('verify')
     } catch(e) {
-      showToast(e.errors?.[0]?.message || 'Sign up failed. Try again.')
+      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Sign up failed. Try again.')
     }
   }
 
@@ -42,19 +42,19 @@ export function useClerkAuth(showToast, setScreen, go) {
         go('onboard')
       }
     } catch(e) {
-      showToast(e.errors?.[0]?.message || 'Invalid code. Try again.')
+      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Invalid code. Try again.')
     }
   }
 
-  const completeOnboarding = async (role, university, campus, program, year, signUpRef) => {
+  const completeOnboarding = async (role, university, campus, program, year) => {
     if (!role) { showToast('Please choose an account type'); return; }
     try {
-      const userId = signUpRef?.createdUserId
+      const userId = signUp?.createdUserId
       if (userId) {
         await supabase.from('users').insert({
           id: userId,
-          email: signUpRef?.emailAddress,
-          name: signUpRef?.username,
+          email: signUp?.emailAddress,
+          name: signUp?.username,
           university,
           campus,
           program,
@@ -68,5 +68,5 @@ export function useClerkAuth(showToast, setScreen, go) {
     setScreen('home')
   }
 
-  return { login, signup, verify, completeOnboarding, signUp }
+  return { login, signup, verify, completeOnboarding }
 }

@@ -42,7 +42,12 @@ export function useClerkAuth(showToast, setScreen, go) {
     if (password !== confirm) { showToast('Passwords do not match'); return; }
     if (!signUpLoaded) { showToast('Still loading, try again'); return; }
     try {
-      await signUp.create({ emailAddress: email, password, username: name })
+      await signUp.create({
+        emailAddress: email,
+        password,
+        username: name,
+        firstName: name,   // satisfy instances that require firstName
+      })
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
       go('verify')
     } catch(e) {
@@ -65,22 +70,32 @@ export function useClerkAuth(showToast, setScreen, go) {
         missingFields: result.missingFields,
         unverifiedFields: result.unverifiedFields,
       }))
-      if (result.status === 'complete') {
+      const complete = async (r) => {
         pendingUser.current = {
-          id: result.createdUserId,
-          email: result.emailAddress,
-          name: result.username,
+          id: r.createdUserId,
+          email: r.emailAddress,
+          name: r.username || r.firstName,
         }
-        await setActiveUp({ session: result.createdSessionId })
+        await setActiveUp({ session: r.createdSessionId })
         go('onboard')
+      }
+
+      if (result.status === 'complete') {
+        await complete(result)
       } else if (result.status === 'missing_requirements') {
-        // Email verified but Clerk needs more fields — still create session if possible
-        pendingUser.current = {
-          id: result.createdUserId,
-          email: result.emailAddress,
-          name: result.username,
+        console.log('[verify] missing_requirements, missingFields:', result.missingFields, 'unverifiedFields:', result.unverifiedFields)
+        // Try to fill any missing fields and complete the signup
+        const missing = result.missingFields || []
+        const updates = {}
+        if (missing.includes('first_name'))  updates.firstName = signUp.username || signUp.emailAddress?.split('@')[0]
+        if (missing.includes('last_name'))   updates.lastName  = signUp.username || signUp.emailAddress?.split('@')[0]
+        if (missing.includes('username'))    updates.username  = signUp.username || signUp.emailAddress?.split('@')[0]
+        const updated = Object.keys(updates).length > 0 ? await signUp.update(updates) : result
+        if (updated.status === 'complete') {
+          await complete(updated)
+        } else {
+          showToast('Cannot complete signup. Missing: ' + (updated.missingFields?.join(', ') || 'unknown'))
         }
-        showToast('Missing fields: ' + (result.missingFields?.join(', ') || result.status))
       } else {
         const verifyErr = result.verifications?.emailAddress?.error
         showToast(verifyErr?.longMessage || verifyErr?.message || 'Verification failed: ' + result.status)

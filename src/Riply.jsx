@@ -4,6 +4,7 @@ import { useEvents } from "./hooks/useEvents";
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
 import { uploadImage } from "./hooks/useUpload";
+import { supabase } from "./lib/supabase";
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
@@ -794,11 +795,20 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     ? text.trim().length > 0 && pollOpts.filter(o => o.trim()).length >= 2
     : !!(text.trim() || hasPhoto);
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!canPost) {
       showToast(hasPoll ? 'Write a question and add at least 2 options' : 'Write something or add a photo');
       return;
     }
+    const matchedGroup = GROUPS.find(g => g.name === group);
+    const { error } = await supabase.from('posts').insert({
+      text,
+      group_id: matchedGroup ? matchedGroup.id : null,
+      author_name: 'Jane Doe',
+      author_initial: 'JD',
+      author_color: 'linear-gradient(135deg,#FF8A3D,#FF5A8A)',
+    });
+    if (error) { showToast('Failed to post'); return; }
     showToast(`Posted to ${group} 🎉`);
     goBack();
   };
@@ -4025,6 +4035,61 @@ function WelcomeScreen({ navigate, setScreen }) {
   );
 }
 
+function AuthPillInput({ value, onChange, placeholder, type='text', inputMode, icon, right }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:11, background:'#fff',
+                  border:`1.5px solid ${C.border}`, borderRadius:999,
+                  padding:'0 20px', height:54,
+                  boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
+      <input value={value} onChange={onChange} placeholder={placeholder}
+        type={type} inputMode={inputMode}
+        style={{ flex:1, border:'none', background:'none', fontSize:14, fontWeight:600,
+                 color:C.body, outline:'none',
+                 fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+      {icon && <div style={{ flexShrink:0, display:'flex', alignItems:'center' }}>{icon}</div>}
+      {right}
+    </div>
+  );
+}
+
+function AuthEyeBtn({ show, onToggle }) {
+  return (
+    <button onClick={onToggle} style={{ border:'none', background:'none', cursor:'pointer',
+      padding:0, display:'flex', alignItems:'center', flexShrink:0 }}>
+      {show
+        ? <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="12" r="3" stroke={C.subtle} strokeWidth="1.9"/></svg>
+        : <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M17.9 17.9A10.5 10.5 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.1-6.1M9.9 5.2A9.6 9.6 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.2 3.1M3 3l18 18" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>
+      }
+    </button>
+  );
+}
+
+function AuthBigBtn({ onClick, children, color }) {
+  return (
+    <button onClick={onClick} style={{
+      width:204, height:52, border:'none', borderRadius:999, cursor:'pointer',
+      background: color||'linear-gradient(135deg,#19BFFF,#1499F5)',
+      color:'#fff', fontSize:15, fontWeight:800,
+      fontFamily:"'Montserrat',-apple-system,sans-serif",
+      boxShadow:'0 8px 22px rgba(2,162,240,0.4)',
+    }}>{children}</button>
+  );
+}
+
+function AuthLogo({ size=100 }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+      <div style={{ width:size, height:size, display:'flex', alignItems:'center',
+                    justifyContent:'center' }}>
+        <RiplyMark size={size} />
+      </div>
+      <div style={{ fontSize:26, fontWeight:800, letterSpacing:2, color:C.primary }}>RIPLY</div>
+      <div style={{ fontSize:10, fontWeight:800, letterSpacing:2.5, color:'#7B8499',
+                    textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
@@ -4074,53 +4139,6 @@ function AuthScreen({ setScreen, showToast }) {
   const bgWash = { position:'absolute', top:0, left:0, right:0, height:320,
     background:'radial-gradient(circle at 50% 0%,rgba(25,191,255,0.15),transparent 62%)' };
 
-  const PillInput = ({ value, onChange, placeholder, type='text', inputMode, icon, right }) => (
-    <div style={{ display:'flex', alignItems:'center', gap:11, background:'#fff',
-                  border:`1.5px solid ${C.border}`, borderRadius:999,
-                  padding:'0 20px', height:54,
-                  boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
-      <input value={value} onChange={onChange} placeholder={placeholder}
-        type={type} inputMode={inputMode}
-        style={{ flex:1, border:'none', background:'none', fontSize:14, fontWeight:600,
-                 color:C.body, outline:'none',
-                 fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
-      {icon && <div style={{ flexShrink:0, display:'flex', alignItems:'center' }}>{icon}</div>}
-      {right}
-    </div>
-  );
-
-  const EyeBtn = ({ show, onToggle }) => (
-    <button onClick={onToggle} style={{ border:'none', background:'none', cursor:'pointer',
-      padding:0, display:'flex', alignItems:'center', flexShrink:0 }}>
-      {show
-        ? <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="12" r="3" stroke={C.subtle} strokeWidth="1.9"/></svg>
-        : <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M17.9 17.9A10.5 10.5 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.1-6.1M9.9 5.2A9.6 9.6 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.2 3.1M3 3l18 18" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>
-      }
-    </button>
-  );
-
-  const BigBtn = ({ onClick, children, color }) => (
-    <button onClick={onClick} style={{
-      width:204, height:52, border:'none', borderRadius:999, cursor:'pointer',
-      background: color||'linear-gradient(135deg,#19BFFF,#1499F5)',
-      color:'#fff', fontSize:15, fontWeight:800,
-      fontFamily:"'Montserrat',-apple-system,sans-serif",
-      boxShadow:'0 8px 22px rgba(2,162,240,0.4)',
-    }}>{children}</button>
-  );
-
-  const Logo = ({ size=100 }) => (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-      <div style={{ width:size, height:size, display:'flex', alignItems:'center',
-                    justifyContent:'center' }}>
-        <RiplyMark size={size} />
-      </div>
-      <div style={{ fontSize:26, fontWeight:800, letterSpacing:2, color:C.primary }}>RIPLY</div>
-      <div style={{ fontSize:10, fontWeight:800, letterSpacing:2.5, color:'#7B8499',
-                    textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>
-    </div>
-  );
-
   // ── LOGIN ─────────────────────────────────────────────────
   if (step === 'login') return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
@@ -4129,19 +4147,19 @@ function AuthScreen({ setScreen, showToast }) {
       <div style={bgWash}/>
       <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
                     alignItems:'center', padding:'74px 26px 32px', overflowY:'auto' }}>
-        <Logo size={106}/>
+        <AuthLogo size={106}/>
         <div style={{ flex:0.4 }}/>
         <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:13, marginTop:20 }}>
-          <PillInput value={email} onChange={e=>setEmail(e.target.value)}
+          <AuthPillInput value={email} onChange={e=>setEmail(e.target.value)}
             placeholder="student email" inputMode="email"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.subtle} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>}
           />
-          <PillInput value={password} onChange={e=>setPassword(e.target.value)}
+          <AuthPillInput value={password} onChange={e=>setPassword(e.target.value)}
             placeholder="password" type={showPw?'text':'password'}
-            right={<EyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
+            right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
-      <BigBtn onClick={async ()=>{
+      <AuthBigBtn onClick={async ()=>{
           if(!email.trim()){showToast('Enter your student email');return;}
           if(!password){showToast('Enter your password');return;}
           try {
@@ -4156,7 +4174,7 @@ function AuthScreen({ setScreen, showToast }) {
           } catch(e) {
             showToast(e.errors?.[0]?.message || 'Login failed');
           }
-        }}>Log In</BigBtn>
+        }}>Log In</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -4180,13 +4198,13 @@ function AuthScreen({ setScreen, showToast }) {
       <div style={bgWash}/>
       <div style={{ position:'relative', flex:1, overflowY:'auto', display:'flex',
                     flexDirection:'column', alignItems:'center', padding:'60px 26px 30px' }}>
-        <Logo size={96}/>
+        <AuthLogo size={96}/>
         <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:12, marginTop:22 }}>
-          <PillInput value={name} onChange={e=>setName(e.target.value)}
+          <AuthPillInput value={name} onChange={e=>setName(e.target.value)}
             placeholder="username"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.subtle} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>}
           />
-          <PillInput value={email} onChange={e=>setEmail(e.target.value)}
+          <AuthPillInput value={email} onChange={e=>setEmail(e.target.value)}
             placeholder="student email" inputMode="email"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke={C.subtle} strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/></svg>}
           />
@@ -4220,16 +4238,16 @@ function AuthScreen({ setScreen, showToast }) {
               </div>
             )}
           </div>
-          <PillInput value={password} onChange={e=>setPassword(e.target.value)}
+          <AuthPillInput value={password} onChange={e=>setPassword(e.target.value)}
             placeholder="password" type={showPw?'text':'password'}
-            right={<EyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
+            right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
-          <PillInput value={confirm} onChange={e=>setConfirm(e.target.value)}
+          <AuthPillInput value={confirm} onChange={e=>setConfirm(e.target.value)}
             placeholder="confirm password" type={showCf?'text':'password'}
-            right={<EyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
+            right={<AuthEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <BigBtn onClick={async ()=>{
+        <AuthBigBtn onClick={async ()=>{
           if(!name.trim()){showToast('Choose a username');return;}
           if(!email.includes('@')){showToast('Enter a valid student email');return;}
           if(password.length<6){showToast('Password must be at least 6 characters');return;}
@@ -4247,7 +4265,7 @@ function AuthScreen({ setScreen, showToast }) {
           } catch(e) {
             showToast(e.errors?.[0]?.message || 'Sign up failed');
           }
-        }} style={{ marginTop:22 }}>Sign Up</BigBtn>
+        }} style={{ marginTop:22 }}>Sign Up</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -5212,8 +5230,19 @@ function CreateGroupScreen({ goBack, navigate, showToast }) {
             </span>
           </div>
         )}
-        <button onClick={() => {
+        <button onClick={async () => {
           if (!canCreate) { showToast('Add a group name first'); return; }
+          const { error } = await supabase.from('groups').insert({
+            name,
+            description: desc,
+            privacy,
+            category: [cat],
+            logo_color: coverGrad,
+            initial: name[0].toUpperCase(),
+            member_count: 1,
+            rules,
+          });
+          if (error) { showToast('Failed to create group'); return; }
           showToast('Group created! 🎉');
           goBack();
         }} style={{
@@ -6048,8 +6077,22 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
           </div>
         )}
         <button
-          onClick={() => {
+          onClick={async () => {
             if (!canPublish) { showToast('Add an event title first'); return; }
+            const { error } = await supabase.from('events').insert({
+              title,
+              description: about,
+              category: cat,
+              tags: [cat],
+              venue,
+              room,
+              full_date: date,
+              time_range: startTime + ' - ' + endTime,
+              price: isPaid ? price : 'Free',
+              capacity: unlimited ? 9999 : capacity,
+              cover_url: coverUrl || null,
+            });
+            if (error) { showToast('Failed to publish event'); return; }
             showToast('Event published! 🎉');
             goBack();
           }}

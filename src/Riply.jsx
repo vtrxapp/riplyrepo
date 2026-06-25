@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
+import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useEvents } from "./hooks/useEvents";
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
@@ -4094,9 +4095,6 @@ function AuthLogo({ size=100 }) {
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
 function AuthScreen({ setScreen, showToast }) {
-  const { signIn, setActive: setActiveSignIn } = window.Clerk?.client ? 
-    { signIn: window.Clerk.client.signIn, setActive: () => {} } : 
-    { signIn: null, setActive: () => {} };
   // ── step machine ──────────────────────────────────────────
   const [step,    setStep]    = useState('login');  // login | signup | verify | onboard | role
   const [animKey, setAnimKey] = useState(0);
@@ -4104,6 +4102,7 @@ function AuthScreen({ setScreen, showToast }) {
   const codeRef0=useRef(null),codeRef1=useRef(null),codeRef2=useRef(null),codeRef3=useRef(null),codeRef4=useRef(null),codeRef5=useRef(null);
   const codeRefs=[codeRef0,codeRef1,codeRef2,codeRef3,codeRef4,codeRef5];
   const go = (s) => { setStep(s); setAnimKey(k => k+1); };
+  const { login, signup, verify, completeOnboarding } = useClerkAuth(showToast, setScreen, go);
 
   // ── field state ───────────────────────────────────────────
   const [name,     setName]     = useState('');
@@ -4159,22 +4158,7 @@ function AuthScreen({ setScreen, showToast }) {
             right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
-      <AuthBigBtn onClick={async ()=>{
-          if(!email.trim()){showToast('Enter your student email');return;}
-          if(!password){showToast('Enter your password');return;}
-          try {
-            const result = await window._clerkSignIn.create({
-              identifier: email,
-              password,
-            });
-            if(result.status === 'complete') {
-              await window._clerkSetActive({ session: result.createdSessionId });
-              setScreen('home');
-            }
-          } catch(e) {
-            showToast(e.errors?.[0]?.message || 'Login failed');
-          }
-        }}>Log In</AuthBigBtn>
+      <AuthBigBtn onClick={()=>login(email, password)}>Log In</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -4247,25 +4231,7 @@ function AuthScreen({ setScreen, showToast }) {
             right={<AuthEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <AuthBigBtn onClick={async ()=>{
-          if(!name.trim()){showToast('Choose a username');return;}
-          if(!email.includes('@')){showToast('Enter a valid student email');return;}
-          if(password.length<6){showToast('Password must be at least 6 characters');return;}
-          if(password!==confirm){showToast('Passwords do not match');return;}
-          try {
-            await window._clerkSignUp.create({
-              emailAddress: email,
-              password,
-              username: name,
-            });
-            await window._clerkSignUp.prepareEmailAddressVerification({
-              strategy: 'email_code'
-            });
-            go('verify');
-          } catch(e) {
-            showToast(e.errors?.[0]?.message || 'Sign up failed');
-          }
-        }} style={{ marginTop:22 }}>Sign Up</AuthBigBtn>
+        <AuthBigBtn onClick={()=>signup(name, email, password, confirm)} style={{ marginTop:22 }}>Sign Up</AuthBigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
           Forgot Password?
@@ -4351,20 +4317,7 @@ function AuthScreen({ setScreen, showToast }) {
           </div>
         </div>
         <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
-        <button onClick={async ()=>{
-            if(code.join('').length<6){showToast('Enter the full 6-digit code');return;}
-            try {
-              const result = await window._clerkSignUp.attemptEmailAddressVerification({
-                code: code.join('')
-              });
-              if(result.status === 'complete') {
-                await window._clerkSetActiveSignUp({ session: result.createdSessionId });
-                go('onboard');
-              }
-            } catch(e) {
-              showToast(e.errors?.[0]?.message || 'Invalid code. Try again.');
-            }
-          }} style={{ width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
+        <button onClick={()=>verify(code.join(''))} style={{ width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
                       background:'linear-gradient(135deg,#19BFFF,#1499F5)', color:'#fff',
                       fontSize:15, fontWeight:800,
                       fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -4551,28 +4504,7 @@ function AuthScreen({ setScreen, showToast }) {
         </div>
       </div>
       <div style={{ position:'relative', flexShrink:0, padding:'12px 26px 32px' }}>
-       <button onClick={async ()=>{
-          if(!role){showToast('Please choose an account type');return;}
-          try {
-            const { supabase } = await import('./lib/supabase');
-            const userId = window._clerkSignUp?.createdUserId;
-            if(userId) {
-              await supabase.from('users').insert({
-                id: userId,
-                email: window._clerkSignUp?.emailAddress,
-                name: window._clerkSignUp?.username,
-                university: window._onboardingData?.university || 'University of Manitoba',
-                campus: window._onboardingData?.campus || 'Fort Garry',
-                program: window._onboardingData?.program || '',
-                year: window._onboardingData?.year || '',
-                role,
-              });
-            }
-          } catch(e) {
-            console.log('User save error:', e);
-          }
-          setScreen('home');
-        }} style={{
+       <button onClick={()=>completeOnboarding(role, university, campus, program, year)} style={{
           width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
           background: role?'linear-gradient(135deg,#19BFFF,#1499F5)':'#E4E8EF',
           color: role?'#fff':'#A8B0BD',

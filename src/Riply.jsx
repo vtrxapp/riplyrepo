@@ -4034,6 +4034,9 @@ function AuthScreen({ setScreen, showToast }) {
   // ── step machine ──────────────────────────────────────────
   const [step,    setStep]    = useState('login');  // login | signup | verify | onboard | role
   const [animKey, setAnimKey] = useState(0);
+  const [code, setCode] = useState(['','','','','','']);
+  const codeRef0=useRef(null),codeRef1=useRef(null),codeRef2=useRef(null),codeRef3=useRef(null),codeRef4=useRef(null),codeRef5=useRef(null);
+  const codeRefs=[codeRef0,codeRef1,codeRef2,codeRef3,codeRef4,codeRef5];
   const go = (s) => { setStep(s); setAnimKey(k => k+1); };
 
   // ── field state ───────────────────────────────────────────
@@ -4261,14 +4264,12 @@ function AuthScreen({ setScreen, showToast }) {
 
   // ── VERIFY ────────────────────────────────────────────────
   if (step === 'verify') {
-    const [code, setCode] = useState(['','','','','','']);
     const inputs = Array.from({length:6},(_,i)=>i);
-    const refs   = inputs.map(()=>useRef(null));
     const handleKey = (i,e) => {
       const v = e.target.value.replace(/\D/g,'').slice(-1);
       const nc=[...code]; nc[i]=v; setCode(nc);
-      if(v&&i<5) refs[i+1].current?.focus();
-      if(!v&&i>0&&e.nativeEvent.inputType==='deleteContentBackward') refs[i-1].current?.focus();
+      if(v&&i<5) codeRefs[i+1].current?.focus();
+      if(!v&&i>0&&e.nativeEvent.inputType==='deleteContentBackward') codeRefs[i-1].current?.focus();
     };
     return (
       <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
@@ -4313,7 +4314,7 @@ function AuthScreen({ setScreen, showToast }) {
                 <div style={{ width:14, height:14, borderRadius:'50%',
                               background: code[i] ? C.primary : '#E4E8EF',
                               transition:'background .2s' }}/>
-                <input ref={refs[i]} value={code[i]} onChange={e=>handleKey(i,e)}
+                <input ref={codeRefs[i]} value={code[i]} onChange={e=>handleKey(i,e)}
                   maxLength={1} inputMode="numeric"
                   style={{ width:36, height:4, border:'none',
                            borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,

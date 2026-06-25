@@ -4225,12 +4225,24 @@ function AuthScreen({ setScreen, showToast }) {
             right={<EyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <BigBtn onClick={()=>{
+        <BigBtn onClick={async ()=>{
           if(!name.trim()){showToast('Choose a username');return;}
           if(!email.includes('@')){showToast('Enter a valid student email');return;}
           if(password.length<6){showToast('Password must be at least 6 characters');return;}
           if(password!==confirm){showToast('Passwords do not match');return;}
-          go('verify');
+          try {
+            await window._clerkSignUp.create({
+              emailAddress: email,
+              password,
+              username: name,
+            });
+            await window._clerkSignUp.prepareEmailAddressVerification({
+              strategy: 'email_code'
+            });
+            go('verify');
+          } catch(e) {
+            showToast(e.errors?.[0]?.message || 'Sign up failed');
+          }
         }} style={{ marginTop:22 }}>Sign Up</BigBtn>
         <span onClick={()=>showToast('Password reset link sent')}
           style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
@@ -4319,9 +4331,19 @@ function AuthScreen({ setScreen, showToast }) {
           </div>
         </div>
         <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
-          <button onClick={()=>{
+        <button onClick={async ()=>{
             if(code.join('').length<6){showToast('Enter the full 6-digit code');return;}
-            go('onboard');
+            try {
+              const result = await window._clerkSignUp.attemptEmailAddressVerification({
+                code: code.join('')
+              });
+              if(result.status === 'complete') {
+                await window._clerkSetActiveSignUp({ session: result.createdSessionId });
+                go('onboard');
+              }
+            } catch(e) {
+              showToast(e.errors?.[0]?.message || 'Invalid code. Try again.');
+            }
           }} style={{ width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
                       background:'linear-gradient(135deg,#19BFFF,#1499F5)', color:'#fff',
                       fontSize:15, fontWeight:800,
@@ -4434,9 +4456,10 @@ function AuthScreen({ setScreen, showToast }) {
         </div>
       </div>
       <div style={{ position:'relative', flexShrink:0, padding:'12px 26px 32px' }}>
-        <button onClick={()=>{
+       <button onClick={()=>{
           if(!university.trim()){showToast('Enter your university');return;}
           if(!campus){showToast('Select your campus');return;}
+          window._onboardingData = { university, campus, program, year };
           go('role');
         }} style={{ width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',
                     background:'linear-gradient(135deg,#19BFFF,#1499F5)', color:'#fff',
@@ -4508,8 +4531,26 @@ function AuthScreen({ setScreen, showToast }) {
         </div>
       </div>
       <div style={{ position:'relative', flexShrink:0, padding:'12px 26px 32px' }}>
-        <button onClick={()=>{
+       <button onClick={async ()=>{
           if(!role){showToast('Please choose an account type');return;}
+          try {
+            const { supabase } = await import('./lib/supabase');
+            const userId = window._clerkSignUp?.createdUserId;
+            if(userId) {
+              await supabase.from('users').insert({
+                id: userId,
+                email: window._clerkSignUp?.emailAddress,
+                name: window._clerkSignUp?.username,
+                university: window._onboardingData?.university || 'University of Manitoba',
+                campus: window._onboardingData?.campus || 'Fort Garry',
+                program: window._onboardingData?.program || '',
+                year: window._onboardingData?.year || '',
+                role,
+              });
+            }
+          } catch(e) {
+            console.log('User save error:', e);
+          }
           setScreen('home');
         }} style={{
           width:'100%', height:52, border:'none', borderRadius:999, cursor:'pointer',

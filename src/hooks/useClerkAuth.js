@@ -42,12 +42,7 @@ export function useClerkAuth(showToast, setScreen, go) {
     if (password !== confirm) { showToast('Passwords do not match'); return; }
     if (!signUpLoaded) { showToast('Still loading, try again'); return; }
     try {
-      await signUp.create({
-        emailAddress: email,
-        password,
-        username: name,
-        firstName: name,   // satisfy instances that require firstName
-      })
+      await signUp.create({ emailAddress: email, password, username: name })
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
       go('verify')
     } catch(e) {
@@ -60,45 +55,17 @@ export function useClerkAuth(showToast, setScreen, go) {
     if (!signUpLoaded || !signUp) { showToast('Session expired. Please sign up again.'); go('signup'); return; }
     try {
       const result = await signUp.attemptEmailAddressVerification({ code })
-      console.log('[verify] full result:', JSON.stringify({
-        status: result.status,
-        createdUserId: result.createdUserId,
-        createdSessionId: result.createdSessionId,
-        emailAddress: result.emailAddress,
-        username: result.username,
-        verifications: result.verifications,
-        missingFields: result.missingFields,
-        unverifiedFields: result.unverifiedFields,
-      }))
-      const complete = async (r) => {
-        pendingUser.current = {
-          id: r.createdUserId,
-          email: r.emailAddress,
-          name: r.username || r.firstName,
-        }
-        await setActiveUp({ session: r.createdSessionId })
-        go('onboard')
-      }
-
       if (result.status === 'complete') {
-        await complete(result)
-      } else if (result.status === 'missing_requirements') {
-        console.log('[verify] missing_requirements, missingFields:', result.missingFields, 'unverifiedFields:', result.unverifiedFields)
-        // Try to fill any missing fields and complete the signup
-        const missing = result.missingFields || []
-        const updates = {}
-        if (missing.includes('first_name'))  updates.firstName = signUp.username || signUp.emailAddress?.split('@')[0]
-        if (missing.includes('last_name'))   updates.lastName  = signUp.username || signUp.emailAddress?.split('@')[0]
-        if (missing.includes('username'))    updates.username  = signUp.username || signUp.emailAddress?.split('@')[0]
-        const updated = Object.keys(updates).length > 0 ? await signUp.update(updates) : result
-        if (updated.status === 'complete') {
-          await complete(updated)
-        } else {
-          showToast('Cannot complete signup. Missing: ' + (updated.missingFields?.join(', ') || 'unknown'))
+        pendingUser.current = {
+          id: result.createdUserId,
+          email: result.emailAddress,
+          name: result.username,
         }
+        await setActiveUp({ session: result.createdSessionId })
+        go('onboard')
       } else {
         const verifyErr = result.verifications?.emailAddress?.error
-        showToast(verifyErr?.longMessage || verifyErr?.message || 'Verification failed: ' + result.status)
+        showToast(verifyErr?.longMessage || verifyErr?.message || 'Verification failed: ' + result.status + (result.missingFields?.length ? ' — missing: ' + result.missingFields.join(', ') : ''))
       }
     } catch(e) {
       console.error('[verify] error:', e)
@@ -113,7 +80,6 @@ export function useClerkAuth(showToast, setScreen, go) {
       const userId = pendingUser.current.id || userIdRef.current || user?.id
       const email  = pendingUser.current.email || user?.primaryEmailAddress?.emailAddress
       const name   = pendingUser.current.name || user?.username
-      console.log('[onboarding] saving user:', { userId, email, name, pending: pendingUser.current, userIdRef: userIdRef.current, liveUser: user?.id })
       if (!userId) {
         showToast('Could not save profile — no user ID. Please try again.')
         return

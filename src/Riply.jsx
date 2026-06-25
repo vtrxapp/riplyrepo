@@ -5682,6 +5682,67 @@ function CreateSpaceScreen({ goBack, navigate, showToast }) {
   );
 }
 
+function EventLabel({ children }) {
+  return (
+    <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase',
+                  color:C.subtle, marginBottom:7 }}>
+      {children}
+    </div>
+  );
+}
+
+function EventInputField({ value, onChange, placeholder, inputMode, right }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                  border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
+      <input
+        value={value} onChange={onChange} placeholder={placeholder} inputMode={inputMode}
+        style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
+                 fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+      />
+      {right}
+    </div>
+  );
+}
+
+function EventRow({ children, last=false }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
+                  borderBottom: last ? 'none' : `1px solid ${C.divider}` }}>
+      {children}
+    </div>
+  );
+}
+
+function EventSegBtn({ active, onClick, children }) {
+  return (
+    <button onClick={onClick} style={{
+      flex:1, height:44, border: active ? 'none' : `1.5px solid ${C.border}`,
+      borderRadius:12, fontSize:12, fontWeight:700, cursor:'pointer',
+      fontFamily:"'Montserrat',-apple-system,sans-serif",
+      background: active ? C.primary : C.card,
+      color: active ? '#fff' : C.muted,
+      boxShadow: active ? '0 4px 12px rgba(2,162,240,0.3)' : 'none',
+    }}>{children}</button>
+  );
+}
+
+function EventCounterBtn({ onClick, minus }) {
+  return (
+    <button onClick={onClick} style={{
+      width:32, height:32, border:'none', borderRadius:'50%', cursor:'pointer',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      background: minus ? '#E9ECF2' : C.primary,
+      boxShadow: minus ? 'none' : '0 4px 10px rgba(2,162,240,0.3)',
+    }}>
+      {minus
+        ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="#39414F" strokeWidth="2.4" strokeLinecap="round"/></svg>
+        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
+      }
+    </button>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE EVENT
 // ─────────────────────────────────────────────────────────────
@@ -5721,58 +5782,6 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
   const activeCat = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid = pricing === 'paid';
   const canPublish = title.trim().length > 0;
-
-  // ─── sub-components ────────────────────────────────────────
-  const Label = ({ children }) => (
-    <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase',
-                  color:C.subtle, marginBottom:7 }}>
-      {children}
-    </div>
-  );
-
-  const InputField = ({ value, onChange, placeholder, inputMode, right }) => (
-    <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
-                  border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
-      <input
-        value={value} onChange={onChange} placeholder={placeholder} inputMode={inputMode}
-        style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
-                 fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
-      />
-      {right}
-    </div>
-  );
-
-  const Row = ({ children, border=true, last=false }) => (
-    <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
-                  borderBottom: last ? 'none' : `1px solid ${C.divider}` }}>
-      {children}
-    </div>
-  );
-
-  const SegBtn = ({ active, onClick, children }) => (
-    <button onClick={onClick} style={{
-      flex:1, height:44, border: active ? 'none' : `1.5px solid ${C.border}`,
-      borderRadius:12, fontSize:12, fontWeight:700, cursor:'pointer',
-      fontFamily:"'Montserrat',-apple-system,sans-serif",
-      background: active ? C.primary : C.card,
-      color: active ? '#fff' : C.muted,
-      boxShadow: active ? '0 4px 12px rgba(2,162,240,0.3)' : 'none',
-    }}>{children}</button>
-  );
-
-  const CounterBtn = ({ onClick, minus }) => (
-    <button onClick={onClick} style={{
-      width:32, height:32, border:'none', borderRadius:'50%', cursor:'pointer',
-      display:'flex', alignItems:'center', justifyContent:'center',
-      background: minus ? '#E9ECF2' : C.primary,
-      boxShadow: minus ? 'none' : '0 4px 10px rgba(2,162,240,0.3)',
-    }}>
-      {minus
-        ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="#39414F" strokeWidth="2.4" strokeLinecap="round"/></svg>
-        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
-      }
-    </button>
-  );
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -5854,7 +5863,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
         </div>
         {/* Category */}
         <div style={{ marginTop:20 }}>
-          <Label>Category</Label>
+          <EventLabel>Category</EventLabel>
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {CATS.map(c => (
               <button key={c.id} onClick={() => setCat(c.id)} style={{
@@ -5872,8 +5881,8 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Title */}
         <div style={{ marginTop:20 }}>
-          <Label>Event Title</Label>
-          <InputField
+          <EventLabel>Event Title</EventLabel>
+          <EventInputField
             value={title} onChange={e => setTitle(e.target.value)}
             placeholder="e.g. Karaoke Night"
           />
@@ -5881,7 +5890,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Date & Time */}
         <div style={{ marginTop:20 }}>
-          <Label>Date &amp; Time</Label>
+          <EventLabel>Date &amp; Time</EventLabel>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'2px 14px' }}>
             {[
               { label:'Date',       icon:'cal',   val:date,      set:setDate,      ph:'Jan 15, 2026' },
@@ -5931,7 +5940,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Location */}
         <div style={{ marginTop:20 }}>
-          <Label>Location</Label>
+          <EventLabel>Location</EventLabel>
           <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
                         border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46, marginBottom:9 }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
@@ -5960,10 +5969,10 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Pricing */}
         <div style={{ marginTop:20 }}>
-          <Label>Pricing</Label>
+          <EventLabel>Pricing</EventLabel>
           <div style={{ display:'flex', gap:9 }}>
-            <SegBtn active={!isPaid} onClick={() => setPricing('free')}>Free for students</SegBtn>
-            <SegBtn active={ isPaid} onClick={() => setPricing('paid')}>Paid</SegBtn>
+            <EventSegBtn active={!isPaid} onClick={() => setPricing('free')}>Free for students</EventSegBtn>
+            <EventSegBtn active={ isPaid} onClick={() => setPricing('paid')}>Paid</EventSegBtn>
           </div>
           {isPaid && (
             <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:10, background:C.card,
@@ -5981,16 +5990,16 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* Capacity */}
         <div style={{ marginTop:20 }}>
-          <Label>Capacity</Label>
+          <EventLabel>Capacity</EventLabel>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'14px 16px' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <span style={{ fontSize:13, fontWeight:700, color:C.body }}>Max attendees</span>
               <div style={{ display:'flex', alignItems:'center', gap:13 }}>
-                <CounterBtn minus onClick={() => !unlimited && setCapacity(v => Math.max(10, v - 10))}/>
+                <EventCounterBtn minus onClick={() => !unlimited && setCapacity(v => Math.max(10, v - 10))}/>
                 <span style={{ fontSize:16, fontWeight:800, color:C.ink, minWidth:34, textAlign:'center' }}>
                   {unlimited ? '∞' : capacity}
                 </span>
-                <CounterBtn onClick={() => !unlimited && setCapacity(v => v + 10)}/>
+                <EventCounterBtn onClick={() => !unlimited && setCapacity(v => v + 10)}/>
               </div>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:9, marginTop:13,
@@ -6011,7 +6020,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
 
         {/* About */}
         <div style={{ marginTop:20 }}>
-          <Label>About</Label>
+          <EventLabel>About</EventLabel>
           <textarea
             value={about} onChange={e => setAbout(e.target.value)}
             placeholder="Describe your event — who should come, what to expect, what to bring…"
@@ -6026,7 +6035,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
         {/* Rules */}
         <div style={{ marginTop:20 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <Label>Rules &amp; Guidelines</Label>
+            <EventLabel>Rules &amp; Guidelines</EventLabel>
             <span style={{ fontSize:10, fontWeight:700, color:C.subtle }}>
               {Object.values(rules).filter(Boolean).length} selected
             </span>
@@ -6090,9 +6099,8 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
               time_range: startTime + ' - ' + endTime,
               price: isPaid ? price : 'Free',
               capacity: unlimited ? 9999 : capacity,
-              cover_url: coverUrl || null,
             });
-            if (error) { showToast('Failed to publish event'); return; }
+            if (error) { showToast('Failed to publish: ' + error.message); return; }
             showToast('Event published! 🎉');
             goBack();
           }}

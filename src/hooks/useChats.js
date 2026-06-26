@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 function formatTime(iso) {
+  if (!iso) return ''
   const d = new Date(iso)
   const now = new Date()
   const diffDays = Math.floor((now - d) / 86400000)
@@ -12,38 +13,22 @@ function formatTime(iso) {
 }
 
 export function useChats() {
-  const [chats, setChats]   = useState([])
+  const [chats, setChats]     = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     const { data: chatRows } = await supabase
       .from('chats')
-      .select('*')
-      .order('updated_at', { ascending: false })
+      .select('id, name, initial, color, last_message, last_message_at')
+      .order('last_message_at', { ascending: false })
 
-    if (!chatRows?.length) { setLoading(false); return }
-
-    // Latest message per chat
-    const { data: msgs } = await supabase
-      .from('messages')
-      .select('chat_id, content, sender_id, created_at')
-      .in('chat_id', chatRows.map(c => c.id))
-      .order('created_at', { ascending: false })
-
-    const latest = {}
-    msgs?.forEach(m => { if (!latest[m.chat_id]) latest[m.chat_id] = m })
-
-    setChats(chatRows.map(c => {
-      const msg = latest[c.id]
-      const isMine = msg?.sender_id === 'current-user'
-      return {
-        ...c,
-        preview: msg ? (isMine ? `You: ${msg.content}` : msg.content) : 'No messages yet',
-        time:    msg ? formatTime(msg.created_at) : '',
-        unread:  false,
-        unreadCount: 0,
-      }
-    }))
+    setChats((chatRows || []).map(c => ({
+      ...c,
+      preview: c.last_message || 'No messages yet',
+      time:    formatTime(c.last_message_at),
+      unread:  false,
+      unreadCount: 0,
+    })))
     setLoading(false)
   }, [])
 
@@ -51,7 +36,7 @@ export function useChats() {
     load()
     const channel = supabase
       .channel('chats-list')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, load)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [load])

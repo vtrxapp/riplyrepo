@@ -590,6 +590,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 // SCREEN: DISCOVER GROUPS
 // ─────────────────────────────────────────────────────────────
 function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoined, navigate, showToast }) {
+  const { user } = useUser();
   const TABS = [{id:'popular',label:'Popular'},{id:'all',label:'All'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
 
 const { groups: liveGroups } = useGroups();
@@ -626,8 +627,8 @@ const { groups: liveGroups } = useGroups();
         {list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
         {list.map(g => {
           const localJoined = !!groupJoined[g.id];
-          const isJoined = g.state || "join"==='joined' || localJoined;
-          const isReq = g.state || "join"==='request' && !localJoined;
+          const isJoined = (g.state || "join") === 'joined' || localJoined;
+          const isReq = (g.state || "join") === 'request' && !localJoined;
 
           let joinLabel;
           let joinStyle = {};
@@ -658,7 +659,14 @@ const { groups: liveGroups } = useGroups();
                   <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.count || g.member_count || 0}</span>
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
                 </div>
-                <button onClick={()=>setGroupJoined(j=>({...j,[g.id]:!j[g.id]}))} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
+                <button onClick={async ()=>{
+                  const nowJoined = !groupJoined[g.id];
+                  setGroupJoined(j=>({...j,[g.id]:nowJoined}));
+                  if (user?.id) {
+                    if (nowJoined) await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role:'member' });
+                    else await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);
+                  }
+                }} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
                   {joinLabel}
                 </button>
               </div>
@@ -799,7 +807,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
 function CreatePostScreen({ goBack, groupId, showToast }) {
   const { user } = useUser();
   const currentUser = useCurrentUser();
-  const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => g.state || "join" === 'joined') || GROUPS[0];
+  const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => (g.state || "join") === 'joined') || GROUPS[0];
 
   const [text,       setText]       = useState('');
   const [hasPhoto,   setHasPhoto]   = useState(false);
@@ -810,7 +818,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [posting,    setPosting]    = useState(false);
 
-  const joinedGroups = GROUPS.filter(g => g.state || "join" === 'joined');
+  const joinedGroups = GROUPS.filter(g => (g.state || "join") === 'joined');
 
   const canPost = hasPoll
     ? text.trim().length > 0 && pollOpts.filter(o => o.trim()).length >= 2
@@ -914,13 +922,15 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         {/* Author + group picker */}
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
           <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
-                        background:'linear-gradient(135deg,#FF8A3D,#FF5A8A)',
+                        background: currentUser?.avatar_url ? 'transparent' : 'linear-gradient(135deg,#FF8A3D,#FF5A8A)',
                         display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:15, fontWeight:800, color:'#fff' }}>
-            JD
+                        fontSize:15, fontWeight:800, color:'#fff', overflow:'hidden' }}>
+            {currentUser?.avatar_url
+              ? <img src={currentUser.avatar_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+              : (currentUser?.name || user?.firstName || 'M')[0].toUpperCase()}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>Jane Doe</div>
+            <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>{currentUser?.name || user?.username || user?.firstName || 'Member'}</div>
 
             {/* Group picker pill */}
             <div style={{ position:'relative', display:'inline-block', marginTop:4 }}>
@@ -1280,6 +1290,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
 function FeedbackScreen({ goBack, showToast }) {
   const CATS    = ['Bug report','Feature idea','Events','Groups','Payments','Other'];
   const LABELS  = ['','Poor','Fair','Good','Great','Excellent!'];
+  const { user } = useUser();
 
   const [rating,    setRating]    = useState(0);
   const [category,  setCategory]  = useState('');
@@ -1289,9 +1300,15 @@ function FeedbackScreen({ goBack, showToast }) {
 
   const canSubmit = rating > 0 && message.trim().length > 0;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0)          { showToast('Please add a star rating'); return; }
     if (!message.trim())       { showToast('Tell us a bit more first'); return; }
+    await supabase.from('feedback').insert({
+      user_id:  user?.id || null,
+      rating,
+      category: category || null,
+      message:  message.trim(),
+    });
     setSent(true);
   };
 
@@ -1877,11 +1894,12 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
 function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast }) {
+  const { user } = useUser();
   const g = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
 
   const [joinState,  setJoinState]  = useState(g.state || "join");   // 'join'|'joined'|'request'|'requested'
-  const [notifyOn,   setNotifyOn]   = useState(g.state || "join" === 'joined');
+  const [notifyOn,   setNotifyOn]   = useState((g.state || "join") === 'joined');
   const [activeTab,  setActiveTab]  = useState('posts');
   const [commentsOpen, setCommentsOpen] = useState(null);
   const [draft,      setDraft]      = useState('');
@@ -1890,13 +1908,23 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const isPrivate  = joinState === 'request' || joinState === 'requested';
   const isJoined   = joinState === 'joined';
   const isRequested= joinState === 'requested';
-  const canSee     = isJoined || g.state || "join" === 'joined';
+  const canSee     = isJoined || (g.state || "join") === 'joined';
 
-  const handlePrimary = () => {
-    if      (joinState === 'join')      setJoinState('joined');
-    else if (joinState === 'joined')    setJoinState('join');
-    else if (joinState === 'request')   setJoinState('requested');
-    else if (joinState === 'requested') setJoinState('request');
+  const handlePrimary = async () => {
+    if (!user?.id) { showToast('Sign in to join groups'); return; }
+    if (joinState === 'join') {
+      setJoinState('joined');
+      await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
+    } else if (joinState === 'joined') {
+      setJoinState('join');
+      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+    } else if (joinState === 'request') {
+      setJoinState('requested');
+      await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
+    } else if (joinState === 'requested') {
+      setJoinState('request');
+      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+    }
   };
 
   // ── primary button spec per state ───────────────────────
@@ -2487,7 +2515,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
-function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, following, toggleFollowing, navigate, goBack, showToast }) {
+function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, following, toggleFollowing, navigate, goBack, showToast, role }) {
   const ev = EVENTS.find(e => e.id === eventId) || EVENTS[0];
   const th = THEME[ev.primary] || THEME.social;
   const [expanded, setExpanded] = useState(false);
@@ -3619,6 +3647,7 @@ function ChatScreen({ chatId, goBack, showToast, currentUser }) {
 // SCREEN: PROFILE
 // ─────────────────────────────────────────────────────────────
 function ProfileScreen({ navigate, showToast, currentUser }) {
+  const cu = currentUser || {};
   const [editOpen, setEditOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
@@ -3631,10 +3660,21 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
   const [privateProfile, setPrivateProfile] = useState(false);
   const [lang, setLang] = useState('English');
   const [saving, setSaving] = useState(false);
+  const [stats, setStats] = useState({ events: 0, groups: 0 });
 
-  const name = currentUser.name;
-  const email = currentUser.email;
-  const profileRole = currentUser.role;
+  useEffect(() => {
+    if (!cu?.userId) return;
+    Promise.all([
+      supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
+      supabase.from('group_members').select('group_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
+    ]).then(([rsvps, grps]) => {
+      setStats({ events: rsvps.count || 0, groups: grps.count || 0 });
+    });
+  }, [cu?.userId]);
+
+  const name = cu.name || 'Student';
+  const email = cu.email || '';
+  const [profileRole, setProfileRole] = useState(cu.role || 'student');
   const [draftName, setDraftName] = useState('');
   const [draftEmail, setDraftEmail] = useState('');
 
@@ -3758,7 +3798,7 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
 
         {/* Stats */}
         <div style={{ display:'flex', gap:10, marginTop:20 }}>
-          {[{v:12,l:'Events'},{v:8,l:'Groups'},{v:'340',l:'Friends'}].map(s=>(
+          {[{v:stats.events,l:'Events'},{v:stats.groups,l:'Groups'},{v:'–',l:'Friends'}].map(s=>(
             <div key={s.l} style={{ flex:1, background:cardBg, borderRadius:18, padding:'13px 8px', textAlign:'center', boxShadow:'0 4px 14px rgba(16,24,40,0.05)', transition:'background .3s' }}>
               <div style={{ fontSize:17, fontWeight:800, color:textColor }}>{s.v}</div>
               <div style={{ fontSize:9, fontWeight:600, color:subColor, marginTop:2 }}>{s.l}</div>
@@ -3799,7 +3839,7 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
         ))}
 
         {/* Logout */}
-        <button onClick={async ()=>{ await currentUser.logout(); }} style={{ width:'100%', height:52, marginTop:24, border:'none', borderRadius:16, background:'linear-gradient(135deg,#FF6B4D,#F4452B)', color:'#fff', fontSize:13.5, fontWeight:800, letterSpacing:0.4, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:9, boxShadow:'0 8px 20px rgba(244,69,43,0.32)' }}>
+        <button onClick={async ()=>{ if (cu.logout) await cu.logout(); else showToast('Signed out'); }} style={{ width:'100%', height:52, marginTop:24, border:'none', borderRadius:16, background:'linear-gradient(135deg,#FF6B4D,#F4452B)', color:'#fff', fontSize:13.5, fontWeight:800, letterSpacing:0.4, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:9, boxShadow:'0 8px 20px rgba(244,69,43,0.32)' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 12h10m0 0-3-3m3 3-3 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           LOGOUT
         </button>
@@ -8799,6 +8839,9 @@ export default function RiplyApp() {
     toastRef.current = setTimeout(() => setToast(null), 2200);
   }, []);
 
+  // Current user
+  const currentUser = useCurrentUser();
+
   // Home state
   const { liked, saved, rsvpd: following, postLiked, toggleLike, toggleSave, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
   const [filters, setFilters] = useState({});
@@ -8856,7 +8899,7 @@ export default function RiplyApp() {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} />;
+      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;

@@ -647,9 +647,10 @@ const { groups: liveGroups } = useGroups();
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
                 </div>
                 <button onClick={async ()=>{
-                  const nowJoined = !groupJoined[g.id];
+                  const nowJoined = !isJoined;
                   setGroupJoined(j=>({...j,[g.id]:nowJoined}));
-                  if (user?.id) {
+                  const isUuid = typeof g.id === 'string' && g.id.includes('-');
+                  if (user?.id && isUuid) {
                     if (nowJoined) await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role:'member' });
                     else await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);
                   }
@@ -1290,12 +1291,13 @@ function FeedbackScreen({ goBack, showToast }) {
   const handleSubmit = async () => {
     if (rating === 0)          { showToast('Please add a star rating'); return; }
     if (!message.trim())       { showToast('Tell us a bit more first'); return; }
-    await supabase.from('feedback').insert({
+    const { error } = await supabase.from('feedback').insert({
       user_id:  user?.id || null,
       rating,
       category: category || null,
       message:  message.trim(),
     });
+    if (error) { showToast('Failed to send feedback. Try again.'); return; }
     setSent(true);
   };
 
@@ -3361,7 +3363,8 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
           <button onClick={async () => {
             const next = !joined;
             setJoined(next);
-            if (user?.id) {
+            const isUuid = typeof sp.id === 'string' && sp.id.includes('-');
+            if (user?.id && isUuid) {
               if (next) await supabase.from('space_participants').upsert({ space_id: sp.id, user_id: user.id });
               else await supabase.from('space_participants').delete().eq('space_id', sp.id).eq('user_id', user.id);
             }
@@ -3425,7 +3428,10 @@ function ChatScreen({ chatId, goBack, showToast, currentUser }) {
 
   // Online status — group chats (id 4) show member count, DMs show 'Active recently'
   const isGroup = chat.type === 'group' || chat.isGroup;
-  const onlineLabel = isGroup ? `Online · ${chat.memberCount || chat.members || ''} members`.replace(' members',' members').trim() : 'Active recently';
+  const memberCount = chat.memberCount || chat.members;
+  const onlineLabel = isGroup
+    ? memberCount ? `Online · ${memberCount} members` : 'Online'
+    : 'Active recently';
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,

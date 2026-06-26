@@ -3717,7 +3717,7 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
             input.onchange = async (e) => {
               const file = e.target.files[0]; if (!file) return;
               try {
-                const url = await uploadImage(file, 'avatars', `${currentUser.userId}.jpg`);
+                const url = await uploadImage(file, 'group avatars', `${currentUser.userId}.jpg`);
                 await currentUser.updateProfile({ avatar_url: url });
                 showToast('Profile photo updated');
               } catch { showToast('Upload failed. Try again.'); }

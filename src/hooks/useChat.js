@@ -19,6 +19,7 @@ export function useChat(chatId) {
         setMessages(data || [])
         setLoading(false)
       })
+      .catch(() => setLoading(false))
 
     // Real-time subscription
     const channel = supabase
@@ -42,7 +43,6 @@ export function useChat(chatId) {
       chat_id: chatId,
       sender_id: 'current-user',
       content,
-      created_at: new Date().toISOString(),
     })
   }
 

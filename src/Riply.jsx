@@ -43,31 +43,18 @@ const THEME = {
 // RIPLY LOGO MARK  (matches the uploaded brand asset)
 // ─────────────────────────────────────────────────────────────
 function RiplyMark({ size = 32, white = false }) {
-  const color = white ? '#ffffff' : '#19BFFF';
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" fill="none"
-         xmlns="http://www.w3.org/2000/svg">
-      {/* Main C body */}
-      <path fill={color} d="
-        M 112 28
-        C 84 20 40 46 26 82
-        C 12 118 26 158 58 176
-        C 74 185 96 187 116 181
-        C 130 176 144 168 152 160
-        C 142 152 128 142 114 136
-        C 100 149 80 152 64 143
-        C 42 129 40 100 52 80
-        C 64 60 92 50 118 56
-        C 122 46 122 32 112 28 Z
-      "/>
-      {/* Floating tail piece — lower right */}
-      <path fill={color} d="
-        M 140 162
-        C 148 150 166 149 172 161
-        C 178 173 165 184 152 178
-        C 142 173 134 169 140 162 Z
-      "/>
-    </svg>
+    <img
+      src="/logo.png"
+      alt="Riply"
+      width={size}
+      height={size}
+      style={{
+        objectFit: 'contain',
+        display: 'block',
+        filter: white ? 'brightness(0) invert(1)' : 'none',
+      }}
+    />
   );
 }
 

@@ -7473,7 +7473,15 @@ function CheckInScreen({ eventId, goBack, showToast }) {
 // SCREEN: REVIEW
 // ─────────────────────────────────────────────────────────────
 function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
-  const tk = TICKETS_DATA.find(t => t.id === ticketId) || TICKETS_DATA[0];
+  const { user } = useUser();
+  const [tk, setTk] = useState(TICKETS_DATA.find(t => t.id === ticketId) || TICKETS_DATA[0]);
+
+  useEffect(() => {
+    if (!ticketId || !user?.id) return;
+    supabase.from('tickets').select('*').eq('id', ticketId).single()
+      .then(({ data }) => { if (data) setTk(data); });
+  }, [ticketId, user?.id]);
+
   const LABELS  = ['','Poor','Fair','Good','Great','Loved it!'];
   const ASPECTS = [
     { id:'venue', label:'Venue & atmosphere' },
@@ -7488,6 +7496,7 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
   const [review,    setReview]    = useState('');
   const [recommend, setRecommend] = useState(true);
   const [sent,      setSent]      = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = rating > 0;
 
@@ -7707,8 +7716,24 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
         </div>
 
         {/* Submit */}
-        <button onClick={() => {
+        <button onClick={async () => {
           if (!canSubmit) { showToast('Add a star rating first'); return; }
+          setSubmitting(true);
+          const { error } = await supabase.from('event_reviews').insert({
+            user_id:      user?.id,
+            event_id:     tk?.event_id || null,
+            ticket_id:    tk?.id || null,
+            event_title:  tk?.title || tk?.eventTitle || '',
+            rating,
+            venue_rating: aspects.venue,
+            org_rating:   aspects.org,
+            value_rating: aspects.value,
+            tags:         Object.keys(tags).filter(k => tags[k]),
+            body:         review.trim(),
+            recommend,
+          });
+          setSubmitting(false);
+          if (error) { showToast('Failed to submit. Try again.'); return; }
           setSent(true);
         }} style={{
           width:'100%', height:52, marginTop:22, border:'none', borderRadius:16,
@@ -7717,7 +7742,8 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
           background: canSubmit ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#E4E8EF',
           color: canSubmit ? '#fff' : '#A8B0BD',
           boxShadow: canSubmit ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
-        }}>Post Review</button>
+          opacity: submitting ? 0.7 : 1,
+        }}>{submitting ? 'Posting…' : 'Post Review'}</button>
       </div>
     </div>
   );

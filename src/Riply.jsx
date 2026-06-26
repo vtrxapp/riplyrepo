@@ -6,6 +6,7 @@ import { useNotifications } from "./hooks/useNotifications";
 import { useChat } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
 import { useEvents } from "./hooks/useEvents";
+import { useUserInteractions } from "./hooks/useUserInteractions";
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
 import { uploadImage } from "./hooks/useUpload";
@@ -226,21 +227,17 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, setLiked, saved, setSaved, following, setFollowing, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast }) {
   const CATS = [
     {id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
   ];
 
-  const filterCats = ['career','sports','academic','social'];
-  const { events: liveEvents, loading: eventsLoading } = useEvents({ category: activeCat, search: query });
+  const { events: liveEvents, loading: eventsLoading } = useEvents({ category: activeCat, search: query, filters });
   const eventData = liveEvents.length > 0 ? liveEvents : EVENTS;
   let list = eventData.slice();
-  if (filterCats.includes(activeCat)) list = list.filter(e=>e.tags.includes(activeCat));
-  else if (activeCat==='new') list = [...list].reverse();
+  if (activeCat==='new') list = [...list].reverse();
   else if (activeCat==='popular') list = [...list].sort((a,b)=>b.attendees-a.attendees);
-  const q=(query||'').trim().toLowerCase();
-  if(q) list=list.filter(e=>(e.title+' '+e.org+' '+e.location+' '+e.desc).toLowerCase().includes(q));
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -262,7 +259,7 @@ function HomeScreen({ liked, setLiked, saved, setSaved, following, setFollowing,
           placeholder={query || 'What can we help you find?'}
           hint={query ? undefined : 'Try "Social events this weekend"'}
           value={query} onChange={e=>setQuery(e.target.value)}
-          onFilter={()=>navigate('filters',{from:'home'})}
+          onFilter={()=>navigate('filters',{from:'home', filters, setFilters})}
         />
       </div>
 
@@ -325,7 +322,7 @@ function HomeScreen({ liked, setLiked, saved, setSaved, following, setFollowing,
                       <div style={{ fontSize:9, color:C.subtle }}>Organizer</div>
                     </div>
                   </div>
-                  <button onClick={()=>setFollowing(f=>({...f,[ev.id]:!f[ev.id]}))} style={{ flexShrink:0, border: isFollowing?'1.5px solid #E3E7EE':'none', background: isFollowing?'#fff':C.primary, color: isFollowing?'#7B8499':'#fff', height:32, padding:'0 17px', borderRadius:999, fontSize:10.5, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                  <button onClick={()=>toggleFollowing(ev.id)} style={{ flexShrink:0, border: isFollowing?'1.5px solid #E3E7EE':'none', background: isFollowing?'#fff':C.primary, color: isFollowing?'#7B8499':'#fff', height:32, padding:'0 17px', borderRadius:999, fontSize:10.5, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
                     {isFollowing ? 'Following' : 'Follow'}
                   </button>
                 </div>
@@ -335,11 +332,11 @@ function HomeScreen({ liked, setLiked, saved, setSaved, following, setFollowing,
 
                 {/* Metrics */}
                 <div style={{ display:'flex', alignItems:'center', gap:18 }}>
-                  <button onClick={()=>setLiked(l=>({...l,[ev.id]:!l[ev.id]}))} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
+                  <button onClick={()=>toggleLike(ev.id)} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill={isLiked?'#FF3B6B':'rgba(0,0,0,0)'} stroke={isLiked?'#FF3B6B':'#9AA3B2'} strokeWidth="1.8" strokeLinejoin="round"/></svg>
                     <span style={{ fontSize:11, fontWeight:700, color:isLiked?'#FF3B6B':C.subtle }}>{fmt(ev.likes+(isLiked?1:0))}</span>
                   </button>
-                  <button onClick={()=>setSaved(s=>({...s,[ev.id]:!s[ev.id]}))} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
+                  <button onClick={()=>toggleSave(ev.id)} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill={isSaved?'#0098F0':'rgba(0,0,0,0)'} stroke={isSaved?'#0098F0':'#9AA3B2'} strokeWidth="1.7" strokeLinejoin="round"/></svg>
                     <span style={{ fontSize:11, fontWeight:700, color:isSaved?C.primary:C.subtle }}>{fmt(ev.saves+(isSaved?1:0))}</span>
                   </button>
@@ -1674,7 +1671,7 @@ function AboutScreen({ goBack, navigate, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: FILTERS
 // ─────────────────────────────────────────────────────────────
-function FiltersScreen({ from, goBack, showToast }) {
+function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters, goBack, showToast }) {
   const SECTIONS = [
     {
       id: 'date', title: 'Date',
@@ -1699,7 +1696,7 @@ function FiltersScreen({ from, goBack, showToast }) {
   ];
 
   const [open,     setOpen]     = useState({ date:true, location:true, faculty:true, interests:true, price:true });
-  const [selected, setSelected] = useState({});   // `${secId}:${opt}` → true
+  const [selected, setSelected] = useState(initialFilters || {});   // `${secId}:${opt}` → true
 
   const toggleSection = id  => setOpen(s => ({ ...s, [id]: !s[id] }));
   const toggleChip    = key => setSelected(s => {
@@ -1833,6 +1830,7 @@ function FiltersScreen({ from, goBack, showToast }) {
         )}
         <button onClick={() => {
           if (count === 0) { showToast('Select at least one filter'); return; }
+          if (applyFilters) applyFilters(selected);
           showToast(`${count} filter${count > 1 ? 's' : ''} applied to ${fromLabel}`);
           goBack();
         }} style={{
@@ -2480,7 +2478,7 @@ function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
-function EventDetailsScreen({ eventId, liked, setLiked, saved, setSaved, following, setFollowing, navigate, goBack, showToast }) {
+function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, following, toggleFollowing, navigate, goBack, showToast }) {
   const ev = EVENTS.find(e => e.id === eventId) || EVENTS[0];
   const th = THEME[ev.primary] || THEME.social;
   const [expanded, setExpanded] = useState(false);
@@ -2530,14 +2528,14 @@ function EventDetailsScreen({ eventId, liked, setLiked, saved, setSaved, followi
             <path d="m8.2 10.8 7.6-4.1M8.2 13.2l7.6 4.1" stroke="#39414F" strokeWidth="1.9"/>
           </svg>
         </HeaderBtn>
-        <HeaderBtn onClick={() => setSaved(s => ({...s, [ev.id]: !s[ev.id]}))}>
+        <HeaderBtn onClick={() => toggleSave(ev.id)}>
           <svg width="16" height="16" viewBox="0 0 24 24">
             <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z"
                   fill={isSaved ? C.primary : 'rgba(0,0,0,0)'}
                   stroke={isSaved ? C.primary : '#39414F'} strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
-        <HeaderBtn onClick={() => setLiked(l => ({...l, [ev.id]: !l[ev.id]}))}>
+        <HeaderBtn onClick={() => toggleLike(ev.id)}>
           <svg width="17" height="17" viewBox="0 0 24 24">
             <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
                   fill={isLiked ? '#FF3B6B' : 'rgba(0,0,0,0)'}
@@ -2595,7 +2593,7 @@ function EventDetailsScreen({ eventId, liked, setLiked, saved, setSaved, followi
             </div>
             <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Verified Organizer</div>
           </div>
-          <button onClick={() => setFollowing(f => ({...f, [ev.id]: !f[ev.id]}))}
+          <button onClick={() => toggleFollowing(ev.id)}
             style={{ flexShrink:0, height:30, padding:'0 14px', borderRadius:999,
                      border: isFollowing ? `1.5px solid ${C.border}` : 'none',
                      background: isFollowing ? '#fff' : C.primary,
@@ -8641,9 +8639,8 @@ export default function RiplyApp() {
   }, []);
 
   // Home state
-  const [liked, setLiked] = useState({});
-  const [saved, setSaved] = useState({});
-  const [following, setFollowing] = useState({});
+  const { liked, saved, rsvpd: following, toggleLike, toggleSave, toggleRsvp: toggleFollowing } = useUserInteractions();
+  const [filters, setFilters] = useState({});
   const [activeCat, setActiveCat] = useState('trending');
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -8688,7 +8685,7 @@ export default function RiplyApp() {
     switch(screen) {
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} />;
-      case 'home':      return <HomeScreen liked={liked} setLiked={setLiked} saved={saved} setSaved={setSaved} following={following} setFollowing={setFollowing} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
@@ -8698,10 +8695,10 @@ export default function RiplyApp() {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} setLiked={setLiked} saved={saved} setSaved={setSaved} following={following} setFollowing={setFollowing} navigate={navigate} goBack={goBack} showToast={showToast} />;
+      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} />;
-      case 'filters':       return <FiltersScreen from={navParams.from} goBack={goBack} showToast={showToast} />;
+      case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'feedback':      return <FeedbackScreen goBack={goBack} showToast={showToast} />;
@@ -8717,7 +8714,7 @@ export default function RiplyApp() {
       case 'group-edit':       return <GroupEditScreen groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      default:          return <HomeScreen liked={liked} setLiked={setLiked} saved={saved} setSaved={setSaved} following={following} setFollowing={setFollowing} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
+      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
     }
   };
 

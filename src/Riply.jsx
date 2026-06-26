@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
+import { useChat } from "./hooks/useChat";
 import { useEvents } from "./hooks/useEvents";
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
@@ -3316,42 +3317,23 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
 function ChatScreen({ chatId, goBack, showToast }) {
   const chat = CHATS.find(c => c.id === chatId) || CHATS[0];
 
-  // Seed initial messages per chat so each feels distinct
-  const SEED_MSGS = {
-    1: [
-      { id:1, side:'in', sender:'Mike', aInitial:'M', aColor:'linear-gradient(135deg,#7C5CFF,#02B6FE)', text:'Hey! The new mockups are ready for review. Let me know what you think 👀', time:'9:41 AM', hasText:true },
-      { id:2, side:'in', sender:'Mike', aInitial:'M', aColor:'linear-gradient(135deg,#7C5CFF,#02B6FE)', text:'I made some big changes to the event card layout.', time:'9:41 AM', hasText:true, hasImage:true },
-      { id:3, side:'out', text:'Just saw them — these look great. Really love the new card style.', time:'9:43 AM', hasText:true },
-      { id:4, side:'out', text:'Can we hop on a call later to go through the feedback together?', time:'9:44 AM', hasText:true },
-      { id:5, side:'in', sender:'Mike', aInitial:'M', aColor:'linear-gradient(135deg,#7C5CFF,#02B6FE)', text:'For sure! How does 3PM work for you?', time:'9:46 AM', hasText:true },
-    ],
-    2: [
-      { id:1, side:'in', sender:'Alex', aInitial:'A', aColor:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', text:'Hey, just wanted to say thanks for covering the project brief yesterday 🙏', time:'10:12 AM', hasText:true },
-      { id:2, side:'out', text:"No worries at all! It was a good session.", time:'10:14 AM', hasText:true },
-      { id:3, side:'in', sender:'Alex', aInitial:'A', aColor:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', text:'Perfect! Thanks for the update', time:'10:15 AM', hasText:true },
-    ],
-    3: [
-      { id:1, side:'out', text:'Hi Emma, did you get a chance to look at the shared folder?', time:'2:30 PM', hasText:true },
-      { id:2, side:'in', sender:'Emma', aInitial:'E', aColor:'linear-gradient(135deg,#10B981,#06B6D4)', text:'Not yet! Can you send me the project files directly?', time:'2:33 PM', hasText:true },
-    ],
-    4: [
-      { id:1, side:'in', sender:'Priya', aInitial:'P', aColor:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', text:"I'm not really sure about this section here, I think you should do something cool!", time:'9:41 AM', hasText:true },
-      { id:2, side:'out', text:"Agreed. Here's what I had in mind for the layout 👇", time:'9:42 AM', hasText:true, hasImage:true },
-      { id:3, side:'in', sender:'Priya', aInitial:'P', aColor:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', text:'Oh that\'s really nice! I like the direction.', time:'9:44 AM', hasText:true },
-      { id:4, side:'out', text:"You: I'm not really sure about this…", time:'9:45 AM', hasText:true },
-    ],
-    5: [
-      { id:1, side:'in', sender:'Jennifer', aInitial:'J', aColor:'linear-gradient(135deg,#FF5A8A,#B06BFF)', text:"Hi! Just wanted to reach out — the presentation was really well done 🎉", time:'Yesterday', hasText:true },
-      { id:2, side:'out', text:'Thanks so much, Jennifer! Really appreciate it.', time:'Yesterday', hasText:true },
-      { id:3, side:'in', sender:'Jennifer', aInitial:'J', aColor:'linear-gradient(135deg,#FF5A8A,#B06BFF)', text:'Thanks for your help with the presentation!', time:'Yesterday', hasText:true },
-    ],
-  };
-
-  const [messages, setMessages] = useState(SEED_MSGS[chatId] || SEED_MSGS[1]);
+  const { messages: rawMessages, sendMessage } = useChat(chatId)
   const [draft,    setDraft]    = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef  = useRef(null);
   const inputRef   = useRef(null);
+
+  // Map Supabase shape → UI shape
+  const messages = rawMessages.map(msg => ({
+    id:      msg.id,
+    side:    msg.sender_id === 'current-user' ? 'out' : 'in',
+    text:    msg.content,
+    time:    new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
+    hasText: true,
+    sender:  msg.sender_id,
+    aInitial: msg.sender_id?.[0]?.toUpperCase() || '?',
+    aColor:  'linear-gradient(135deg,#7C5CFF,#02B6FE)',
+  }))
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -3359,18 +3341,15 @@ function ChatScreen({ chatId, goBack, showToast }) {
     }, 40);
   };
 
-  const send = () => {
+  const send = async () => {
     const t = draft.trim();
     if (!t) return;
-    setMessages(m => [...m, {
-      id: Date.now(), side:'out', text:t, time:'Now', hasText:true,
-    }]);
     setDraft('');
-    scrollToBottom();
+    await sendMessage(t);
   };
 
-  // scroll to bottom on mount
-  useEffect(() => { scrollToBottom(); }, []);
+  // Auto-scroll when messages change
+  useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
   // Online status indicator label
   const onlineLabel = chatId === 4 ? 'Online · 8 members' : 'Online';

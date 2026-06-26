@@ -4808,7 +4808,7 @@ function MyTicketsScreen({ goBack, navigate, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE CAMPUS GROUP
 // ─────────────────────────────────────────────────────────────
-function CreateGroupScreen({ goBack, navigate, showToast }) {
+function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
   const CATS = [
     { id:'academic', label:'Academic' },
     { id:'sports',   label:'Sports'   },
@@ -4839,6 +4839,7 @@ function CreateGroupScreen({ goBack, navigate, showToast }) {
   const [cat,      setCat]      = useState('culture');
   const [coverUrl,  setCoverUrl]  = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [name,     setName]     = useState('');
   const [privacy,  setPrivacy]  = useState('public');
   const [desc,     setDesc]     = useState('');
@@ -5162,27 +5163,40 @@ function CreateGroupScreen({ goBack, navigate, showToast }) {
         )}
         <button onClick={async () => {
           if (!canCreate) { showToast('Add a group name first'); return; }
-          const { error } = await supabase.from('groups').insert({
-            name,
-            description: desc,
+          if (!currentUser.userId) { showToast('You must be logged in to create a group'); return; }
+          setSubmitting(true);
+          const { data: group, error } = await supabase.from('groups').insert({
+            name: name.trim(),
+            description: desc.trim(),
             privacy,
             category: [cat],
             logo_color: coverGrad,
-            initial: name[0].toUpperCase(),
+            initial: name.trim()[0].toUpperCase(),
+            admin_id: currentUser.userId,
             member_count: 1,
+            post_count: 0,
+            event_count: 0,
             rules,
+          }).select().single();
+          if (error) { setSubmitting(false); showToast('Failed to create group: ' + error.message); return; }
+          // Add creator as first member with admin role
+          await supabase.from('group_members').insert({
+            group_id: group.id,
+            user_id: currentUser.userId,
+            role: 'admin',
           });
-          if (error) { showToast('Failed to create group'); return; }
+          setSubmitting(false);
           showToast('Group created! 🎉');
-          goBack();
+          navigate('group-profile', { groupId: group.id });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
-          cursor: canCreate ? 'pointer' : 'not-allowed',
+          cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
           background: canCreate ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
           color:'#fff', fontSize:14, fontWeight:800,
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', gap:9,
           boxShadow: canCreate ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
+          opacity: submitting ? 0.7 : 1,
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="8" cy="9" r="2.6" stroke="#fff" strokeWidth="1.9"/>
@@ -5190,8 +5204,8 @@ function CreateGroupScreen({ goBack, navigate, showToast }) {
             <path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2"
                   stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
-          Create Group
-          {canCreate && (
+          {submitting ? 'Creating…' : 'Create Group'}
+          {canCreate && !submitting && (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -5206,7 +5220,7 @@ function CreateGroupScreen({ goBack, navigate, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE STUDENT SPACE
 // ─────────────────────────────────────────────────────────────
-function CreateSpaceScreen({ goBack, navigate, showToast }) {
+function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
   const CATS = [
     { id:'academic', label:'Academic', grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)' },
     { id:'social',   label:'Social',   grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
@@ -5229,6 +5243,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast }) {
   const [pricing,    setPricing]    = useState('free');
   const [price,      setPrice]      = useState('');
   const [about,      setAbout]      = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const activeCat  = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid     = pricing === 'paid';
@@ -5580,26 +5595,51 @@ function CreateSpaceScreen({ goBack, navigate, showToast }) {
             </span>
           </div>
         )}
-        <button onClick={() => {
+        <button onClick={async () => {
           if (!canCreate) { showToast('Add a space name first'); return; }
+          if (!currentUser.userId) { showToast('You must be logged in to create a space'); return; }
+          setSubmitting(true);
+          const activeCatObj = CATS.find(c => c.id === cat) || CATS[0];
+          const location = [venue, area].filter(Boolean).join(' · ');
+          const timeStr = [startTime, endTime].filter(Boolean).join(' – ');
+          const { data: space, error } = await supabase.from('spaces').insert({
+            title: title.trim(),
+            description: about.trim(),
+            host_id: currentUser.userId,
+            host_text: currentUser.name || 'Host',
+            category: cat,
+            location: location || null,
+            time: timeStr || null,
+            duration: recurrence || null,
+            price: isPaid ? price : 'Free',
+            max_spots: maxSpots,
+            participants: 1,
+            started: false,
+            day: firstDate || null,
+            avatar_color: activeCatObj.grad,
+            avatar_initial: title.trim()[0]?.toUpperCase() || 'S',
+          }).select().single();
+          setSubmitting(false);
+          if (error) { showToast('Failed to create space: ' + error.message); return; }
           showToast('Space created! 🎉');
-          goBack();
+          navigate('space-details', { spaceId: space.id });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
-          cursor: canCreate ? 'pointer' : 'not-allowed',
+          cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
           background: canCreate ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
           color:'#fff', fontSize:14, fontWeight:800,
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', gap:9,
           boxShadow: canCreate ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
+          opacity: submitting ? 0.7 : 1,
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="8.5" stroke="#fff" strokeWidth="2"/>
             <path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17"
                   stroke="#fff" strokeWidth="2"/>
           </svg>
-          Create Space
-          {canCreate && (
+          {submitting ? 'Creating…' : 'Create Space'}
+          {canCreate && !submitting && (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2"
                     strokeLinecap="round" strokeLinejoin="round"/>
@@ -5676,7 +5716,7 @@ function EventCounterBtn({ onClick, minus }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE EVENT
 // ─────────────────────────────────────────────────────────────
-function CreateEventScreen({ goBack, navigate, showToast }) {
+function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
   const CATS = [
     { id:'social',   label:'Social',   grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
     { id:'career',   label:'Career',   grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)' },
@@ -5709,6 +5749,7 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
   const [about,     setAbout]     = useState('');
   const [rules,     setRules]     = useState({});
 
+  const [submitting, setSubmitting] = useState(false);
   const activeCat = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid = pricing === 'paid';
   const canPublish = title.trim().length > 0;
@@ -6025,36 +6066,56 @@ function CreateEventScreen({ goBack, navigate, showToast }) {
         <button
           onClick={async () => {
             if (!canPublish) { showToast('Add an event title first'); return; }
-            const { error } = await supabase.from('events').insert({
-              title,
-              description: about,
+            if (!currentUser.userId) { showToast('You must be logged in to publish an event'); return; }
+            setSubmitting(true);
+            const location = [venue, room].filter(Boolean).join(' · ');
+            const timeRange = [startTime, endTime].filter(Boolean).join(' – ');
+            const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
+            const { data: event, error } = await supabase.from('events').insert({
+              title: title.trim(),
+              org: currentUser.name || 'Organizer',
+              org_initial: (currentUser.name || 'O')[0].toUpperCase(),
+              description: about.trim(),
+              full_desc: about.trim(),
               category: cat,
               tags: [cat],
-              venue,
-              room,
-              full_date: date,
-              time_range: startTime + ' - ' + endTime,
-              price: isPaid ? price : 'Free',
-              capacity: unlimited ? 9999 : capacity,
-            });
+              location: location || null,
+              venue: venue.trim() || null,
+              room: room.trim() || null,
+              date: date || null,
+              full_date: date || null,
+              time_range: timeRange || null,
+              price: isPaid ? `$${price}` : 'Free',
+              capacity: unlimited ? null : capacity,
+              attendee_count: 0,
+              likes: 0,
+              saves: 0,
+              shares: 0,
+              trending: false,
+              badge: repeat ? 'Every Week' : null,
+              rules: selectedRules.length ? selectedRules : null,
+            }).select().single();
+            setSubmitting(false);
             if (error) { showToast('Failed to publish: ' + error.message); return; }
             showToast('Event published! 🎉');
-            goBack();
+            navigate('event-details', { eventId: event.id });
           }}
           style={{
-            width:'100%', height:50, border:'none', borderRadius:15, cursor: canPublish ? 'pointer' : 'not-allowed',
+            width:'100%', height:50, border:'none', borderRadius:15,
+            cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
             background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
             color:'#fff', fontSize:14, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:9,
             boxShadow: canPublish ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
+            opacity: submitting ? 0.7 : 1,
           }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
                   stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
           </svg>
-          Publish Event
-          {canPublish && (
+          {submitting ? 'Publishing…' : 'Publish Event'}
+          {canPublish && !submitting && (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -8601,10 +8662,10 @@ export default function RiplyApp() {
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} />;
-      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} setLiked={setLiked} saved={saved} setSaved={setSaved} following={following} setFollowing={setFollowing} navigate={navigate} goBack={goBack} showToast={showToast} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} />;

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
+import { useCurrentUser } from "./hooks/useCurrentUser";
 import { useChat } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
 import { useEvents } from "./hooks/useEvents";
@@ -3303,10 +3304,10 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
-function ChatScreen({ chatId, goBack, showToast }) {
+function ChatScreen({ chatId, goBack, showToast, currentUser }) {
   const chat = CHATS.find(c => c.id === chatId) || CHATS[0];
 
-  const { messages: rawMessages, sendMessage } = useChat(chatId)
+  const { messages: rawMessages, sendMessage, currentUserId } = useChat(chatId)
   const [draft,    setDraft]    = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef  = useRef(null);
@@ -3315,7 +3316,7 @@ function ChatScreen({ chatId, goBack, showToast }) {
   // Map Supabase shape → UI shape
   const messages = rawMessages.map(msg => ({
     id:      msg.id,
-    side:    msg.sender_id === 'current-user' ? 'out' : 'in',
+    side:    msg.sender_id === currentUserId ? 'out' : 'in',
     text:    msg.content,
     time:    new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
     hasText: true,
@@ -3589,14 +3590,11 @@ function ChatScreen({ chatId, goBack, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: PROFILE
 // ─────────────────────────────────────────────────────────────
-function ProfileScreen({ navigate, showToast }) {
-  const [name, setName] = useState('Jordan Smith');
-  const [email, setEmail] = useState('jordan.smith@myumanitoba.ca');
+function ProfileScreen({ navigate, showToast, currentUser }) {
   const [editOpen, setEditOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
-  const [profileRole, setProfileRole] = useState('student');
   const [push, setPush] = useState(true);
   const [emailNotif, setEmailNotif] = useState(false);
   const [reminders, setReminders] = useState(true);
@@ -3604,8 +3602,13 @@ function ProfileScreen({ navigate, showToast }) {
   const [darkMode, setDarkMode] = useState(false);
   const [privateProfile, setPrivateProfile] = useState(false);
   const [lang, setLang] = useState('English');
-  const [draftName, setDraftName] = useState(name);
-  const [draftEmail, setDraftEmail] = useState(email);
+  const [saving, setSaving] = useState(false);
+
+  const name = currentUser.name;
+  const email = currentUser.email;
+  const profileRole = currentUser.role;
+  const [draftName, setDraftName] = useState('');
+  const [draftEmail, setDraftEmail] = useState('');
 
   const pageBg = darkMode?'#0E1726':C.pageBg;
   const cardBg = darkMode?'#1A2233':C.card;
@@ -3620,14 +3623,14 @@ function ProfileScreen({ navigate, showToast }) {
     organizer: { color:'#7C5CFF', bg:'#F1ECFF', label:'Event Organizer' },
     admin: { color:'#15A34A', bg:'#E4F7EC', label:'Group Admin' },
   };
-  const rc = roleConfig[profileRole];
-  const initials = name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const rc = roleConfig[profileRole] || roleConfig.student;
+  const initials = name ? name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : '?';
 
   const SETTINGS_GROUPS = [
     {
       title:'Account',
       rows: [
-        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(name); setDraftEmail(email); setEditOpen(true); } },
+        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name); setDraftEmail(currentUser.email); setEditOpen(true); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
         { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>showToast('Payment Methods coming soon') },
         ...(profileRole!=='student'?[{ icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M3 5h18M3 10h18M3 15h10', title:'Manage Events', hasChevron:true, onClick:()=>navigate('event-manager') }]:[]),
@@ -3671,7 +3674,7 @@ function ProfileScreen({ navigate, showToast }) {
       {/* Header */}
       <div style={{ flexShrink:0, background:cardBg, padding:'52px 16px 10px', boxShadow:'0 1px 0 rgba(16,24,40,0.04)', zIndex:4, display:'flex', alignItems:'center', justifyContent:'space-between', transition:'background .3s' }}>
         <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:textColor }}>Profile & Settings</span>
-        <button onClick={()=>{ setDraftName(name); setDraftEmail(email); setEditOpen(true); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+        <button onClick={()=>{ setDraftName(currentUser.name); setDraftEmail(currentUser.email); setEditOpen(true); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={iconStroke} strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke={iconStroke} strokeWidth="1.9" strokeLinecap="round"/></svg>
         </button>
       </div>
@@ -3688,7 +3691,7 @@ function ProfileScreen({ navigate, showToast }) {
           </div>
           <div style={{ fontSize:19, fontWeight:800, letterSpacing:-0.5, color:textColor, marginTop:13 }}>{name}</div>
           <div style={{ display:'flex', alignItems:'center', gap:7, marginTop:7, flexWrap:'wrap', justifyContent:'center' }}>
-            <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:'#E9F6FF', fontSize:9.5, fontWeight:700, color:C.primary }}>3rd Year · Faculty of Science</div>
+            <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:'#E9F6FF', fontSize:9.5, fontWeight:700, color:C.primary }}>{[currentUser.year, currentUser.program].filter(Boolean).join(' · ') || currentUser.university || 'Student'}</div>
             <button onClick={()=>setRoleOpen(r=>!r)} style={{ display:'inline-flex', alignItems:'center', gap:5, height:24, padding:'0 11px', border:'none', borderRadius:999, background:rc.bg, fontSize:9.5, fontWeight:800, color:rc.color, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
               {rc.label}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d={`m6 9 6 6 6-6`} stroke={rc.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -3697,7 +3700,7 @@ function ProfileScreen({ navigate, showToast }) {
           {roleOpen && (
             <div style={{ background:cardBg, borderRadius:14, boxShadow:'0 8px 24px rgba(16,24,40,0.16)', overflow:'hidden', marginTop:9, width:200 }}>
               {Object.entries(roleConfig).map(([k,v]) => (
-                <button key={k} onClick={()=>{setProfileRole(k);setRoleOpen(false);}} style={{ display:'flex', width:'100%', padding:'12px 16px', border:'none', background: profileRole===k?v.bg:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:11.5, fontWeight:800, color: profileRole===k?v.color:textColor, textAlign:'left', alignItems:'center', justifyContent:'space-between' }}>
+                <button key={k} onClick={async ()=>{ setRoleOpen(false); const {error}=await currentUser.updateProfile({role:k}); if(error) showToast('Failed to update role'); else showToast(`Role updated to ${v.label}`); }} style={{ display:'flex', width:'100%', padding:'12px 16px', border:'none', background: profileRole===k?v.bg:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:11.5, fontWeight:800, color: profileRole===k?v.color:textColor, textAlign:'left', alignItems:'center', justifyContent:'space-between' }}>
                   {v.label}
                   {profileRole===k && <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4 4L19 7" stroke={v.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </button>
@@ -3750,7 +3753,7 @@ function ProfileScreen({ navigate, showToast }) {
         ))}
 
         {/* Logout */}
-        <button onClick={()=>showToast('Signed out successfully')} style={{ width:'100%', height:52, marginTop:24, border:'none', borderRadius:16, background:'linear-gradient(135deg,#FF6B4D,#F4452B)', color:'#fff', fontSize:13.5, fontWeight:800, letterSpacing:0.4, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:9, boxShadow:'0 8px 20px rgba(244,69,43,0.32)' }}>
+        <button onClick={async ()=>{ await currentUser.logout(); }} style={{ width:'100%', height:52, marginTop:24, border:'none', borderRadius:16, background:'linear-gradient(135deg,#FF6B4D,#F4452B)', color:'#fff', fontSize:13.5, fontWeight:800, letterSpacing:0.4, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:9, boxShadow:'0 8px 20px rgba(244,69,43,0.32)' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 12h10m0 0-3-3m3 3-3 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           LOGOUT
         </button>
@@ -3768,7 +3771,15 @@ function ProfileScreen({ navigate, showToast }) {
             <div style={{ fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>Email</div>
             <input value={draftEmail} onChange={e=>setDraftEmail(e.target.value)} inputMode="email" style={{ width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:12, fontWeight:600, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }} />
           </div>
-          <button onClick={()=>{ if(draftName.trim().length<2){showToast('Name must be at least 2 characters');return;} setName(draftName); setEmail(draftEmail); setEditOpen(false); showToast('Profile updated'); }} style={{ width:'100%', height:52, marginTop:20, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)' }}>Save Changes</button>
+          <button onClick={async ()=>{
+            if(draftName.trim().length<2){showToast('Name must be at least 2 characters');return;}
+            setSaving(true);
+            const { error } = await currentUser.updateProfile({ name: draftName.trim(), email: draftEmail.trim() });
+            setSaving(false);
+            if(error){ showToast('Failed to save: ' + (error.message || 'Unknown error')); return; }
+            setEditOpen(false);
+            showToast('Profile updated');
+          }} style={{ width:'100%', height:52, marginTop:20, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)', opacity: saving?0.7:1 }}>{saving ? 'Saving…' : 'Save Changes'}</button>
         </Sheet>
       )}
 
@@ -8479,6 +8490,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
 export default function RiplyApp() {
   const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, setActive: setActiveSignUp } = useSignUp();
+  const currentUser = useCurrentUser();
 
   // Expose to auth screens
   useEffect(() => {
@@ -8497,6 +8509,19 @@ export default function RiplyApp() {
 
   // Navigation stack
   const [navStack, setNavStack] = useState([{ screen: 'welcome' }]);
+
+  // Auth guard: once Clerk loads, route to the right place
+  useEffect(() => {
+    if (!currentUser.isLoaded) return;
+    const current = navStack[navStack.length - 1].screen;
+    const authScreens = ['welcome', 'auth'];
+    if (currentUser.isAuthenticated && authScreens.includes(current)) {
+      setNavStack([{ screen: 'home' }]);
+    }
+    if (!currentUser.isAuthenticated && !authScreens.includes(current)) {
+      setNavStack([{ screen: 'welcome' }]);
+    }
+  }, [currentUser.isLoaded, currentUser.isAuthenticated]);
   const current = navStack[navStack.length - 1];
   const screen = current.screen;
   const navParams = current;
@@ -8575,12 +8600,12 @@ export default function RiplyApp() {
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} />;
-      case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} />;
+      case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} />;
+      case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} setLiked={setLiked} saved={saved} setSaved={setSaved} following={following} setFollowing={setFollowing} navigate={navigate} goBack={goBack} showToast={showToast} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} />;

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 
 export function useChat(chatId) {
+  const { user } = useUser()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -9,7 +11,6 @@ export function useChat(chatId) {
     if (!chatId) return
     setLoading(true)
 
-    // Initial fetch
     supabase
       .from('messages')
       .select('*')
@@ -21,7 +22,6 @@ export function useChat(chatId) {
       })
       .catch(() => setLoading(false))
 
-    // Real-time subscription
     const channel = supabase
       .channel(`chat:${chatId}`)
       .on('postgres_changes', {
@@ -38,13 +38,14 @@ export function useChat(chatId) {
   }, [chatId])
 
   const sendMessage = async (content) => {
-    if (!content.trim()) return
-    await supabase.from('messages').insert({
+    if (!content.trim() || !user?.id) return
+    const { error } = await supabase.from('messages').insert({
       chat_id: chatId,
-      sender_id: 'current-user',
+      sender_id: user.id,
       content,
     })
+    return error
   }
 
-  return { messages, loading, sendMessage }
+  return { messages, loading, sendMessage, currentUserId: user?.id || null }
 }

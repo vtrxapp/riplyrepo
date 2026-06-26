@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useChat } from "./hooks/useChat";
+import { useChats } from "./hooks/useChats";
 import { useEvents } from "./hooks/useEvents";
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
@@ -684,6 +685,7 @@ const { groups: liveGroups } = useGroups();
 // ─────────────────────────────────────────────────────────────
 function MessagesScreen({ msgTab, setMsgTab, navigate, showToast }) {
   const isNotif = msgTab==='notifications';
+  const { chats, loading: chatsLoading } = useChats();
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
 
@@ -747,10 +749,14 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast }) {
           </div>
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
-            {CHATS.map(c => (
+            {chatsLoading ? (
+              <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:40 }}>Loading…</div>
+            ) : chats.length === 0 ? (
+              <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:40 }}>No conversations yet</div>
+            ) : chats.map(c => (
               <div key={c.id} onClick={()=>navigate('chat',{chatId:c.id})} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
-                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
-                  <span>{c.initial}</span>
+                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
+                  <span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
                   <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} />
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
@@ -761,7 +767,6 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast }) {
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
                     <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
                     {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
-                    {c.read && !c.unread && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M2 12.5l4 4L13 8" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M11 16.5 12 17.5 22 7" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </div>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser } from "./hooks/useCurrentUser";
+import { useNotifications } from "./hooks/useNotifications";
 import { useChat } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
 import { useEvents } from "./hooks/useEvents";
@@ -182,7 +183,7 @@ function Sheet({ onClose, title, children }) {
   );
 }
 
-function BottomNav({ screen, setScreen }) {
+function BottomNav({ screen, setScreen, unreadCount = 0 }) {
   const navColor = (id) => screen === id ? '#02A6F0' : C.subtle;
   const navWeight = (id) => screen === id ? '700' : '600';
 
@@ -204,8 +205,13 @@ function BottomNav({ screen, setScreen }) {
         <span style={{ fontSize:8, fontWeight:navWeight('discover'), color:navColor('discover'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Discover</span>
       </button>
       {/* Messages */}
-      <button onClick={()=>setScreen('messages')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z" stroke={navColor('messages')} strokeWidth="2" strokeLinejoin="round"/></svg>
+      <button onClick={()=>setScreen('messages')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58, position:'relative' }}>
+        <div style={{ position:'relative' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z" stroke={navColor('messages')} strokeWidth="2" strokeLinejoin="round"/></svg>
+          {unreadCount > 0 && (
+            <span style={{ position:'absolute', top:-4, right:-6, minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:8, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+          )}
+        </div>
         <span style={{ fontSize:8, fontWeight:navWeight('messages'), color:navColor('messages'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Messages</span>
       </button>
       {/* Profile */}
@@ -668,9 +674,10 @@ const { groups: liveGroups } = useGroups();
 // ─────────────────────────────────────────────────────────────
 // SCREEN: MESSAGES
 // ─────────────────────────────────────────────────────────────
-function MessagesScreen({ msgTab, setMsgTab, navigate, showToast }) {
+function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
   const isNotif = msgTab==='notifications';
   const { chats, loading: chatsLoading } = useChats();
+  const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification } = notifs;
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
 
@@ -693,7 +700,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast }) {
         <div style={{ display:'flex', gap:26 }}>
           <button onClick={()=>setMsgTab('notifications')} style={isNotif?activeTabStyle:idleTabStyle}>
             Notifications
-            <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:8, fontWeight:800, verticalAlign:'middle' }}>{NOTIFICATIONS.length}</span>
+            {unreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:8, fontWeight:800, verticalAlign:'middle' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
           <button onClick={()=>setMsgTab('chats')} style={isNotif?idleTabStyle:activeTabStyle}>Chats</button>
         </div>
@@ -706,29 +713,43 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
         {isNotif ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            {NOTIFICATIONS.map(n => (
-              <div key={n.id} style={{ background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14 }}>
+            {/* Mark all read */}
+            {unreadCount > 0 && (
+              <button onClick={markAllRead} style={{ alignSelf:'flex-end', border:'none', background:'none', fontSize:11, fontWeight:700, color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", padding:'2px 0' }}>
+                Mark all as read
+              </button>
+            )}
+            {notifsLoading ? (
+              <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:40 }}>Loading…</div>
+            ) : notifications.length === 0 ? (
+              <div style={{ textAlign:'center', paddingTop:48 }}>
+                <div style={{ fontSize:36, marginBottom:12 }}>🔔</div>
+                <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>All caught up</div>
+                <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>No notifications yet</div>
+              </div>
+            ) : notifications.map(n => (
+              <div key={n.id} onClick={() => markRead(n.id)}
+                style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
+                         boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
+                         cursor:'pointer', position:'relative',
+                         borderLeft: n.read ? 'none' : `3px solid ${C.primary}` }}>
                 <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
-                  <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
+                  <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color,
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
                     <span>{n.initial}</span>
                     <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} />
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>{n.title}</div>
+                    <div style={{ fontSize:13, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
                     <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
                   </div>
-                  <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{n.time}</span>
-                </div>
-                {n.hasAlert && (
-                  <div onClick={()=>navigate('chat',{chatId:1})} style={{ display:'flex', alignItems:'center', gap:10, marginTop:12, padding:'11px 12px', borderRadius:13, background:'#F2F8FF', cursor:'pointer' }}>
-                    <div style={{ position:'relative', width:24, height:24, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/></svg>
-                      <span style={{ position:'absolute', top:-5, right:-6, minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:C.primary, color:'#fff', fontSize:7, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{n.alertCount}</span>
-                    </div>
-                    <span style={{ flex:1, minWidth:0, fontSize:11, fontStyle:'italic', fontWeight:700, color:C.primary, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{n.alertText}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="m9 6 6 6-6 6" stroke={C.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
+                    <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
+                    <button onClick={e => { e.stopPropagation(); deleteNotification(n.id); }}
+                      style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
@@ -8552,6 +8573,7 @@ export default function RiplyApp() {
   const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp, setActive: setActiveSignUp } = useSignUp();
   const currentUser = useCurrentUser();
+  const notifs = useNotifications();
 
   // Expose to auth screens
   useEffect(() => {
@@ -8583,6 +8605,15 @@ export default function RiplyApp() {
       setNavStack([{ screen: 'welcome' }]);
     }
   }, [currentUser.isLoaded, currentUser.isAuthenticated]);
+
+  // Request FCM push permission once the user is authenticated
+  useEffect(() => {
+    if (!currentUser.isAuthenticated || !currentUser.userId) return;
+    if (!('Notification' in window) || !import.meta.env.VITE_FIREBASE_API_KEY) return;
+    import('./lib/firebase.js').then(({ requestNotificationPermission }) => {
+      requestNotificationPermission(currentUser.userId, currentUser.updateProfile);
+    });
+  }, [currentUser.isAuthenticated, currentUser.userId]);
   const current = navStack[navStack.length - 1];
   const screen = current.screen;
   const navParams = current;
@@ -8660,7 +8691,7 @@ export default function RiplyApp() {
       case 'home':      return <HomeScreen liked={liked} setLiked={setLiked} saved={saved} setSaved={setSaved} following={following} setFollowing={setFollowing} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
-      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} />;
+      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
@@ -8697,7 +8728,7 @@ export default function RiplyApp() {
           {renderScreen()}
         </div>
         {toast && <Toast msg={toast} />}
-        {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} />}
+        {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={notifs.unreadCount} />}
         <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:60, height:34, display:'flex', justifyContent:'center', alignItems:'flex-end', paddingBottom:8, pointerEvents:'none' }}>
           <div style={{ width:139, height:5, borderRadius:100, background:'rgba(0,0,0,0.25)' }} />
         </div>

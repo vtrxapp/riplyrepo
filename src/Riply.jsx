@@ -7,6 +7,13 @@ import { useChat } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
 import { useEvents } from "./hooks/useEvents";
 import { useUserInteractions } from "./hooks/useUserInteractions";
+import { usePosts } from "./hooks/usePosts";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+  : null;
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
 import { uploadImage } from "./hooks/useUpload";
@@ -790,14 +797,18 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
 // SCREEN: CREATE POST
 // ─────────────────────────────────────────────────────────────
 function CreatePostScreen({ goBack, groupId, showToast }) {
+  const { user } = useUser();
+  const currentUser = useCurrentUser();
   const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => g.state || "join" === 'joined') || GROUPS[0];
 
   const [text,       setText]       = useState('');
   const [hasPhoto,   setHasPhoto]   = useState(false);
+  const [imageUrl,   setImageUrl]   = useState(null);
   const [hasPoll,    setHasPoll]    = useState(false);
   const [pollOpts,   setPollOpts]   = useState(['', '']);
-  const [group,      setGroup]      = useState(defaultGroup.name);
+  const [group,      setGroup]      = useState(defaultGroup?.name || '');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [posting,    setPosting]    = useState(false);
 
   const joinedGroups = GROUPS.filter(g => g.state || "join" === 'joined');
 
@@ -810,16 +821,23 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       showToast(hasPoll ? 'Write a question and add at least 2 options' : 'Write something or add a photo');
       return;
     }
+    setPosting(true);
     const matchedGroup = GROUPS.find(g => g.name === group);
+    const authorName = currentUser.name || user?.username || 'Member';
     const { error } = await supabase.from('posts').insert({
-      text,
-      group_id: matchedGroup ? matchedGroup.id : null,
-      author_name: 'Jane Doe',
-      author_initial: 'JD',
-      author_color: 'linear-gradient(135deg,#FF8A3D,#FF5A8A)',
+      content:        text,
+      group_id:       matchedGroup?.id || groupId || null,
+      user_id:        user?.id,
+      image_url:      imageUrl,
+      likes_count:    0,
+      comment_count:  0,
+      author_name:    authorName,
+      author_initial: authorName[0]?.toUpperCase() || 'M',
+      author_color:   'linear-gradient(135deg,#7C5CFF,#B06BFF)',
     });
+    setPosting(false);
     if (error) { showToast('Failed to post'); return; }
-    showToast(`Posted to ${group} 🎉`);
+    showToast(`Posted to ${group}`);
     goBack();
   };
 
@@ -1858,13 +1876,13 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
-function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
+function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast }) {
   const g = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
 
   const [joinState,  setJoinState]  = useState(g.state || "join");   // 'join'|'joined'|'request'|'requested'
   const [notifyOn,   setNotifyOn]   = useState(g.state || "join" === 'joined');
   const [activeTab,  setActiveTab]  = useState('posts');
-  const [postLikes,  setPostLikes]  = useState({});
   const [commentsOpen, setCommentsOpen] = useState(null);
   const [draft,      setDraft]      = useState('');
   const [comments,   setComments]   = useState({});
@@ -2193,9 +2211,13 @@ function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
 
               {/* POSTS */}
               {activeTab === 'posts' && (
-                g.feed && g.feed.length > 0 ? g.feed.map((p, i) => {
-                  const pid   = `${g.id}_${i}`;
-                  const liked = !!postLikes[pid];
+                postsLoading ? (
+                  <div style={{ textAlign:'center', padding:32, color:C.subtle }}>Loading posts…</div>
+                ) : livePosts.length === 0 ? (
+                  <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
+                ) : livePosts.map((p, i) => {
+                  const pid   = p.id || `${g.id}_${i}`;
+                  const liked = !!postLiked[pid];
                   const cOpen = commentsOpen === pid;
                   const cList = comments[pid] || [];
                   return (
@@ -2276,7 +2298,7 @@ function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
                       {/* Like / Comment / Share */}
                       <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13,
                                     paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
-                        <button onClick={() => setPostLikes(l=>({...l,[pid]:!l[pid]}))}
+                        <button onClick={() => togglePostLike(pid)}
                           style={{ display:'flex', alignItems:'center', gap:6,
                                    border:'none', background:'none', cursor:'pointer', padding:0 }}>
                           <svg width="19" height="19" viewBox="0 0 24 24">
@@ -2357,20 +2379,7 @@ function GroupProfileScreen({ groupId, goBack, navigate, showToast }) {
                       )}
                     </div>
                   );
-                }) : (
-                  <div style={{ textAlign:'center', padding:'46px 24px' }}>
-                    <div style={{ width:74, height:74, borderRadius:22, background:'#EAF1F8',
-                                  display:'flex', alignItems:'center', justifyContent:'center',
-                                  margin:'0 auto 18px' }}>
-                      <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-                        <path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z"
-                              stroke={C.subtle} strokeWidth="1.7" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Nothing here yet</div>
-                    <div style={{ fontSize:13, color:C.subtle, marginTop:7 }}>Check back soon.</div>
-                  </div>
-                )
+                })
               )}
 
               {/* EVENTS */}
@@ -3702,12 +3711,30 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
       <div style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }}>
         {/* Identity */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
-          <div style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)' }}>
+          <button onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file'; input.accept = 'image/*';
+            input.onchange = async (e) => {
+              const file = e.target.files[0]; if (!file) return;
+              try {
+                const url = await uploadImage(file, 'avatars', `${currentUser.userId}.jpg`);
+                await currentUser.updateProfile({ avatar_url: url });
+                showToast('Profile photo updated');
+              } catch { showToast('Upload failed. Try again.'); }
+            };
+            input.click();
+          }} style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)', position:'relative', border:'none', cursor:'pointer' }}>
             <div style={{ width:'100%', height:'100%', borderRadius:'50%', background:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, position:'relative', overflow:'hidden' }}>
-              <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 12px)' }} />
-              <span style={{ fontSize:28, fontWeight:800, color:'#fff', letterSpacing:-1 }}>{initials}</span>
+              {currentUser.avatarUrl
+                ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                : <><div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 12px)' }} />
+                    <span style={{ fontSize:28, fontWeight:800, color:'#fff', letterSpacing:-1 }}>{initials}</span></>
+              }
             </div>
-          </div>
+            <div style={{ position:'absolute', bottom:4, right:4, width:26, height:26, borderRadius:'50%', background:C.primary, display:'flex', alignItems:'center', justifyContent:'center', border:`2px solid ${cardBg}` }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/></svg>
+            </div>
+          </button>
           <div style={{ fontSize:19, fontWeight:800, letterSpacing:-0.5, color:textColor, marginTop:13 }}>{name}</div>
           <div style={{ display:'flex', alignItems:'center', gap:7, marginTop:7, flexWrap:'wrap', justifyContent:'center' }}>
             <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:'#E9F6FF', fontSize:9.5, fontWeight:700, color:C.primary }}>{[currentUser.year, currentUser.program].filter(Boolean).join(' · ') || currentUser.university || 'Student'}</div>
@@ -8133,7 +8160,43 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: TICKETS  (purchase → processing → success | failed)
 // ─────────────────────────────────────────────────────────────
+// ── Stripe inner form ─────────────────────────────────────────
+function StripePaymentForm({ total, onSuccess, onError }) {
+  const stripe   = useStripe();
+  const elements = useElements();
+  const [paying, setPaying] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setPaying(true);
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: window.location.href },
+      redirect: 'if_required',
+    });
+    setPaying(false);
+    if (error) { onError(error.message); } else { onSuccess(); }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ width:'100%' }}>
+      <PaymentElement options={{ layout: 'tabs' }} />
+      <button type="submit" disabled={!stripe || paying} style={{
+        width:'100%', height:52, marginTop:16, border:'none', borderRadius:16, cursor:'pointer',
+        background: (!stripe||paying) ? '#C5CBD6' : 'linear-gradient(135deg,#19BFFF,#008FF0)',
+        color:'#fff', fontSize:14, fontWeight:800,
+        fontFamily:"'Montserrat',-apple-system,sans-serif",
+        boxShadow: (!stripe||paying) ? 'none' : '0 8px 20px rgba(2,162,240,0.42)',
+      }}>
+        {paying ? 'Processing…' : `Pay $${total.toFixed(2)}`}
+      </button>
+    </form>
+  );
+}
+
 function TicketsScreen({ eventId, goBack, navigate, showToast }) {
+  const { user } = useUser();
   const ev = EVENTS.find(e => e.id === eventId) || EVENTS[0];
 
   const VIP_PRICE = 49.99;
@@ -8145,10 +8208,11 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
     { id:'vip',     name:'VIP Experience',    desc:'Premium seating · backstage access', price:VIP_PRICE },
   ];
 
-  const [step,     setStep]     = useState('purchase'); // purchase | processing | success | failed
-  const [ticket,   setTicket]   = useState('general');
-  const [qty,      setQty]      = useState(1);
-  const [attempts, setAttempts] = useState(0);
+  const [step,          setStep]          = useState('purchase'); // purchase | stripe | processing | success | failed
+  const [ticket,        setTicket]        = useState('general');
+  const [qty,           setQty]           = useState(1);
+  const [clientSecret,  setClientSecret]  = useState(null);
+  const [stripeError,   setStripeError]   = useState(null);
 
   // ── pricing helpers ─────────────────────────────────────────
   const isFree    = ticket === 'general' || ev.price === 'Free' || ev.price === 0;
@@ -8160,17 +8224,42 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   const money     = (n) => '$' + n.toFixed(2);
   const totalLabel = isFree ? 'Free' : money(total);
 
-  // ── proceed → simulate payment ──────────────────────────────
-  const proceed = () => {
+  // ── save ticket to Supabase after success ──────────────────
+  const saveTicket = async () => {
+    if (!user?.id) return;
+    await supabase.from('tickets').insert({
+      user_id:   user.id,
+      event_id:  ev.id,
+      title:     ev.title,
+      access:    ticket === 'vip' ? 'VIP Experience' : 'General Admission',
+      price:     total,
+      status:    'ACTIVE',
+      date:      ev.fullDate || ev.date,
+      time:      ev.timeRange || ev.date,
+      location:  ev.location,
+    });
+  };
+
+  // ── proceed → free RSVP or create Stripe PaymentIntent ─────
+  const proceed = async () => {
+    if (isFree) {
+      setStep('processing');
+      await saveTicket();
+      setStep('success');
+      return;
+    }
     setStep('processing');
-    setTimeout(() => {
-      if (isFree || attempts >= 1) {
-        setStep('success');
-      } else {
-        setAttempts(a => a + 1);
-        setStep('failed');
-      }
-    }, 1500);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: { amount: total, currency: 'cad', metadata: { event_id: String(ev.id), user_id: user?.id || '' } },
+      });
+      if (error || !data?.client_secret) throw new Error(error?.message || 'Payment setup failed');
+      setClientSecret(data.client_secret);
+      setStep('stripe');
+    } catch (err) {
+      setStripeError(err.message);
+      setStep('failed');
+    }
   };
 
   // ── event gradient ──────────────────────────────────────────
@@ -8327,8 +8416,8 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                       color:C.ink, marginTop:20 }}>Payment failed</div>
         <div style={{ fontSize:13.5, lineHeight:1.55, color:'#7B8499',
                       textAlign:'center', marginTop:8, maxWidth:280 }}>
-          We couldn't process your payment of <span style={{ fontWeight:700,
-          color:C.ink }}>{money(total)}</span>. Please try again or update your payment method.
+          {stripeError || `We couldn't process your payment of `}
+          {!stripeError && <><span style={{ fontWeight:700, color:C.ink }}>{money(total)}</span>. Please try again.</>}
         </div>
         <div style={{ width:'100%', background:'#fff', borderRadius:16,
                       boxShadow:'0 4px 14px rgba(16,24,40,0.06)',
@@ -8361,6 +8450,32 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
           fontSize:15, fontWeight:800, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
         }}>Update Payment Method</button>
+      </div>
+    </div>
+  );
+
+  // ── STRIPE PAYMENT ELEMENT ──────────────────────────────────
+  if (step === 'stripe' && clientSecret && stripePromise) return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ flexShrink:0, padding:'50px 16px 14px', display:'flex', alignItems:'center', gap:12 }}>
+        <button onClick={() => setStep('purchase')} style={{ width:40, height:40, border:'none', borderRadius:13,
+          background:C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <span style={{ fontSize:19, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>Payment</span>
+        <span style={{ marginLeft:'auto', fontSize:16, fontWeight:800, color:C.primary }}>{money(total)}</span>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'0 16px 40px' }}>
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme:'stripe' } }}>
+          <StripePaymentForm
+            total={total}
+            onSuccess={async () => { await saveTicket(); setStep('success'); }}
+            onError={(msg) => { setStripeError(msg); setStep('failed'); }}
+          />
+        </Elements>
       </div>
     </div>
   );
@@ -8639,7 +8754,7 @@ export default function RiplyApp() {
   }, []);
 
   // Home state
-  const { liked, saved, rsvpd: following, toggleLike, toggleSave, toggleRsvp: toggleFollowing } = useUserInteractions();
+  const { liked, saved, rsvpd: following, postLiked, toggleLike, toggleSave, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
   const [filters, setFilters] = useState({});
   const [activeCat, setActiveCat] = useState('trending');
   const [query, setQuery] = useState('');
@@ -8697,7 +8812,7 @@ export default function RiplyApp() {
       case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} />;
-      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

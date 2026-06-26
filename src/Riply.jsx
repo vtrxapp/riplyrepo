@@ -1895,11 +1895,27 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 // ─────────────────────────────────────────────────────────────
 function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast }) {
   const { user } = useUser();
-  const g = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const [dbGroup,     setDbGroup]     = useState(null);
+  const [groupEvents, setGroupEvents] = useState([]);
+  useEffect(() => {
+    if (!groupId) return;
+    supabase.from('groups').select('*').eq('id', groupId).single()
+      .then(({ data }) => { if (data) setDbGroup(data); });
+    supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
+      .then(({ data }) => { if (data?.length) setGroupEvents(data); });
+    if (user?.id) {
+      supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).single()
+        .then(({ data }) => {
+          if (data) setJoinState(data.role === 'pending' ? 'requested' : 'joined');
+        });
+    }
+  }, [groupId, user?.id]);
+  const g = dbGroup || staticG;
   const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
 
-  const [joinState,  setJoinState]  = useState(g.state || "join");   // 'join'|'joined'|'request'|'requested'
-  const [notifyOn,   setNotifyOn]   = useState((g.state || "join") === 'joined');
+  const [joinState,  setJoinState]  = useState(staticG.state || "join");   // 'join'|'joined'|'request'|'requested'
+  const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
   const [activeTab,  setActiveTab]  = useState('posts');
   const [commentsOpen, setCommentsOpen] = useState(null);
   const [draft,      setDraft]      = useState('');
@@ -2411,39 +2427,42 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               )}
 
               {/* EVENTS */}
-              {activeTab === 'events' && GEVENTS.map(ev => (
-                <div key={ev.id} onClick={() => navigate('event-details',{eventId:ev.id})}
-                  style={{ display:'flex', gap:13, background:'#fff', borderRadius:18,
-                           boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:13, cursor:'pointer' }}>
-                  <div style={{ width:58, height:58, borderRadius:14, flexShrink:0,
-                                background:ev.grad, position:'relative', overflow:'hidden',
-                                display:'flex', flexDirection:'column', alignItems:'center',
-                                justifyContent:'center', color:'#fff' }}>
-                    <div style={{ position:'absolute', inset:0, background:
-                      'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
-                    <span style={{ position:'relative', fontSize:18, fontWeight:800, lineHeight:1 }}>
-                      {ev.day}
-                    </span>
-                    <span style={{ position:'relative', fontSize:9.5, fontWeight:700,
-                                   letterSpacing:0.5, marginTop:2 }}>{ev.mon}</span>
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14.5, fontWeight:800, color:C.ink,
-                                  lineHeight:1.25 }}>{ev.title}</div>
-                    <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{ev.when}</div>
-                    <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
-                        <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5"
-                              stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
-                      </svg>
-                      <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>
-                        {ev.going} going
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {activeTab === 'events' && (
+                groupEvents.length === 0
+                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No upcoming events</div>
+                  : groupEvents.map(ev => {
+                    const d = ev.date ? new Date(ev.date) : null;
+                    const day = d ? d.getDate().toString() : '';
+                    const mon = d ? d.toLocaleString('en',{month:'short'}).toUpperCase() : '';
+                    const grad = THEME[ev.category || ev.primary]?.grad || 'linear-gradient(135deg,#7C5CFF,#02B6FE)';
+                    return (
+                      <div key={ev.id} onClick={() => navigate('event-details',{eventId:ev.id})}
+                        style={{ display:'flex', gap:13, background:'#fff', borderRadius:18,
+                                 boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:13, cursor:'pointer', marginBottom:10 }}>
+                        <div style={{ width:58, height:58, borderRadius:14, flexShrink:0,
+                                      background:grad, position:'relative', overflow:'hidden',
+                                      display:'flex', flexDirection:'column', alignItems:'center',
+                                      justifyContent:'center', color:'#fff' }}>
+                          <div style={{ position:'absolute', inset:0, background:
+                            'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
+                          <span style={{ position:'relative', fontSize:18, fontWeight:800, lineHeight:1 }}>{day}</span>
+                          <span style={{ position:'relative', fontSize:9.5, fontWeight:700, letterSpacing:0.5, marginTop:2 }}>{mon}</span>
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25 }}>{ev.title}</div>
+                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{ev.date || ''}</div>
+                          <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
+                              <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
+                            </svg>
+                            <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{ev.attendees_count || ev.going || 0} going</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
 
               {/* MEDIA */}
               {activeTab === 'media' && (
@@ -2516,8 +2535,14 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
 function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, following, toggleFollowing, navigate, goBack, showToast, role }) {
-  const ev = EVENTS.find(e => e.id === eventId) || EVENTS[0];
-  const th = THEME[ev.primary] || THEME.social;
+  const [dbEvent, setDbEvent] = useState(null);
+  useEffect(() => {
+    if (!eventId) return;
+    supabase.from('events').select('*').eq('id', eventId).single()
+      .then(({ data }) => { if (data) setDbEvent(data); });
+  }, [eventId]);
+  const ev = dbEvent || EVENTS.find(e => e.id === eventId) || EVENTS[0];
+  const th = THEME[ev.primary || ev.category] || THEME.social;
   const [expanded, setExpanded] = useState(false);
   const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isFollowing = !!following[ev.id];
 
@@ -2936,13 +2961,20 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
 // SCREEN: SPACE DETAILS
 // ─────────────────────────────────────────────────────────────
 function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
-  const sp = SPACES.find(s => s.id === spaceId) || SPACES[0];
+  const { user } = useUser();
+  const [dbSpace, setDbSpace] = useState(null);
+  useEffect(() => {
+    if (!spaceId) return;
+    supabase.from('spaces').select('*').eq('id', spaceId).single()
+      .then(({ data }) => { if (data) setDbSpace(data); });
+  }, [spaceId]);
+  const sp = dbSpace || SPACES.find(s => s.id === spaceId) || SPACES[0];
   const [joined,   setJoined]   = useState(false);
   const [saved,    setSaved]    = useState(false);
   const [liked,    setLiked]    = useState(false);
   const [followed, setFollowed] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [progress, setProgress] = useState(sp.started ? 38 : 0);
+  const [progress, setProgress] = useState(0);
 
   // Animate live progress bar
   useEffect(() => {
@@ -3339,7 +3371,14 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
             Notify When a Spot Opens
           </button>
         ) : (
-          <button onClick={() => setJoined(j => !j)} style={{
+          <button onClick={async () => {
+            const next = !joined;
+            setJoined(next);
+            if (user?.id) {
+              if (next) await supabase.from('space_participants').upsert({ space_id: sp.id, user_id: user.id });
+              else await supabase.from('space_participants').delete().eq('space_id', sp.id).eq('user_id', user.id);
+            }
+          }} style={{
             flex:1, height:50, borderRadius:15, cursor:'pointer',
             border: joined ? `1.6px solid #10B981` : 'none',
             background: joined ? '#E6F8F0' : C.grad,
@@ -3397,8 +3436,9 @@ function ChatScreen({ chatId, goBack, showToast, currentUser }) {
   // Auto-scroll when messages change
   useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
-  // Online status indicator label
-  const onlineLabel = chatId === 4 ? 'Online · 8 members' : 'Online';
+  // Online status — group chats (id 4) show member count, DMs show 'Active recently'
+  const isGroup = chat.type === 'group' || chat.isGroup;
+  const onlineLabel = isGroup ? `Online · ${chat.memberCount || chat.members || ''} members`.replace(' members',' members').trim() : 'Active recently';
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -3644,6 +3684,56 @@ function ChatScreen({ chatId, goBack, showToast, currentUser }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// COMPONENT: CHANGE PASSWORD
+// ─────────────────────────────────────────────────────────────
+function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColor, subColor }) {
+  const { user } = useUser();
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw,     setNewPw]     = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [loading,   setLoading]   = useState(false);
+
+  const handleUpdate = async () => {
+    if (!newPw || newPw.length < 8) { showToast('New password must be at least 8 characters'); return; }
+    if (newPw !== confirmPw) { showToast("Passwords don't match"); return; }
+    if (!currentPw) { showToast('Enter your current password'); return; }
+    setLoading(true);
+    try {
+      await user.updatePassword({ currentPassword: currentPw, newPassword: newPw });
+      showToast('Password updated successfully');
+      onClose();
+    } catch (err) {
+      showToast(err?.errors?.[0]?.message || 'Failed to update password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputStyle = { width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:13, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" };
+  const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 };
+
+  return (
+    <Sheet onClose={onClose} title="Change Password">
+      <div style={{ marginBottom:14 }}>
+        <div style={labelStyle}>Current Password</div>
+        <input type="password" value={currentPw} onChange={e=>setCurrentPw(e.target.value)} style={inputStyle} />
+      </div>
+      <div style={{ marginBottom:14 }}>
+        <div style={labelStyle}>New Password</div>
+        <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} style={inputStyle} />
+      </div>
+      <div style={{ marginBottom:14 }}>
+        <div style={labelStyle}>Confirm Password</div>
+        <input type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} style={inputStyle} />
+      </div>
+      <button onClick={handleUpdate} disabled={loading} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
+        {loading ? 'Updating…' : 'Update Password'}
+      </button>
+    </Sheet>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // SCREEN: PROFILE
 // ─────────────────────────────────────────────────────────────
 function ProfileScreen({ navigate, showToast, currentUser }) {
@@ -3882,17 +3972,7 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
       )}
 
       {/* Change Password Sheet */}
-      {pwOpen && (
-        <Sheet onClose={()=>setPwOpen(false)} title="Change Password">
-          {['Current Password','New Password','Confirm Password'].map(label=>(
-            <div key={label} style={{ marginBottom:14 }}>
-              <div style={{ fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>{label}</div>
-              <input type="password" style={{ width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:13, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }} />
-            </div>
-          ))}
-          <button onClick={()=>{setPwOpen(false);showToast('Password updated successfully');}} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)' }}>Update Password</button>
-        </Sheet>
-      )}
+      {pwOpen && <ChangePasswordSheet onClose={()=>setPwOpen(false)} showToast={showToast} chipBg={chipBg} borderColor={borderColor} textColor={textColor} subColor={subColor} />}
     </div>
   );
 }

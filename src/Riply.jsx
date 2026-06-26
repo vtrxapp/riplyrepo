@@ -4612,16 +4612,31 @@ function makeQR(seed) {
 // SCREEN: MY TICKETS
 // ─────────────────────────────────────────────────────────────
 function MyTicketsScreen({ goBack, navigate, showToast }) {
+  const { user } = useUser();
   const TABS = [
     { id: 'all',    label: 'All'    },
     { id: 'active', label: 'Active' },
     { id: 'used',   label: 'Used'   },
   ];
-  const [tab, setTab] = useState('all');
+  const [tab,     setTab]     = useState('all');
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const list = tab === 'all'    ? TICKETS_DATA
-             : tab === 'active' ? TICKETS_DATA.filter(t => t.status === 'ACTIVE')
-             :                    TICKETS_DATA.filter(t => t.status === 'USED');
+  useEffect(() => {
+    if (!user?.id) { setLoading(false); return; }
+    supabase
+      .from('tickets')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { setTickets(data || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [user?.id]);
+
+  const allTickets = tickets.length > 0 ? tickets : TICKETS_DATA;
+  const list = tab === 'all'    ? allTickets
+             : tab === 'active' ? allTickets.filter(t => t.status === 'ACTIVE')
+             :                    allTickets.filter(t => t.status === 'USED');
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column',
@@ -4662,7 +4677,12 @@ function MyTicketsScreen({ goBack, navigate, showToast }) {
 
       {/* ── List ──────────────────────────────────────────── */}
       <div style={{ flex:1, overflowY:'auto', padding:'14px 14px 32px' }}>
-        {list.length === 0 && (
+        {loading && (
+          <div style={{ textAlign:'center', padding:'60px 24px', color:C.subtle, fontSize:14, fontWeight:700 }}>
+            Loading tickets…
+          </div>
+        )}
+        {!loading && list.length === 0 && (
           <div style={{ textAlign:'center', padding:'60px 24px' }}>
             <div style={{ width:60, height:60, borderRadius:20, background:C.chip,
                           display:'flex', alignItems:'center', justifyContent:'center',

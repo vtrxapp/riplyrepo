@@ -413,8 +413,8 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     }
                     if (didShare) recordShare(ev.id);
                   }} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z" fill={isSharedEv ? C.primary : 'none'} stroke={isSharedEv ? C.primary : '#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? C.primary : '#7B8499' }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                    <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : '#7B8499' }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke="#7B8499" strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>

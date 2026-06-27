@@ -2183,15 +2183,15 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
                   {/* progress bar bg */}
                   <div style={{ position:'absolute', inset:0, borderRadius:12,
                                 background: isMyV
-                                  ? 'linear-gradient(135deg,#7C5CFF22,#B06BFF22)'
+                                  ? 'rgba(0,152,240,0.12)'
                                   : voted ? '#F3F4F8' : '#F3F4F8' }}/>
                   {/* filled portion */}
                   {voted && (
                     <div style={{ position:'absolute', top:0, left:0, bottom:0, borderRadius:12,
                                   width:`${pct}%`, transition:'width 0.5s ease',
                                   background: isMyV
-                                    ? 'linear-gradient(135deg,#7C5CFF,#B06BFF)'
-                                    : 'rgba(124,92,255,0.12)' }}/>
+                                    ? C.grad
+                                    : 'rgba(0,152,240,0.10)' }}/>
                   )}
                   {/* content */}
                   <div style={{ position:'relative', display:'flex', alignItems:'center',
@@ -2199,8 +2199,8 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                       {/* radio circle */}
                       <div style={{ width:18, height:18, borderRadius:'50%', flexShrink:0,
-                                    border: isMyV ? 'none' : `2px solid ${voted ? '#CBD0DC' : '#7C5CFF'}`,
-                                    background: isMyV ? 'linear-gradient(135deg,#7C5CFF,#B06BFF)' : 'transparent',
+                                    border: isMyV ? 'none' : `2px solid ${voted ? '#CBD0DC' : C.primary}`,
+                                    background: isMyV ? C.grad : 'transparent',
                                     display:'flex', alignItems:'center', justifyContent:'center' }}>
                         {isMyV && <div style={{ width:7, height:7, borderRadius:'50%', background:'#fff' }}/>}
                       </div>

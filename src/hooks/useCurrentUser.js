@@ -25,7 +25,7 @@ export function useCurrentUser() {
   const [profile, setProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(true)
 
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId, clerkUser) => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -33,10 +33,12 @@ export function useCurrentUser() {
       .maybeSingle()
     if (error) { setProfileLoading(false); return }
     if (data) { setProfile(data); setProfileLoading(false); return }
-    // Row doesn't exist yet — create it so updates work
+    // Row doesn't exist yet — create it with whatever we know from Clerk
+    const email = clerkUser?.primaryEmailAddress?.emailAddress || ''
+    const name  = clerkUser?.firstName || clerkUser?.username || ''
     const { data: created } = await supabase
       .from('users')
-      .insert({ id: userId })
+      .insert({ id: userId, email, name })
       .select()
       .single()
     if (created) setProfile(created)
@@ -46,7 +48,7 @@ export function useCurrentUser() {
   useEffect(() => {
     if (!isLoaded) return
     if (!user) { setProfileLoading(false); return }
-    fetchProfile(user.id)
+    fetchProfile(user.id, user)
   }, [isLoaded, user?.id, fetchProfile])
 
   const updateProfile = useCallback(async (updates) => {

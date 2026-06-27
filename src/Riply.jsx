@@ -3999,146 +3999,142 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
 
 
 // ─────────────────────────────────────────────────────────────
-// SCREEN: WELCOME (4-slide onboarding carousel)
+// SCREEN: WELCOME (2-slide onboarding carousel)
 // ─────────────────────────────────────────────────────────────
 function WelcomeScreen({ navigate, setScreen }) {
   const SLIDES = [
-    {
-      img: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=700&q=80',
-      accent: '#FF5A8A',
-      grad: 'linear-gradient(to top,#0E1726 0%,rgba(14,23,38,0.55) 55%,transparent 100%)',
-      tag: '🎉  Events',
-      title: 'Discover what\'s happening on campus',
-      body: 'From karaoke nights to career fairs — find every event and activity around you in one personalised feed.',
-    },
-    {
-      img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=700&q=80',
-      accent: '#10B981',
-      grad: 'linear-gradient(to top,#0B1E17 0%,rgba(11,30,23,0.55) 55%,transparent 100%)',
-      tag: '👥  Groups',
-      title: 'Join clubs & communities',
-      body: 'Connect with groups that match your interests, post with members, and never miss what they\'re planning.',
-    },
-    {
-      img: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=700&q=80',
-      accent: '#6C4DF2',
-      grad: 'linear-gradient(to top,#120D2B 0%,rgba(18,13,43,0.55) 55%,transparent 100%)',
-      tag: '🎟  Tickets',
-      title: 'Get tickets & check in fast',
-      body: 'Reserve your spot, store tickets with QR codes, and breeze through check-in when you arrive.',
-    },
-    {
-      img: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=700&q=80',
-      accent: '#0E84E0',
-      grad: 'linear-gradient(to top,#071527 0%,rgba(7,21,39,0.55) 55%,transparent 100%)',
-      tag: '✨  Connect',
-      title: 'Stay connected to campus life',
-      body: 'Get reminders, weekly digests, and recommendations tuned to you — so you\'re always in the loop.',
-    },
+    { img: 'https://images.unsplash.com/photo-1562774053-701939374585?w=900&q=80' },
+    { img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80' },
   ];
 
   const [slide, setSlide] = useState(0);
-  const cur  = SLIDES[slide];
-  const last = slide === SLIDES.length - 1;
+  const onSlide2 = slide === 1;
 
-  const next = () => {
-    if (last) { setScreen('auth', { initialStep: 'signup' }); return; }
-    setSlide(s => s + 1);
+  const goRole = (role) => {
+    setScreen('auth', { initialStep: 'signup', role });
   };
 
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
-                  background:'#0E1726', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  overflow:'hidden' }}>
+    <div style={{ height:'100%', position:'relative', overflow:'hidden',
+                  background:'#0a0a0a', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
       <style>{`@keyframes wFade{from{opacity:0}to{opacity:1}}`}</style>
 
-      {/* ── Full-bleed hero image ──────────────────────── */}
-      <div key={slide} style={{ position:'absolute', inset:0, animation:'wFade 0.5s ease' }}>
-        <img src={cur.img} alt="" style={{ width:'100%', height:'100%', objectFit:'cover',
-          objectPosition:'center top' }} loading="eager" />
-        {/* gradient overlay — dark at bottom for text legibility */}
-        <div style={{ position:'absolute', inset:0, background:cur.grad }}/>
+      {/* Full-bleed background photo */}
+      <div key={slide} style={{ position:'absolute', inset:0, animation:'wFade 0.45s ease' }}>
+        <img src={SLIDES[slide].img} alt=""
+          style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
+        {/* dark overlay */}
+        <div style={{ position:'absolute', inset:0,
+          background:'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.72) 100%)' }}/>
       </div>
 
-      {/* ── Top bar ─────────────────────────────────────── */}
-      <div style={{ position:'relative', zIndex:4, padding:'54px 22px 0',
-                    display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:30, height:30, borderRadius:10, background:'rgba(255,255,255,0.15)',
-                        backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.25)',
-                        display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <RiplyMark size={16} white />
-          </div>
-          <span style={{ fontSize:17, fontWeight:800, letterSpacing:-0.4, color:'#fff' }}>Riply</span>
-        </div>
-        {!last && (
-          <button onClick={() => setScreen('auth', { initialStep: 'signup' })}
-            style={{ border:'1px solid rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.12)',
-              backdropFilter:'blur(8px)', borderRadius:999, padding:'6px 16px',
-              cursor:'pointer', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.85)',
-              fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-            Skip
-          </button>
-        )}
-      </div>
+      {/* Content layer */}
+      <div style={{ position:'relative', zIndex:4, height:'100%', display:'flex',
+                    flexDirection:'column', alignItems:'center' }}>
 
-      {/* ── Spacer ──────────────────────────────────────── */}
-      <div style={{ flex:1 }}/>
-
-      {/* ── Text block ──────────────────────────────────── */}
-      <div style={{ position:'relative', zIndex:4, padding:'0 26px 28px' }}>
-        {/* Category tag */}
-        <div style={{ display:'inline-block', background:'rgba(255,255,255,0.15)',
-                      backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.2)',
-                      borderRadius:999, padding:'5px 14px', fontSize:11, fontWeight:700,
-                      color:'#fff', letterSpacing:0.4, marginBottom:14 }}>
-          {cur.tag}
-        </div>
-        <div style={{ fontSize:26, fontWeight:800, letterSpacing:-0.7, color:'#fff',
-                      lineHeight:1.18, marginBottom:10 }}>
-          {cur.title}
-        </div>
-        <div style={{ fontSize:13.5, lineHeight:1.65, color:'rgba(255,255,255,0.72)',
-                      marginBottom:26 }}>
-          {cur.body}
-        </div>
-
-        {/* Dot indicators */}
-        <div style={{ display:'flex', gap:7, marginBottom:20 }}>
+        {/* Pill indicators */}
+        <div style={{ display:'flex', gap:8, marginTop:58, marginBottom:0 }}>
           {SLIDES.map((_, i) => (
-            <button key={i} onClick={() => setSlide(i)} style={{
-              border:'none', cursor:'pointer', padding:0, height:5, borderRadius:999,
-              transition:'all .3s',
-              width: i===slide ? 28 : 5,
-              background: i===slide ? '#fff' : 'rgba(255,255,255,0.35)',
+            <div key={i} style={{
+              height:4, borderRadius:999, transition:'all .35s',
+              width: i === slide ? 36 : 20,
+              background: i === slide ? '#19BFFF' : 'rgba(255,255,255,0.45)',
             }}/>
           ))}
         </div>
 
-        {/* Primary button */}
-        <button onClick={next} style={{
-          width:'100%', height:54, border:'none', borderRadius:16,
-          background: last ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : 'rgba(255,255,255,0.95)',
-          color: last ? '#fff' : '#0E1726',
-          fontSize:15, fontWeight:800, cursor:'pointer',
-          fontFamily:"'Montserrat',-apple-system,sans-serif",
-          display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-          boxShadow: last ? '0 10px 26px rgba(2,162,240,0.50)' : '0 8px 24px rgba(0,0,0,0.25)',
-        }}>
-          {last ? 'Get Started' : 'Next'}
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12h13M13 6l6 6-6 6" stroke={last?'#fff':'#0E1726'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-
-        {/* Log in link */}
-        <div style={{ textAlign:'center', marginTop:16, fontSize:13, color:'rgba(255,255,255,0.6)' }}>
-          Already have an account?{' '}
-          <span onClick={() => setScreen('auth')}
-            style={{ color:'#fff', fontWeight:800, cursor:'pointer' }}>
-            Log In
-          </span>
+        {/* Logo block */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginTop:40 }}>
+          <RiplyMark size={90} white />
+          <div style={{ fontSize:32, fontWeight:900, letterSpacing:6, color:'#19BFFF', marginTop:10 }}>
+            RIPLY
+          </div>
+          <div style={{ fontSize:11, fontWeight:800, letterSpacing:3, color:'rgba(255,255,255,0.85)',
+                        marginTop:6, textAlign:'center' }}>
+            CAMPUS CONNECTIONS MADE EASY
+          </div>
         </div>
+
+        {/* Spacer */}
+        <div style={{ flex:1 }}/>
+
+        {/* Slide 1 content */}
+        {!onSlide2 && (
+          <div style={{ width:'100%', padding:'0 28px 60px', display:'flex',
+                        flexDirection:'column', alignItems:'center' }}>
+            <div style={{ fontSize:22, fontWeight:800, color:'#fff', textAlign:'center',
+                          lineHeight:1.45, marginBottom:48 }}>
+              Find your space.<br/>
+              Explore campus events.<br/>
+              Build real lasting connections.
+            </div>
+            <button onClick={() => setSlide(1)}
+              style={{ border:'none', background:'none', cursor:'pointer', padding:0,
+                       display:'flex', alignItems:'center', gap:8,
+                       fontSize:17, fontWeight:700, color:'#19BFFF' }}>
+              Swipe
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14M14 6l6 6-6 6" stroke="#19BFFF" strokeWidth="2.4"
+                  strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Slide 2 content */}
+        {onSlide2 && (
+          <div style={{ width:'100%', padding:'0 22px 32px' }}>
+            <div style={{ fontSize:24, fontWeight:800, color:'#fff', textAlign:'center',
+                          marginBottom:10 }}>
+              Lets get started !
+            </div>
+            <div style={{ fontSize:14, color:'rgba(255,255,255,0.78)', textAlign:'center',
+                          lineHeight:1.55, marginBottom:28 }}>
+              Join thousands of students on campus<br/>and make meaningful connections
+            </div>
+
+            {/* Role buttons */}
+            {[
+              { label:'Group Moderators', icon:(
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L3 7l9 5 9-5-9-5Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
+                  <path d="M3 12l9 5 9-5M3 17l9 5 9-5" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
+                </svg>
+              ), role:'admin' },
+              { label:'Event Organizers', icon:(
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="2"/>
+                  <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              ), role:'organizer' },
+              { label:'Student SignUp', icon:(
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3L2 9l10 6 10-6-10-6Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
+                  <path d="M6 12v5c0 2 2.686 3 6 3s6-1 6-3v-5" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              ), role:'student' },
+            ].map(({ label, icon, role }) => (
+              <button key={role} onClick={() => goRole(role)} style={{
+                width:'100%', height:54, border:'none', borderRadius:999, marginBottom:12,
+                background:'#19BFFF', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+                fontSize:15, fontWeight:700, color:'#fff',
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                boxShadow:'0 6px 20px rgba(25,191,255,0.35)',
+              }}>
+                {label}
+                {icon}
+              </button>
+            ))}
+
+            <div style={{ textAlign:'center', marginTop:4, fontSize:11.5,
+                          color:'rgba(255,255,255,0.55)', lineHeight:1.6 }}>
+              By signing up, you agree to our{' '}
+              <span style={{ color:'#19BFFF', cursor:'pointer' }}>Terms of Service</span> and{' '}
+              <span style={{ color:'#19BFFF', cursor:'pointer' }}>Privacy Policy</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -4221,7 +4217,7 @@ function AuthLogo({ size=100 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
-function AuthScreen({ setScreen, showToast, initialStep }) {
+function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
   // ── step machine ──────────────────────────────────────────
   const [step,    setStep]    = useState(initialStep || 'login');  // login | signup | verify | onboard | role
   const [animKey, setAnimKey] = useState(0);
@@ -4254,7 +4250,7 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
   const [year,       setYear]       = useState('');
 
   // role
-  const [role, setRole] = useState('');
+  const [role, setRole] = useState(initialRole || '');
 
   const CAMPUSES = ['Fort Garry', 'Bannatyne', 'William Norrie Centre'];
   const YEARS    = ['1st Year','2nd Year','3rd Year','4th Year','5th+ Year'];
@@ -9123,7 +9119,7 @@ export default function RiplyApp() {
   const renderScreen = () => {
     switch(screen) {
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
-      case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} />;
+      case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} />;
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;

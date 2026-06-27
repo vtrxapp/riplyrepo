@@ -318,7 +318,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke="#7B8499" strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{fmt(ev.attendees)} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
+                    <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{fmt(ev.attendee_count || ev.attendees || 0)} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
                   </div>
                 </div>
               </div>
@@ -2513,16 +2513,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
   const [expanded, setExpanded] = useState(false);
   const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isFollowing = !!following[ev.id];
 
-  const ATTENDEES = [
-    {i:'A',c:'#FF5A8A'},{i:'J',c:'#0098F0'},{i:'M',c:'#10B981'},
-    {i:'R',c:'#7C5CFF'},{i:'K',c:'#FF8A3D'},{i:'T',c:'#06B6D4'},
-  ];
-  const GUESTS = [
-    {name:'Sarah James',role:'Host · MC',         i:'S', c:'linear-gradient(135deg,#FF5A8A,#FF8A3D)'},
-    {name:'The Rhythms', role:'Live Band',         i:'R', c:'linear-gradient(135deg,#7C5CFF,#B06BFF)'},
-    {name:'DJ Maxwell',  role:'Resident DJ',       i:'M', c:'linear-gradient(135deg,#02B6FE,#0078E0)'},
-    {name:'Harmony C.',  role:'Vocal Coach',       i:'H', c:'linear-gradient(135deg,#10B981,#06B6D4)'},
-  ];
+  const attendeeCount = ev.attendee_count || ev.attendees || 0;
   const evTags = Array.isArray(ev.tags) ? ev.tags : [];
   const similar = EVENTS.filter(e => e.id !== ev.id && Array.isArray(e.tags) && e.tags.some(t => evTags.includes(t))).slice(0,2);
 
@@ -2578,31 +2569,42 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 110px' }}>
 
         {/* Hero banner */}
-        <div style={{ position:'relative', height:206, borderRadius:20, overflow:'hidden',
-                      boxShadow:'0 10px 28px rgba(16,24,40,0.12)' }}>
-          <div style={{ position:'absolute', inset:0, background:th.grad }}/>
-          <div style={{ position:'absolute', inset:0, background:
-            'repeating-linear-gradient(135deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 2px,transparent 16px)'}}/>
-          <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
-                        alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
-                        background:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:700, color:C.body }}>
-            {th.label} · Event
-          </div>
-          <div style={{ position:'absolute', top:'50%', left:'50%',
-                        transform:'translate(-50%,-50%)', textAlign:'center' }}>
-            <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10,
-                          letterSpacing:1, color:'rgba(255,255,255,0.85)' }}>EVENT HERO · 1200×630</div>
-            <div style={{ fontSize:24, fontWeight:800, color:'#fff', letterSpacing:-0.5,
-                          marginTop:8, maxWidth:280, lineHeight:1.2 }}>{ev.title}</div>
-          </div>
-          {ev.badge && (
-            <div style={{ position:'absolute', bottom:12, right:12, display:'inline-flex',
-                          alignItems:'center', height:24, padding:'0 10px', borderRadius:7,
-                          background:'rgba(14,23,38,0.55)', fontSize:10, fontWeight:700, color:'#fff' }}>
-              {ev.badge}
+        {(() => {
+          const HERO_IMGS = {
+            social:    'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=900&q=80',
+            sports:    'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=900&q=80',
+            academic:  'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=900&q=80',
+            arts:      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=80',
+            wellness:  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=900&q=80',
+            career:    'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=900&q=80',
+          };
+          const heroImg = ev.image_url || ev.imageUrl || HERO_IMGS[ev.primary] || HERO_IMGS.social;
+          return (
+            <div style={{ position:'relative', height:206, borderRadius:20, overflow:'hidden',
+                          boxShadow:'0 10px 28px rgba(16,24,40,0.12)' }}>
+              <img src={heroImg} alt={ev.title}
+                   style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
+              <div style={{ position:'absolute', inset:0,
+                background:'linear-gradient(to top,rgba(14,23,38,0.75) 0%,rgba(14,23,38,0.2) 55%,transparent 100%)' }}/>
+              <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
+                            alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
+                            background:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:700, color:C.body }}>
+                {th.label} · Event
+              </div>
+              <div style={{ position:'absolute', bottom:14, left:14, right:14 }}>
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', letterSpacing:-0.5,
+                              lineHeight:1.2, textShadow:'0 1px 6px rgba(0,0,0,0.5)' }}>{ev.title}</div>
+              </div>
+              {ev.badge && (
+                <div style={{ position:'absolute', top:12, right:12, display:'inline-flex',
+                              alignItems:'center', height:24, padding:'0 10px', borderRadius:7,
+                              background:'rgba(14,23,38,0.55)', fontSize:10, fontWeight:700, color:'#fff' }}>
+                  {ev.badge}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* Organizer card */}
         <div style={{ marginTop:13, background:C.card, borderRadius:16,
@@ -2650,8 +2652,8 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
             <div style={{ flex:1 }}>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Date &amp; Time</div>
-              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{ev.fullDate}</div>
-              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{ev.timeRange}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{ev.fullDate || ev.full_date || ev.date}</div>
+              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{ev.timeRange || ev.time_range}</div>
               <button onClick={() => showToast('Added to your calendar')} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',
@@ -2781,66 +2783,20 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
         </div>
 
         {/* Attending */}
-        <div onClick={() => showToast('Viewing all attendees')}
-          style={{ marginTop:13, background:C.card, borderRadius:16,
-                   boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14, cursor:'pointer' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.8"/>
-              <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
-              <path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
-            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Attending</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center' }}>
-            {ATTENDEES.map((a, i) => (
-              <div key={i} style={{ width:32, height:32, borderRadius:'50%',
-                                    marginLeft: i > 0 ? -9 : 0, border:'2.5px solid #fff',
-                                    flexShrink:0, display:'flex', alignItems:'center',
-                                    justifyContent:'center', color:'#fff', fontSize:11,
-                                    fontWeight:800, background:a.c }}>{a.i}</div>
-            ))}
-            <div style={{ width:32, height:32, borderRadius:'50%', marginLeft:-9, border:'2.5px solid #fff',
-                          flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                          background:C.chip, color:C.muted, fontSize:10, fontWeight:800 }}>+44</div>
-          </div>
-          <div style={{ fontSize:12, color:'#6B7385', marginTop:9 }}>
-            <span style={{ fontWeight:800, color:C.body }}>50 attending</span> · 5 friends going
-          </div>
-        </div>
-
-        {/* Guest Speakers */}
-        {GUESTS.length > 0 && (
-          <div style={{ marginTop:16 }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
-                          padding:'0 2px 10px' }}>
-              <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Guest Speakers</span>
-              <button onClick={() => showToast('Viewing all speakers')} style={{
-                border:'none', background:'none', fontSize:12, fontWeight:800,
-                color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-              }}>View All</button>
+        {attendeeCount > 0 && (
+          <div onClick={() => showToast('Viewing all attendees')}
+            style={{ marginTop:13, background:C.card, borderRadius:16,
+                     boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14, cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.8"/>
+                <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
+                <path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+              <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Attending</span>
             </div>
-            <div style={{ display:'flex', gap:11, overflowX:'auto', padding:'2px 2px 4px',
-                          scrollbarWidth:'none' }}>
-              {GUESTS.map((g, i) => (
-                <div key={i} style={{ flexShrink:0, width:116, background:C.card,
-                                      borderRadius:14, boxShadow:'0 4px 14px rgba(16,24,40,0.06)',
-                                      padding:11 }}>
-                  <div style={{ height:84, borderRadius:11, background:g.c, position:'relative',
-                                overflow:'hidden', display:'flex', alignItems:'center',
-                                justifyContent:'center' }}>
-                    <span style={{ fontSize:22, fontWeight:800, color:'#fff' }}>{g.i}</span>
-                    <div style={{ position:'absolute', inset:0, background:
-                      'repeating-linear-gradient(135deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 2px,transparent 14px)'}}/>
-                  </div>
-                  <div style={{ fontSize:12, fontWeight:800, color:C.ink, marginTop:8,
-                                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                    {g.name}
-                  </div>
-                  <div style={{ fontSize:10, color:'#8A93A6', marginTop:2, whiteSpace:'nowrap',
-                                overflow:'hidden', textOverflow:'ellipsis' }}>{g.role}</div>
-                </div>
-              ))}
+            <div style={{ fontSize:12, color:'#6B7385' }}>
+              <span style={{ fontWeight:800, color:C.body }}>{attendeeCount} attending</span>
             </div>
           </div>
         )}

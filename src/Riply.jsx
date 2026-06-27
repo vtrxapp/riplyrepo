@@ -281,8 +281,23 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
-                  <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>{ev.date}</span>
+                  <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>
+                    {ev.date || '-'}{(ev.start_time || ev.startTime) ? (' · ' + (ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + ev.time_range.split(' – ')[0] : '')}
+                  </span>
                 </div>
+                {/* Badges row: Free entry / recurring */}
+                {(ev.price === 'Free' || ev.price === 0 || ev.badge) && (
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:7, flexWrap:'wrap' }}>
+                    {(ev.price === 'Free' || ev.price === 0) && (
+                      <span style={{ display:'inline-flex', alignItems:'center', height:20, padding:'0 8px', borderRadius:999,
+                        background:'#E6F8F0', fontSize:9.5, fontWeight:700, color:'#0E9F6E' }}>Free entry</span>
+                    )}
+                    {ev.badge && (
+                      <span style={{ display:'inline-flex', alignItems:'center', height:20, padding:'0 8px', borderRadius:999,
+                        background:'#FFF6EC', fontSize:9.5, fontWeight:700, color:'#C27803' }}>{ev.badge}</span>
+                    )}
+                  </div>
+                )}
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
 
                 {/* Organizer row */}
@@ -318,7 +333,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke="#7B8499" strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{fmt(ev.attendee_count || ev.attendees || 0)} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
+                    <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
                   </div>
                 </div>
               </div>
@@ -2797,6 +2812,43 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
             </div>
             <div style={{ fontSize:12, color:'#6B7385' }}>
               <span style={{ fontWeight:800, color:C.body }}>{attendeeCount} attending</span>
+            </div>
+          </div>
+        )}
+
+        {/* Guest Speakers — only shown if event has guests */}
+        {Array.isArray(ev.guests) && ev.guests.length > 0 && (
+          <div style={{ marginTop:16 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                          padding:'0 2px 10px' }}>
+              <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Guest Speakers</span>
+            </div>
+            <div style={{ display:'flex', gap:11, overflowX:'auto', padding:'2px 2px 4px',
+                          scrollbarWidth:'none' }}>
+              {ev.guests.map((g, i) => {
+                const GRAD = ['linear-gradient(135deg,#FF5A8A,#FF8A3D)','linear-gradient(135deg,#7C5CFF,#B06BFF)','linear-gradient(135deg,#02B6FE,#0078E0)','linear-gradient(135deg,#10B981,#06B6D4)'];
+                return (
+                  <div key={i} style={{ flexShrink:0, width:116, background:C.card,
+                                        borderRadius:14, boxShadow:'0 4px 14px rgba(16,24,40,0.06)',
+                                        padding:11 }}>
+                    <div style={{ height:84, borderRadius:11, background:GRAD[i % GRAD.length],
+                                  position:'relative', overflow:'hidden', display:'flex',
+                                  alignItems:'center', justifyContent:'center' }}>
+                      <span style={{ fontSize:22, fontWeight:800, color:'#fff' }}>
+                        {(g.name || '?')[0].toUpperCase()}
+                      </span>
+                    </div>
+                    <div style={{ fontSize:12, fontWeight:800, color:C.ink, marginTop:8,
+                                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                      {g.name}
+                    </div>
+                    {g.role && (
+                      <div style={{ fontSize:10, color:'#8A93A6', marginTop:2, whiteSpace:'nowrap',
+                                    overflow:'hidden', textOverflow:'ellipsis' }}>{g.role}</div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -5857,6 +5909,16 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
   const [about,     setAbout]     = useState('');
   const [rules,     setRules]     = useState({});
 
+  const [guests,     setGuests]     = useState([]);
+  const [guestInput, setGuestInput] = useState({ name:'', role:'' });
+
+  const addGuest = () => {
+    if (!guestInput.name.trim()) return;
+    setGuests(g => [...g, { name: guestInput.name.trim(), role: guestInput.role.trim() }]);
+    setGuestInput({ name:'', role:'' });
+  };
+  const removeGuest = (i) => setGuests(g => g.filter((_, idx) => idx !== i));
+
   const [submitting, setSubmitting] = useState(false);
   const activeCat = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid = pricing === 'paid';
@@ -6118,6 +6180,79 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
           />
         </div>
 
+        {/* Guest List */}
+        <div style={{ marginTop:20 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <EventLabel>Guest List</EventLabel>
+            <span style={{ fontSize:10, fontWeight:700, color:C.subtle }}>{guests.length} added</span>
+          </div>
+          {/* Existing guests */}
+          {guests.length > 0 && (
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:11 }}>
+              {guests.map((g, i) => (
+                <div key={i} style={{ display:'flex', alignItems:'center', gap:11, background:C.card,
+                                      border:`1.5px solid ${C.border}`, borderRadius:13, padding:'10px 14px' }}>
+                  <div style={{ width:34, height:34, borderRadius:10, flexShrink:0,
+                                background:'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                color:'#fff', fontSize:13, fontWeight:800 }}>
+                    {g.name[0].toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12.5, fontWeight:700, color:C.body,
+                                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{g.name}</div>
+                    {g.role && <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>{g.role}</div>}
+                  </div>
+                  <button onClick={() => removeGuest(i)} style={{ border:'none', background:'none',
+                    padding:4, cursor:'pointer', color:'#9AA3B2', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Add guest inputs */}
+          <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'2px 14px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
+                          borderBottom:`1px solid ${C.divider}` }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <circle cx="12" cy="8" r="3.5" stroke={C.primary} strokeWidth="1.9"/>
+                <path d="M4.5 20c0-3.5 3-5.5 7.5-5.5s7.5 2 7.5 5.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+              <input value={guestInput.name} onChange={e => setGuestInput(s => ({...s, name: e.target.value}))}
+                placeholder="Guest name"
+                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12.5,
+                         fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+              />
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <path d="M4 6h10M4 12h10M4 18h6" stroke={C.muted} strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+              <input value={guestInput.role} onChange={e => setGuestInput(s => ({...s, role: e.target.value}))}
+                onKeyDown={e => e.key === 'Enter' && addGuest()}
+                placeholder="Role (e.g. MC, DJ, Live Band)"
+                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12.5,
+                         fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+              />
+            </div>
+          </div>
+          <button onClick={addGuest} style={{
+            marginTop:9, width:'100%', height:40, border:`1.5px solid ${C.border}`,
+            borderRadius:12, background:C.card, fontSize:12, fontWeight:700,
+            color: guestInput.name.trim() ? C.primary : C.subtle,
+            cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+            display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+            Add Guest
+          </button>
+        </div>
+
         {/* Rules */}
         <div style={{ marginTop:20 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
@@ -6200,8 +6335,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
               saves: 0,
               shares: 0,
               trending: false,
-              badge: repeat ? 'Every Week' : null,
+              badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
               rules: selectedRules.length ? selectedRules : null,
+              guests: guests.length ? guests : null,
             }).select().single();
             setSubmitting(false);
             if (error) { showToast('Failed to publish: ' + error.message); return; }

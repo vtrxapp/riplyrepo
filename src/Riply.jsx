@@ -2184,7 +2184,6 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
             <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
                   stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>Share</span>
         </button>
       </div>
 

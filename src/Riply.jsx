@@ -2624,7 +2624,21 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
         <div style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink, whiteSpace:'nowrap',
                       overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
-        <HeaderBtn onClick={() => showToast('Share link copied')}>
+        <HeaderBtn onClick={async () => {
+          const shareData = {
+            title: ev.title,
+            text: `${ev.title} — ${ev.fullDate || ev.full_date || ev.date || ''}${ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}`,
+            url: window.location.href,
+          };
+          if (navigator.share) {
+            try { await navigator.share(shareData); } catch {}
+          } else {
+            try {
+              await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+              showToast('Event link copied to clipboard');
+            } catch { showToast('Could not share'); }
+          }
+        }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <circle cx="18" cy="5.5" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
             <circle cx="6" cy="12" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
@@ -2632,14 +2646,14 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
             <path d="m8.2 10.8 7.6-4.1M8.2 13.2l7.6 4.1" stroke="#39414F" strokeWidth="1.9"/>
           </svg>
         </HeaderBtn>
-        <HeaderBtn onClick={() => toggleSave(ev.id)}>
+        <HeaderBtn onClick={() => { toggleSave(ev.id); showToast(isSaved ? 'Removed from saved' : 'Event saved!'); }}>
           <svg width="16" height="16" viewBox="0 0 24 24">
             <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z"
                   fill={isSaved ? C.primary : 'rgba(0,0,0,0)'}
                   stroke={isSaved ? C.primary : '#39414F'} strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
-        <HeaderBtn onClick={() => toggleLike(ev.id)}>
+        <HeaderBtn onClick={() => { toggleLike(ev.id); showToast(isLiked ? 'Like removed' : 'You liked this event!'); }}>
           <svg width="17" height="17" viewBox="0 0 24 24">
             <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
                   fill={isLiked ? '#FF3B6B' : 'rgba(0,0,0,0)'}

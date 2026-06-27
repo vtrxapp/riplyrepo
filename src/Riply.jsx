@@ -285,9 +285,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
             </div>
             <span style={{ fontSize:19, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>Riply</span>
           </div>
-          <button onClick={()=>setCreateOpen(true)} style={{ width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
-          </button>
+          <div style={{ width:40, height:40 }} />
         </div>
         <SearchBar
           placeholder={query || 'What can we help you find?'}
@@ -427,10 +425,66 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
         })}
       </div>
 
-      {/* FAB — My Tickets */}
-      <button onClick={()=>navigate('my-tickets')} style={{ position:'absolute', bottom:94, right:18, width:60, height:60, border:'none', borderRadius:20, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 10px 24px rgba(2,162,240,0.45),0 2px 6px rgba(2,162,240,0.3)', zIndex:6 }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/><path d="M14 7.5v9" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeDasharray="0.5 3"/></svg>
-      </button>
+      {/* Expandable FAB */}
+      {(() => {
+        const [fabOpen, setFabOpen] = React.useState(false);
+        return (
+          <div style={{ position:'absolute', bottom:94, right:18, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:10, zIndex:6 }}>
+            {/* Backdrop */}
+            {fabOpen && (
+              <div onClick={() => setFabOpen(false)}
+                style={{ position:'fixed', inset:0, zIndex:-1 }} />
+            )}
+            {/* Option: My Tickets */}
+            {fabOpen && (
+              <div style={{ display:'flex', alignItems:'center', gap:10,
+                animation:'fabItemIn .18s ease' }}>
+                <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
+                  fontSize:12, fontWeight:700, color:C.ink,
+                  boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>My Tickets</span>
+                <button onClick={() => { setFabOpen(false); navigate('my-tickets'); }}
+                  style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
+                    display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                    boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/>
+                    <path d="M14 7.5v9" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeDasharray="0.5 3"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+            {/* Option: Add Event */}
+            {fabOpen && (
+              <div style={{ display:'flex', alignItems:'center', gap:10,
+                animation:'fabItemIn .13s ease' }}>
+                <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
+                  fontSize:12, fontWeight:700, color:C.ink,
+                  boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Add Event</span>
+                <button onClick={() => { setFabOpen(false); setCreateOpen(true); }}
+                  style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
+                    display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                    boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+            {/* Main FAB */}
+            <button onClick={() => setFabOpen(v => !v)}
+              style={{ width:60, height:60, border:'none', borderRadius:20, background:C.grad,
+                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                boxShadow:'0 10px 24px rgba(2,162,240,0.45),0 2px 6px rgba(2,162,240,0.3)',
+                transition:'transform .2s ease',
+                transform: fabOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <path d="M5 15l7-7 7 7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <style>{`@keyframes fabItemIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
+          </div>
+        );
+      })()}
 
       {/* Create Sheet */}
       {createOpen && (

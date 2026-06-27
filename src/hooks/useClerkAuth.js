@@ -32,14 +32,16 @@ export function useClerkAuth(showToast, setScreen, go) {
       }
     } catch(e) {
       const msg = e.errors?.[0]?.longMessage || e.errors?.[0]?.message || ''
-      // "client_not_found" / "client trust id" errors mean the browser session was
-      // invalidated — clearing Clerk's local storage fixes it on the next attempt.
-      if (msg.toLowerCase().includes('client') || msg.toLowerCase().includes('trust')) {
+      const code = e.errors?.[0]?.code || ''
+      // "client_not_found" / "client trust id" — stale Clerk session in browser.
+      // Clear all Clerk storage and reload so Clerk reinitializes from scratch.
+      if (code.includes('client') || msg.toLowerCase().includes('client') || msg.toLowerCase().includes('trust')) {
         Object.keys(localStorage).filter(k => k.startsWith('__clerk')).forEach(k => localStorage.removeItem(k))
-        showToast('Session expired. Please try again.')
-      } else {
-        showToast(msg || 'Login failed. Try again.')
+        Object.keys(sessionStorage).filter(k => k.startsWith('__clerk')).forEach(k => sessionStorage.removeItem(k))
+        window.location.reload()
+        return
       }
+      showToast(msg || 'Login failed. Try again.')
     }
   }
 

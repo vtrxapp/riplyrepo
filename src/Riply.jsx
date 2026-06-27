@@ -42,13 +42,16 @@ const THEME = {
 // ─────────────────────────────────────────────────────────────
 // RIPLY LOGO MARK  (matches the uploaded brand asset)
 // ─────────────────────────────────────────────────────────────
-function RiplyMark({ size = 32, white = false, blue = false }) {
+function RiplyMark({ size = 32, w, h, white = false, blue = false }) {
+  // logo is 220×110 (2:1). w/h override size for wide display use.
+  const imgW = w ?? size;
+  const imgH = h ?? size;
   return (
     <img
       src="/logo.png"
       alt="Riply"
-      width={size}
-      height={size}
+      width={imgW}
+      height={imgH}
       style={{
         objectFit: 'contain',
         display: 'block',
@@ -4085,7 +4088,7 @@ function WelcomeScreen({ navigate, setScreen }) {
 
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginTop:40 }}>
-          <RiplyMark size={90} blue />
+          <RiplyMark w={220} h={110} blue />
           <div style={{ fontSize:32, fontWeight:900, letterSpacing:6, color:'#19BFFF', marginTop:10 }}>
             RIPLY
           </div>
@@ -4351,7 +4354,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                       paddingTop:72, paddingBottom:36 }}>
-          <RiplyMark size={72} blue />
+          <RiplyMark w={220} h={110} blue />
           <div style={{ fontSize:28, fontWeight:900, letterSpacing:4, color:'#19BFFF', marginTop:10 }}>RIPLY</div>
           <div style={{ fontSize:11, fontWeight:700, letterSpacing:2.5, color:'rgba(255,255,255,0.75)',
                         marginTop:4, textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>
@@ -4407,7 +4410,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                       paddingTop:56, paddingBottom:28 }}>
-          <RiplyMark size={60} blue />
+          <RiplyMark w={220} h={110} blue />
           <div style={{ fontSize:24, fontWeight:900, letterSpacing:4, color:'#19BFFF', marginTop:8 }}>RIPLY</div>
           <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:2.5, color:'rgba(255,255,255,0.75)',
                         marginTop:3, textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>

@@ -2230,6 +2230,39 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
         </div>
       )}
 
+      {/* File attachment */}
+      {p.file_url && (
+        <a href={p.file_url} target="_blank" rel="noopener noreferrer" download={p.file_name || true}
+          style={{ display:'flex', alignItems:'center', gap:11, marginTop:11,
+                   background:'#F5F4FF', borderRadius:14, padding:'11px 14px',
+                   textDecoration:'none', border:'1.5px solid rgba(124,92,255,0.15)' }}>
+          {/* file icon */}
+          <div style={{ width:38, height:38, borderRadius:10, flexShrink:0,
+                        background:'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+                        display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/>
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:C.ink,
+                          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {p.file_name || 'Attachment'}
+            </div>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>Tap to download</div>
+          </div>
+          {/* download arrow */}
+          <div style={{ width:32, height:32, borderRadius:999, background:'#fff',
+                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                        boxShadow:'0 2px 8px rgba(124,92,255,0.15)' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4v12M8 13l4 4 4-4M4 20h16" stroke="#7C5CFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </a>
+      )}
+
       {/* Linked event chip */}
       {p.linked_event_title && (
         <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10,

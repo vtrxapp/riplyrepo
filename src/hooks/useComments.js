@@ -55,7 +55,12 @@ export function useComments(postId) {
         table: 'post_comments',
         filter: `post_id=eq.${postId}`,
       }, (payload) => {
-        setComments(prev => [...prev, normalize(payload.new)])
+        // Skip if we already have this row (optimistic or real)
+        setComments(prev =>
+          prev.some(c => c.id === payload.new.id)
+            ? prev
+            : [...prev, normalize(payload.new)]
+        )
       })
       .subscribe()
 
@@ -63,8 +68,25 @@ export function useComments(postId) {
   }, [postId])
 
   const addComment = useCallback(async (content, currentUserProfile, replyTo = null) => {
-    if (!user?.id || !postId || !content?.trim()) return
+    if (!postId || !content?.trim()) return
     const authorName = currentUserProfile?.name || user?.username || 'Member'
+    const optimistic = normalize({
+      id:             `opt-${Date.now()}`,
+      post_id:        postId,
+      user_id:        user?.id || 'anon',
+      content:        content.trim(),
+      author_name:    authorName,
+      author_initial: authorName[0]?.toUpperCase() || 'M',
+      author_color:   currentUserProfile?.avatarColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+      reply_to_id:    replyTo?.id    || null,
+      reply_to_name:  replyTo?.author || null,
+      likes_count:    0,
+      created_at:     new Date().toISOString(),
+    })
+    // Show immediately
+    setComments(prev => [...prev, optimistic])
+
+    if (!user?.id) return
     const { data, error } = await supabase.from('post_comments').insert({
       post_id:        postId,
       user_id:        user.id,
@@ -72,10 +94,15 @@ export function useComments(postId) {
       author_name:    authorName,
       author_initial: authorName[0]?.toUpperCase() || 'M',
       author_color:   currentUserProfile?.avatarColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
-      reply_to_id:    replyTo?.id   || null,
+      reply_to_id:    replyTo?.id    || null,
       reply_to_name:  replyTo?.author || null,
     }).select().single()
-    if (!error && data) {
+    if (error) {
+      console.error('[useComments] insert error:', error.message)
+      // Replace optimistic with error indicator or just leave it
+    } else if (data) {
+      // Replace optimistic entry with real DB row
+      setComments(prev => prev.map(c => c.id === optimistic.id ? normalize(data) : c))
       await supabase.rpc('increment_comment_count', { post_id_arg: postId }).catch(() => {})
     }
     return { data, error }

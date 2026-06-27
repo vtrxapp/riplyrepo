@@ -953,7 +953,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     // so missing columns don't cause failures when SQL hasn't been run yet
     const payload = {
       content:        text || '',
-      group_id:       matchedGroup?.id || groupId || null,
+      group_id:       groupId || (matchedGroup?.id && String(matchedGroup.id).includes('-') ? matchedGroup.id : null),
       user_id:        user?.id,
       likes_count:    0,
       comment_count:  0,

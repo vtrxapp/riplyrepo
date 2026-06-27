@@ -2387,7 +2387,13 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
           </svg>
           <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
         </button>
-        <button onClick={() => showToast('Post shared')}
+        <button onClick={async () => {
+            const shareText = p.text || 'Check this post on Riply';
+            if (navigator.share) {
+              try { await navigator.share({ title: 'Riply post', text: shareText, url: window.location.href }); return; } catch {}
+            }
+            try { await navigator.clipboard.writeText(shareText); showToast('Copied to clipboard'); } catch { showToast('Post shared'); }
+          }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"

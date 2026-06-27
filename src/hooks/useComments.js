@@ -41,7 +41,8 @@ export function useComments(postId) {
       .select('*')
       .eq('post_id', postId)
       .order('created_at', { ascending: true })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error('[useComments] fetch error:', error.message, error.code)
         setComments((data || []).map(normalize))
         setLoading(false)
       })

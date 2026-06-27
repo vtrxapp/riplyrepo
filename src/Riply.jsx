@@ -3860,7 +3860,7 @@ function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColo
 // ─────────────────────────────────────────────────────────────
 // SCREEN: PROFILE
 // ─────────────────────────────────────────────────────────────
-function ProfileScreen({ navigate, showToast, currentUser }) {
+function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const cu = currentUser || {};
   const [editOpen, setEditOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -3914,6 +3914,7 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
       rows: [
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name); setDraftEmail(currentUser.email); setEditOpen(true); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
+        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved Events', hasChevron:true, onClick:()=>navigate('saved-events') },
         { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>showToast('Payment Methods coming soon') },
         ...(profileRole!=='student'?[{ icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M3 5h18M3 10h18M3 15h10', title:'Manage Events', hasChevron:true, onClick:()=>navigate('event-manager') }]:[]),
       ],
@@ -4876,6 +4877,84 @@ function makeQR(seed) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: MY TICKETS
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// SCREEN: SAVED EVENTS
+// ─────────────────────────────────────────────────────────────
+function SavedEventsScreen({ goBack, navigate, saved }) {
+  const { user } = useUser();
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.id) { setLoading(false); return; }
+    supabase
+      .from('event_saves')
+      .select('event_id, events(*)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setEvents((data || []).map(r => r.events).filter(Boolean));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [user?.id]);
+
+  // also include locally-saved mock events
+  const allSavedIds = Object.keys(saved || {}).filter(id => saved[id]);
+  const mockSaved = EVENTS.filter(e => allSavedIds.includes(String(e.id)) && !events.find(ev => String(ev.id) === String(e.id)));
+  const allEvents = [...events, ...mockSaved];
+
+  return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 14px',
+                    boxShadow:'0 1px 0 rgba(16,24,40,0.07)', display:'flex', alignItems:'center', gap:10 }}>
+        <button onClick={goBack} style={{ width:38, height:38, border:'none', borderRadius:12,
+          background:C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round"/>
+          </svg>
+        </button>
+        <span style={{ fontSize:18, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>Saved Events</span>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 100px' }}>
+        {loading && (
+          <div style={{ textAlign:'center', padding:'60px 0', color:C.subtle, fontSize:13 }}>Loading…</div>
+        )}
+        {!loading && allEvents.length === 0 && (
+          <div style={{ textAlign:'center', padding:'60px 20px' }}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ margin:'0 auto 14px', display:'block' }}>
+              <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z"
+                stroke={C.border} strokeWidth="1.8" strokeLinejoin="round"/>
+            </svg>
+            <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>No saved events yet</div>
+            <div style={{ fontSize:13, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any event to save it here</div>
+          </div>
+        )}
+        {allEvents.map(ev => (
+          <div key={ev.id} onClick={() => navigate('event-details', { eventId: ev.id })}
+            style={{ background:C.card, borderRadius:16, marginBottom:12, overflow:'hidden',
+                     boxShadow:'0 2px 10px rgba(16,24,40,0.07)', cursor:'pointer' }}>
+            {(ev.image_url || ev.imageUrl) && (
+              <img src={ev.image_url || ev.imageUrl} alt={ev.title}
+                style={{ width:'100%', height:120, objectFit:'cover' }}/>
+            )}
+            <div style={{ padding:'12px 14px 14px' }}>
+              <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:4 }}>{ev.title}</div>
+              <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
+                {ev.full_date || ev.date}{ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}
+              </div>
+              {(ev.venue || ev.location) && (
+                <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{ev.venue || ev.location}</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MyTicketsScreen({ goBack, navigate, showToast }) {
   const { user } = useUser();
   const TABS = [
@@ -9259,7 +9338,8 @@ export default function RiplyApp() {
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
-      case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
+      case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;

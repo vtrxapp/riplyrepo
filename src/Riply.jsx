@@ -9606,20 +9606,18 @@ export default function RiplyApp() {
   }, []);
 
   // Navigation stack
-  const [navStack, setNavStack] = useState([{ screen: 'welcome' }]);
+  const [navStack, setNavStack] = useState([{ screen: 'loading' }]);
 
   // Auth guard: once Clerk loads, route to the right place.
-  // Wait for profileLoading to finish — if authenticated but no Supabase profile yet,
-  // the user is mid-onboarding (just verified email); don't skip to home.
   useEffect(() => {
     if (!currentUser.isLoaded || currentUser.profileLoading) return;
     const current = navStack[navStack.length - 1].screen;
-    const authScreens = ['welcome', 'auth'];
-    if (currentUser.isAuthenticated && currentUser.profile && authScreens.includes(current)) {
-      setNavStack([{ screen: 'home' }]);
-    }
-    if (!currentUser.isAuthenticated && !authScreens.includes(current)) {
-      setNavStack([{ screen: 'welcome' }]);
+    const authScreens = ['welcome', 'auth', 'loading'];
+    if (currentUser.isAuthenticated && currentUser.profile) {
+      if (authScreens.includes(current)) setNavStack([{ screen: 'home' }]);
+    } else if (!currentUser.isAuthenticated) {
+      if (!authScreens.includes(current)) setNavStack([{ screen: 'welcome' }]);
+      else if (current === 'loading') setNavStack([{ screen: 'welcome' }]);
     }
   }, [currentUser.isLoaded, currentUser.profileLoading, currentUser.isAuthenticated, currentUser.profile]);
 
@@ -9694,6 +9692,7 @@ export default function RiplyApp() {
 
   const renderScreen = () => {
     switch(screen) {
+      case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} />;
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;

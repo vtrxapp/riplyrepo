@@ -3001,6 +3001,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
   const [followed, setFollowed] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Animate live progress bar
   useEffect(() => {
@@ -3045,7 +3046,6 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
   const spPrice = sp.is_free || sp.price === 0 || sp.price === 'Free' ? 'Free' : (sp.price ? `$${sp.price}` : 'Free');
   const fmtDur = v => v ? (/^\d+$/.test(String(v)) ? `${v} min` : String(v)) : '';
   const hostName = (sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i, '');
-  const [moreOpen, setMoreOpen] = useState(false);
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,

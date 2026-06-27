@@ -4257,6 +4257,46 @@ function AuthLogo({ size=100 }) {
   );
 }
 
+// Auth helpers — defined outside AuthScreen so they're stable across renders
+function AuthBg() {
+  return (
+    <>
+      <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80"
+        alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%',
+          objectFit:'cover', objectPosition:'center' }} />
+      <div style={{ position:'absolute', inset:0,
+        background:'linear-gradient(to bottom,rgba(8,12,24,0.72) 0%,rgba(8,12,24,0.80) 100%)' }}/>
+    </>
+  );
+}
+
+function DarkPillInput({ value, onChange, placeholder, type='text', inputMode, icon, right }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10,
+      background:'rgba(255,255,255,0.95)', borderRadius:999,
+      padding:'0 18px', height:54 }}>
+      <input value={value} onChange={onChange} placeholder={placeholder}
+        type={type} inputMode={inputMode}
+        style={{ flex:1, border:'none', background:'none', outline:'none',
+          fontSize:14, fontWeight:600, color:'#111', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+      {right}
+      {icon && <span style={{ flexShrink:0, opacity:0.5 }}>{icon}</span>}
+    </div>
+  );
+}
+
+function DarkEyeBtn({ show, onToggle }) {
+  return (
+    <button onClick={onToggle} style={{ border:'none', background:'none', padding:0, cursor:'pointer',
+      display:'flex', alignItems:'center', opacity:0.5, flexShrink:0 }}>
+      {show
+        ? <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z" stroke="#111" strokeWidth="1.9"/><circle cx="12" cy="12" r="2.5" stroke="#111" strokeWidth="1.9"/><line x1="3" y1="3" x2="21" y2="21" stroke="#111" strokeWidth="1.9" strokeLinecap="round"/></svg>
+        : <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z" stroke="#111" strokeWidth="1.9"/><circle cx="12" cy="12" r="2.5" stroke="#111" strokeWidth="1.9"/></svg>
+      }
+    </button>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
@@ -4306,41 +4346,6 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
   ];
 
   const slideStyle = { animation:`authSlide 0.26s cubic-bezier(.4,0,.2,1)` };
-
-  // Full-bleed background shared by login & signup
-  const AuthBg = () => (
-    <>
-      <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80"
-        alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%',
-          objectFit:'cover', objectPosition:'center' }} />
-      <div style={{ position:'absolute', inset:0,
-        background:'linear-gradient(to bottom,rgba(8,12,24,0.72) 0%,rgba(8,12,24,0.80) 100%)' }}/>
-    </>
-  );
-
-  // White pill input for dark background — icon always on the right
-  const DarkPillInput = ({ value, onChange, placeholder, type='text', inputMode, icon, right }) => (
-    <div style={{ display:'flex', alignItems:'center', gap:10,
-      background:'rgba(255,255,255,0.95)', borderRadius:999,
-      padding:'0 18px', height:54 }}>
-      <input value={value} onChange={onChange} placeholder={placeholder}
-        type={type} inputMode={inputMode}
-        style={{ flex:1, border:'none', background:'none', outline:'none',
-          fontSize:14, fontWeight:600, color:'#111', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
-      {right}
-      {icon && <span style={{ flexShrink:0, opacity:0.5 }}>{icon}</span>}
-    </div>
-  );
-
-  const DarkEyeBtn = ({ show, onToggle }) => (
-    <button onClick={onToggle} style={{ border:'none', background:'none', padding:0, cursor:'pointer',
-      display:'flex', alignItems:'center', opacity:0.5 }}>
-      {show
-        ? <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z" stroke="#111" strokeWidth="1.9"/><circle cx="12" cy="12" r="2.5" stroke="#111" strokeWidth="1.9"/><line x1="3" y1="3" x2="21" y2="21" stroke="#111" strokeWidth="1.9" strokeLinecap="round"/></svg>
-        : <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z" stroke="#111" strokeWidth="1.9"/><circle cx="12" cy="12" r="2.5" stroke="#111" strokeWidth="1.9"/></svg>
-      }
-    </button>
-  );
 
   // ── LOGIN ─────────────────────────────────────────────────
   if (step === 'login') return (

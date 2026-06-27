@@ -25,4 +25,5 @@ dist-ssr
 .env.local
 .env
 node_modules
-distverify.mjs
+dist
+verify.mjs

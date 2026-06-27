@@ -2138,6 +2138,19 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
         </div>
       )}
 
+      {/* Linked event chip */}
+      {p.linked_event_title && (
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10,
+                      background:'rgba(2,162,240,0.08)', borderRadius:12, padding:'9px 12px' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
+            <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontSize:12.5, fontWeight:800, color:C.primary, flex:1 }}>{p.linked_event_title}</span>
+          <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}>View event →</span>
+        </div>
+      )}
+
       {/* Like / Comment / Share */}
       <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13, paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
         <button onClick={() => togglePostLike(pid)}
@@ -2244,16 +2257,18 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const g = dbGroup || staticG;
   const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
 
+
   const [joinState,  setJoinState]  = useState(staticG.state || "join");   // 'join'|'joined'|'request'|'requested'
   const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
   const [activeTab,  setActiveTab]  = useState('posts');
   const [postText,   setPostText]   = useState('');
   const [posting,    setPosting]    = useState(false);
 
-  const isPrivate  = joinState === 'request' || joinState === 'requested';
-  const isJoined   = joinState === 'joined';
-  const isRequested= joinState === 'requested';
-  const canSee     = isJoined || (g.state || "join") === 'joined';
+  const isPrivate    = joinState === 'request' || joinState === 'requested';
+  const isJoined     = joinState === 'joined';
+  const isRequested  = joinState === 'requested';
+  const canSee       = isJoined || (g.state || "join") === 'joined';
+  const mediaImages  = livePosts.filter(p => p.image_url);
 
   const handlePrimary = async () => {
     if (!user?.id) { showToast('Sign in to join groups'); return; }
@@ -2629,7 +2644,21 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
               {/* EVENTS */}
               {activeTab === 'events' && (
-                groupEvents.length === 0
+                <>
+                {isJoined && (
+                  <button onClick={() => navigate('create-event', { groupId })}
+                    style={{ width:'100%', height:44, border:`1.5px dashed ${C.primary}`, borderRadius:14,
+                             background:'rgba(2,162,240,0.05)', color:C.primary, fontSize:13,
+                             fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center',
+                             justifyContent:'center', gap:8,
+                             fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke={C.primary} strokeWidth="2.2" strokeLinecap="round"/>
+                    </svg>
+                    Create Event
+                  </button>
+                )}
+                {groupEvents.length === 0
                   ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No upcoming events</div>
                   : groupEvents.map(ev => {
                     const d = ev.date ? new Date(ev.date) : null;
@@ -2663,30 +2692,24 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                       </div>
                     );
                   })
+                }
+                </>
               )}
 
               {/* MEDIA */}
               {activeTab === 'media' && (
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
-                  {GMEDIA.map((m,i) => (
-                    <div key={i} onClick={() => showToast('Opening media…')}
-                      style={{ position:'relative', aspectRatio:'1', borderRadius:10,
-                               overflow:'hidden', background:m.grad, cursor:'pointer' }}>
-                      <div style={{ position:'absolute', inset:0, background:
-                        'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 9px)'}}/>
-                      {m.isVideo && (
-                        <div style={{ position:'absolute', top:'50%', left:'50%',
-                                      transform:'translate(-50%,-50%)', width:30, height:30,
-                                      borderRadius:'50%', background:'rgba(255,255,255,0.9)',
-                                      display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M8 5v14l11-7L8 5Z" fill={C.ink}/>
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                mediaImages.length === 0
+                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No photos yet</div>
+                  : <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+                    {mediaImages.map((m) => (
+                      <div key={m.id}
+                        style={{ position:'relative', aspectRatio:'1', borderRadius:10,
+                                 overflow:'hidden', background:C.chip, cursor:'pointer' }}>
+                        <img src={m.image_url} alt=""
+                          style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                      </div>
+                    ))}
+                  </div>
               )}
 
               {/* RULES */}
@@ -6592,7 +6615,7 @@ function EventCounterBtn({ onClick, minus }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE EVENT
 // ─────────────────────────────────────────────────────────────
-function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
+function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: sourceGroupId }) {
   const CATS = [
     { id:'social',   label:'Social',   grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
     { id:'career',   label:'Career',   grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)' },
@@ -6636,6 +6659,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
   };
   const removeGuest = (i) => setGuests(g => g.filter((_, idx) => idx !== i));
 
+  const [isPublic,   setIsPublic]   = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const activeCat = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid = pricing === 'paid';
@@ -7015,6 +7039,29 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
       <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:6,
                     background:'rgba(255,255,255,0.96)', backdropFilter:'blur(16px)',
                     boxShadow:'0 -1px 0 rgba(16,24,40,0.07)', padding:'13px 16px 28px' }}>
+        {/* Visibility toggle (only when creating from a group) */}
+        {sourceGroupId && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                        background:C.chip, borderRadius:13, padding:'11px 14px', marginBottom:12 }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>
+                {isPublic ? 'Public event' : 'Group-only event'}
+              </div>
+              <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>
+                {isPublic ? 'Visible on the home feed for everyone' : 'Only visible inside this group'}
+              </div>
+            </div>
+            <div onClick={() => setIsPublic(p => !p)}
+              style={{ width:44, height:26, borderRadius:999, cursor:'pointer', flexShrink:0,
+                       background: isPublic ? C.primary : '#C5CBD6', position:'relative',
+                       transition:'background 0.2s' }}>
+              <div style={{ position:'absolute', top:3, left: isPublic ? 21 : 3, width:20, height:20,
+                             borderRadius:'50%', background:'#fff',
+                             boxShadow:'0 1px 4px rgba(0,0,0,0.18)',
+                             transition:'left 0.2s' }}/>
+            </div>
+          </div>
+        )}
         {!canPublish && (
           <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10,
                         background:'#FFF6EC', borderRadius:10, padding:'9px 12px' }}>
@@ -7062,9 +7109,28 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
               badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
               rules: selectedRules.length ? selectedRules : null,
               guests: guests.length ? guests : null,
+              group_id: sourceGroupId || null,
+              is_public: sourceGroupId ? isPublic : true,
             }).select().single();
+            if (error) { setSubmitting(false); showToast('Failed to publish: ' + error.message); return; }
+            // If created from a group, also create a post so it appears in the Posts tab
+            if (sourceGroupId && event) {
+              const authorName = currentUser.name || 'Organizer';
+              await supabase.from('posts').insert({
+                group_id:           sourceGroupId,
+                user_id:            currentUser.userId,
+                content:            `📅 New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`,
+                image_url:          coverUrl || null,
+                linked_event_id:    event.id,
+                linked_event_title: title.trim(),
+                likes_count:        0,
+                comment_count:      0,
+                author_name:        authorName,
+                author_initial:     authorName[0]?.toUpperCase() || 'O',
+                author_color:       'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+              });
+            }
             setSubmitting(false);
-            if (error) { showToast('Failed to publish: ' + error.message); return; }
             showToast('Event published! 🎉');
             navigate('event-details', { eventId: event.id });
           }}
@@ -9747,7 +9813,7 @@ export default function RiplyApp() {
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
-      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;

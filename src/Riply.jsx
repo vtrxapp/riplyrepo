@@ -42,7 +42,7 @@ const THEME = {
 // ─────────────────────────────────────────────────────────────
 // RIPLY LOGO MARK  (matches the uploaded brand asset)
 // ─────────────────────────────────────────────────────────────
-function RiplyMark({ size = 32, white = false }) {
+function RiplyMark({ size = 32, white = false, blue = false }) {
   return (
     <img
       src="/logo.png"
@@ -52,7 +52,11 @@ function RiplyMark({ size = 32, white = false }) {
       style={{
         objectFit: 'contain',
         display: 'block',
-        filter: white ? 'brightness(0) invert(1)' : 'none',
+        filter: white
+          ? 'brightness(0) invert(1)'
+          : blue
+          ? 'brightness(0) saturate(100%) invert(68%) sepia(72%) saturate(400%) hue-rotate(164deg) brightness(103%)'
+          : 'none',
       }}
     />
   );
@@ -4081,7 +4085,7 @@ function WelcomeScreen({ navigate, setScreen }) {
 
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginTop:40 }}>
-          <RiplyMark size={90} white />
+          <RiplyMark size={90} blue />
           <div style={{ fontSize:32, fontWeight:900, letterSpacing:6, color:'#19BFFF', marginTop:10 }}>
             RIPLY
           </div>

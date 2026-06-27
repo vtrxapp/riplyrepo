@@ -2922,26 +2922,40 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           </div>
 
           {/* Price */}
-          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 0' }}>
-            <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:'#E6F8F0',
-                          display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M7 7h10M7 12h7M11 17l-4-2 4-2" stroke="#10B981" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="12" cy="12" r="9" stroke="#10B981" strokeWidth="1.9"/>
-              </svg>
-            </div>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
-                            textTransform:'uppercase', color:C.subtle }}>Price</div>
-              <div style={{ fontSize:13, fontWeight:800, color:'#10B981', marginTop:3 }}>
-                {ev.price === 'Free' || ev.price === 0 ? 'Free for students' : ev.price}
+          {(() => {
+            const isFreeEv = ev.price === 'Free' || ev.price === 0 || ev.price === 'free' || !ev.price;
+            return (
+              <div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 0' }}>
+                <div style={{ width:36, height:36, borderRadius:10, flexShrink:0,
+                              background: isFreeEv ? '#E6F8F0' : '#FFF6E9',
+                              display:'flex', alignItems:'center', justifyContent:'center',
+                              position:'relative' }}>
+                  <span style={{ fontSize:18, fontWeight:900,
+                                 color: isFreeEv ? '#10B981' : '#F59E0B',
+                                 fontFamily:'serif', lineHeight:1 }}>$</span>
+                  {isFreeEv && (
+                    <svg style={{ position:'absolute', inset:0 }} width="36" height="36" viewBox="0 0 36 36">
+                      <line x1="8" y1="28" x2="28" y2="8" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round"/>
+                    </svg>
+                  )}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
+                                textTransform:'uppercase', color:C.subtle }}>Price</div>
+                  <div style={{ fontSize:13, fontWeight:800, marginTop:3,
+                                color: isFreeEv ? '#10B981' : '#F59E0B' }}>
+                    {isFreeEv ? 'Free for students' : `$${ev.price}`}
+                  </div>
+                </div>
+                <span style={{ fontSize:10, fontWeight:800,
+                               color: isFreeEv ? '#0E9F6E' : '#D97706',
+                               background: isFreeEv ? '#E6F8F0' : '#FFF6E9',
+                               padding:'4px 10px', borderRadius:999 }}>
+                  Spots open
+                </span>
               </div>
-            </div>
-            <span style={{ fontSize:10, fontWeight:800, color:'#0E9F6E',
-                           background:'#E6F8F0', padding:'4px 10px', borderRadius:999 }}>
-              Spots open
-            </span>
-          </div>
+            );
+          })()}
         </div>
 
         {/* About */}
@@ -3085,23 +3099,16 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
         )}
       </div>
 
-      {/* ── Sticky buy bar ───────────────────────────────── */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:6,
-                    background:'rgba(255,255,255,0.96)', backdropFilter:'blur(16px)',
-                    boxShadow:'0 -1px 0 rgba(16,24,40,0.07)', padding:'12px 16px 26px',
-                    display:'flex', alignItems:'center', gap:12 }}>
-        <div style={{ flexShrink:0 }}>
-          <div style={{ fontSize:10, color:C.subtle, fontWeight:600 }}>Price</div>
-          <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>{ev.price}</div>
-        </div>
+      {/* ── Floating buy button ───────────────────────────── */}
+      <div style={{ position:'absolute', bottom:24, left:24, right:24, zIndex:6 }}>
         {role !== 'student' ? (
           <button onClick={() => navigate('check-in', {eventId: ev.id})} style={{
-            flex:1, height:50, border:'none', borderRadius:15, cursor:'pointer',
+            width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
             background:'linear-gradient(135deg,#0E1726,#1A2538)', color:'#fff',
-            fontSize:13, fontWeight:800,
+            fontSize:14, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-            boxShadow:'0 8px 20px rgba(14,23,38,0.3)',
+            boxShadow:'0 10px 28px rgba(14,23,38,0.35)',
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
@@ -3110,13 +3117,13 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           </button>
         ) : (
           <button onClick={() => navigate('tickets', {eventId: ev.id})} style={{
-            flex:1, height:50, border:'none', borderRadius:15, cursor:'pointer',
-            background:C.grad, color:'#fff', fontSize:14, fontWeight:800,
+            width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
+            background:C.grad, color:'#fff', fontSize:15, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-            boxShadow:'0 8px 20px rgba(2,162,240,0.4)',
+            boxShadow:'0 10px 28px rgba(2,162,240,0.45)',
           }}>
-            {ev.price === 'Free' || ev.price === 0 ? 'Reserve Spot' : 'Buy Ticket'}
+            {ev.price === 'Free' || ev.price === 0 || !ev.price ? 'Reserve Spot' : 'Buy Ticket'}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>

@@ -5664,11 +5664,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
         </button>
         <div style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink }}>Create Campus Group</div>
-        <button onClick={() => showToast('Draft saved')} style={{
-          height:40, padding:'0 15px', border:'none', borderRadius:13, background:C.chip,
-          fontSize:12, fontWeight:700, color:C.muted, cursor:'pointer',
-          fontFamily:"'Montserrat',-apple-system,sans-serif", flexShrink:0,
-        }}>Draft</button>
+        <div style={{ width:40 }} />
       </div>
 
       {/* ── Scroll body ────────────────────────────────────── */}
@@ -6079,13 +6075,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
         </button>
         <div style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink }}>Create Student Space</div>
-        <button onClick={() => showToast('Draft saved')}
-          style={{ height:40, padding:'0 15px', border:'none', borderRadius:13,
-                   background:C.chip, fontSize:12, fontWeight:700, color:C.muted,
-                   cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                   flexShrink:0 }}>
-          Draft
-        </button>
+        <div style={{ width:40 }} />
       </div>
 
       {/* ── Scroll body ────────────────────────────────────── */}
@@ -6606,13 +6596,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
         </button>
         <div style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink }}>Create Event</div>
-        <button onClick={() => showToast('Draft saved')}
-          style={{ height:40, padding:'0 15px', border:'none', borderRadius:13,
-                   background:C.chip, fontSize:12, fontWeight:700, color:C.muted,
-                   cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                   flexShrink:0 }}>
-          Draft
-        </button>
+        <div style={{ width:40 }} />
       </div>
 
       {/* ── Scroll body ────────────────────────────────────── */}

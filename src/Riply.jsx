@@ -253,22 +253,40 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
           return (
             <div key={ev.id} style={{ background:C.card, borderRadius:24, boxShadow:'0 8px 24px rgba(16,24,40,0.07),0 1px 2px rgba(16,24,40,0.04)', marginBottom:16, overflow:'hidden' }}>
               {/* Banner */}
-              <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ position:'relative', height:172, overflow:'hidden', cursor:'pointer' }}>
-                <div style={{ position:'absolute', inset:0, background:th.grad }} />
-                <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 16px)' }} />
-                <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0.18) 0%,transparent 32%,transparent 60%,rgba(0,0,0,0.42) 100%)' }} />
-                {/* Top row */}
-                <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
-                  <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)', boxShadow:'0 2px 6px rgba(0,0,0,0.12)' }}>
-                    <svg width="17" height="17" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l1-8Z" fill={ev.trending?'#FFB020':'rgba(255,255,255,0)'} stroke={ev.trending?'#F59E0B':'#7B8499'} strokeWidth="1.6" strokeLinejoin="round"/></svg>
+              {(() => {
+                const CARD_IMGS = {
+                  social:    'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=800&q=75',
+                  sports:    'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=75',
+                  academic:  'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&q=75',
+                  arts:      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=75',
+                  wellness:  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=75',
+                  career:    'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=75',
+                  festival:  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&q=75',
+                };
+                const cardImg = ev.image_url || ev.imageUrl || ev.cover_url || CARD_IMGS[ev.primary] || CARD_IMGS[ev.category] || CARD_IMGS.social;
+                const isFree = ev.price === 'Free' || ev.price === 0 || ev.price === 'free';
+                return (
+                  <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ position:'relative', height:172, overflow:'hidden', cursor:'pointer' }}>
+                    <img src={cardImg} alt={ev.title}
+                      style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0.22) 0%,transparent 35%,transparent 55%,rgba(0,0,0,0.48) 100%)' }} />
+                    {/* Top row: category chip + trending */}
+                    <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
+                      <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)', boxShadow:'0 2px 6px rgba(0,0,0,0.12)' }}>
+                        <svg width="17" height="17" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l1-8Z" fill={ev.trending?'#FFB020':'rgba(255,255,255,0)'} stroke={ev.trending?'#F59E0B':'#7B8499'} strokeWidth="1.6" strokeLinejoin="round"/></svg>
+                      </div>
+                    </div>
+                    {/* Bottom row: free entry (left) + recurring badge (right) */}
+                    <div style={{ position:'absolute', bottom:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      {isFree
+                        ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
+                        : <span/>}
+                      {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
+                    </div>
                   </div>
-                </div>
-                {/* Placeholder label */}
-                <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:1, color:'rgba(255,255,255,0.82)', textAlign:'center' }}>{th.label.toUpperCase()} · EVENT PHOTO</div>
-                {/* Badge */}
-                {ev.badge && <span style={{ position:'absolute', bottom:12, right:12, display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
-              </div>
+                );
+              })()}
 
               {/* Content */}
               <div style={{ padding:'14px 16px' }}>
@@ -285,19 +303,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                     {ev.date || '-'}{(ev.start_time || ev.startTime) ? (' · ' + (ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + ev.time_range.split(' – ')[0] : '')}
                   </span>
                 </div>
-                {/* Badges row: Free entry / recurring */}
-                {(ev.price === 'Free' || ev.price === 0 || ev.badge) && (
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:7, flexWrap:'wrap' }}>
-                    {(ev.price === 'Free' || ev.price === 0) && (
-                      <span style={{ display:'inline-flex', alignItems:'center', height:20, padding:'0 8px', borderRadius:999,
-                        background:'#E6F8F0', fontSize:9.5, fontWeight:700, color:'#0E9F6E' }}>Free entry</span>
-                    )}
-                    {ev.badge && (
-                      <span style={{ display:'inline-flex', alignItems:'center', height:20, padding:'0 8px', borderRadius:999,
-                        background:'#FFF6EC', fontSize:9.5, fontWeight:700, color:'#C27803' }}>{ev.badge}</span>
-                    )}
-                  </div>
-                )}
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
 
                 {/* Organizer row */}

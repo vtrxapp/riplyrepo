@@ -4091,7 +4091,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [profileRole, setProfileRole] = useState(cu.role || 'student');
   const [draftName, setDraftName] = useState('');
   const [draftEmail, setDraftEmail] = useState('');
-  const [draftBio, setDraftBio] = useState('');
   const [draftUniversity, setDraftUniversity] = useState('');
   const [draftYear, setDraftYear] = useState('');
   const [draftProgram, setDraftProgram] = useState('');
@@ -4116,7 +4115,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
     {
       title:'Account',
       rows: [
-        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftBio(currentUser.bio||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); } },
+        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved', hasChevron:true, onClick:()=>navigate('saved-events') },
         { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>setPayOpen(true) },
@@ -4177,7 +4176,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       {/* Header */}
       <div style={{ flexShrink:0, background:cardBg, padding:'52px 16px 10px', boxShadow:'0 1px 0 rgba(16,24,40,0.04)', zIndex:4, display:'flex', alignItems:'center', justifyContent:'space-between', transition:'background .3s' }}>
         <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:textColor }}>Profile & Settings</span>
-        <button onClick={()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftBio(currentUser.bio||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+        <button onClick={()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={iconStroke} strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke={iconStroke} strokeWidth="1.9" strokeLinecap="round"/></svg>
         </button>
       </div>
@@ -4229,7 +4228,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             </div>
           )}
           <div style={{ fontSize:10.5, color:subColor, marginTop:6 }}>{email}</div>
-          {currentUser.bio && <div style={{ fontSize:12, color:subColor, marginTop:8, maxWidth:280, lineHeight:1.5 }}>{currentUser.bio}</div>}
         </div>
 
         {/* Stats */}
@@ -4316,7 +4314,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           {/* Fields */}
           {[
             { label:'Full Name', val:draftName, set:setDraftName, type:'text', mode:undefined },
-            { label:'Bio', val:draftBio, set:setDraftBio, type:'textarea', mode:undefined },
             { label:'University', val:draftUniversity, set:setDraftUniversity, type:'text', mode:undefined },
             { label:'Year', val:draftYear, set:setDraftYear, type:'text', mode:undefined, placeholder:'e.g. Sophomore, 2nd Year' },
             { label:'Program / Major', val:draftProgram, set:setDraftProgram, type:'text', mode:undefined, placeholder:'e.g. Computer Science' },
@@ -4334,7 +4331,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           <button onClick={async ()=>{
             if(draftName.trim().length<2){showToast('Name must be at least 2 characters');return;}
             setSaving(true);
-            const { error } = await currentUser.updateProfile({ name: draftName.trim(), email: draftEmail.trim(), bio: draftBio.trim(), university: draftUniversity.trim(), year: draftYear.trim(), program: draftProgram.trim() });
+            const { error } = await currentUser.updateProfile({ name: draftName.trim(), email: draftEmail.trim(), university: draftUniversity.trim(), year: draftYear.trim(), program: draftProgram.trim() });
             setSaving(false);
             if(error){ showToast('Failed to save: ' + (error.message || 'Unknown error')); return; }
             setEditOpen(false);

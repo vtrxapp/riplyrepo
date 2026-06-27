@@ -2717,7 +2717,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
             <div style={{ flex:1 }}>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Date &amp; Time</div>
-              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{ev.fullDate || ev.full_date || ev.date}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{(() => { const raw = ev.fullDate || ev.full_date || ev.date; if (!raw) return ''; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); })()}</div>
               <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{ev.timeRange || ev.time_range}</div>
               <button onClick={() => showToast('Added to your calendar')} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,

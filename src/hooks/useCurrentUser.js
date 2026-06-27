@@ -31,9 +31,8 @@ export function useCurrentUser() {
       .update(updates)
       .eq('id', user.id)
       .select()
-      .single()
-    if (!error && data) setProfile(data)
-    return { data, error }
+    if (!error && data?.[0]) setProfile(prev => ({ ...prev, ...data[0] }))
+    return { data: data?.[0], error }
   }, [user?.id])
 
   const logout = useCallback(async () => {

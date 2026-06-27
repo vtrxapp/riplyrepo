@@ -3148,6 +3148,22 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   );
 }
 
+function calcSpaceProgress(timeStr, dayStr, duration) {
+  if (!timeStr || !dayStr) return null;
+  const base = (dayStr === 'today' || dayStr === 'tomorrow') ? new Date() : new Date(dayStr + 'T00:00:00');
+  if (isNaN(base)) return null;
+  if (dayStr === 'tomorrow') base.setDate(base.getDate() + 1);
+  const mx = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
+  if (!mx) return null;
+  let h = parseInt(mx[1]); const min = parseInt(mx[2] || '0'); const ap = (mx[3] || '').toUpperCase();
+  if (ap === 'PM' && h < 12) h += 12; if (ap === 'AM' && h === 12) h = 0;
+  const startMs = new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, min).getTime();
+  const endMs = startMs + (parseInt(duration) || 60) * 60000;
+  const nowMs = Date.now();
+  if (nowMs < startMs) return null;
+  return Math.min(100, Math.round(((nowMs - startMs) / (endMs - startMs)) * 100));
+}
+
 // ─────────────────────────────────────────────────────────────
 // SCREEN: SPACE DETAILS
 // ─────────────────────────────────────────────────────────────
@@ -3170,7 +3186,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   // Tick progress bar every 30s when space is live
   useEffect(() => {
     const tick = () => {
-      const pct = computeSpaceProgress();
+      const pct = calcSpaceProgress(sp?.time, sp?.day, sp?.duration);
       if (pct !== null) setProgress(pct);
     };
     tick();
@@ -3189,7 +3205,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   const maxSpots = sp.max_spots || sp.max || 10;
   const isFull = count >= maxSpots;
   const pct = Math.round((count / maxSpots) * 100);
-  const liveProgress = computeSpaceProgress();
+  const liveProgress = calcSpaceProgress(sp.time, sp.day, sp.duration);
   const isLive = liveProgress !== null;
   const done = isLive && liveProgress >= 100;
 
@@ -3233,32 +3249,6 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
     return spDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   })();
 
-  // Compute live progress from start time + duration
-  const computeSpaceProgress = () => {
-    const timeStr = sp.time; // e.g. "8:00 PM" or "20:00"
-    const dayStr = sp.day;
-    if (!timeStr || !dayStr) return null;
-    const baseDate = (dayStr === 'today' || dayStr === 'tomorrow')
-      ? new Date()
-      : new Date(dayStr + 'T00:00:00');
-    if (isNaN(baseDate)) return null;
-    if (dayStr === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
-    // Parse time string into hours/minutes
-    const m = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
-    if (!m) return null;
-    let h = parseInt(m[1]);
-    const min = parseInt(m[2] || '0');
-    const ampm = (m[3] || '').toUpperCase();
-    if (ampm === 'PM' && h < 12) h += 12;
-    if (ampm === 'AM' && h === 12) h = 0;
-    const startMs = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, min).getTime();
-    const durationMins = parseInt(sp.duration) || 60;
-    const endMs = startMs + durationMins * 60000;
-    const nowMs = Date.now();
-    if (nowMs < startMs) return null; // not started yet
-    const pct = Math.min(100, Math.round(((nowMs - startMs) / (endMs - startMs)) * 100));
-    return pct;
-  };
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,

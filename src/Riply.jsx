@@ -948,24 +948,32 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     setPosting(true);
     const matchedGroup = GROUPS.find(g => g.name === group);
     const authorName = currentUser.name || user?.username || 'Member';
-    const { error } = await supabase.from('posts').insert({
-      content:        text,
+
+    // Build insert payload — only include extra columns if we have values,
+    // so missing columns don't cause failures when SQL hasn't been run yet
+    const payload = {
+      content:        text || '',
       group_id:       matchedGroup?.id || groupId || null,
       user_id:        user?.id,
-      image_url:      imageUrl || null,
-      file_url:       fileUrl || null,
-      file_name:      fileName || null,
-      poll_options:   hasPoll ? pollOpts.filter(o => o.trim()) : null,
-      linked_event_id: linkedEvent?.id || null,
-      linked_event_title: linkedEvent?.title || null,
       likes_count:    0,
       comment_count:  0,
       author_name:    authorName,
       author_initial: authorName[0]?.toUpperCase() || 'M',
       author_color:   'linear-gradient(135deg,#7C5CFF,#B06BFF)',
-    });
+    };
+    if (imageUrl)          payload.image_url         = imageUrl;
+    if (fileUrl)           payload.file_url          = fileUrl;
+    if (fileName)          payload.file_name         = fileName;
+    if (linkedEvent?.id)   payload.linked_event_id   = linkedEvent.id;
+    if (linkedEvent?.title)payload.linked_event_title= linkedEvent.title;
+    if (hasPoll) {
+      const opts = pollOpts.filter(o => o.trim());
+      if (opts.length >= 2) payload.poll_options = opts;
+    }
+
+    const { error } = await supabase.from('posts').insert(payload);
     setPosting(false);
-    if (error) { showToast('Failed to post'); return; }
+    if (error) { showToast('Failed to post: ' + error.message); return; }
     showToast(`Posted to ${group}`);
     goBack();
   };
@@ -1129,9 +1137,15 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           setImagePreview(URL.createObjectURL(file));
           setUploading(true);
           try {
-            const url = await uploadImage(file, 'post-images', `${user?.id}-${Date.now()}.jpg`);
+            // Try post-images bucket first, fall back to group avatars bucket
+            let url;
+            try {
+              url = await uploadImage(file, 'post-images', `${user?.id}-${Date.now()}.jpg`);
+            } catch {
+              url = await uploadImage(file, 'group avatars', `posts/${user?.id}-${Date.now()}.jpg`);
+            }
             setImageUrl(url);
-          } catch { showToast('Image upload failed'); setImagePreview(null); }
+          } catch (err) { showToast('Image upload failed: ' + (err?.message || 'Check storage bucket')); setImagePreview(null); }
           setUploading(false);
           e.target.value = '';
         }} />
@@ -1140,12 +1154,17 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           setFileName(file.name);
           setUploading(true);
           try {
+            // Try attachments bucket first, fall back to group avatars
             const path = `files/${user?.id}-${Date.now()}-${file.name}`;
-            const { data, error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true });
-            if (error) throw error;
-            const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(path);
+            let publicUrl;
+            const { error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true });
+            if (error) {
+              publicUrl = (await uploadImage(file, 'group avatars', `files/${user?.id}-${Date.now()}`));
+            } else {
+              publicUrl = supabase.storage.from('attachments').getPublicUrl(path).data.publicUrl;
+            }
             setFileUrl(publicUrl);
-          } catch { showToast('File upload failed'); setFileName(null); }
+          } catch (err) { showToast('File upload failed: ' + (err?.message || 'Check storage bucket')); setFileName(null); }
           setUploading(false);
           e.target.value = '';
         }} />

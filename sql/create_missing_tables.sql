@@ -1,4 +1,17 @@
 -- Run this in the Supabase SQL Editor
+--
+-- STORAGE BUCKETS (create these in Supabase Dashboard → Storage → New Bucket):
+--   1. "post-images"   — public bucket, for post photos
+--   2. "attachments"   — public bucket, for file attachments
+--   3. "event-covers"  — public bucket, for event cover photos
+--   4. "group avatars" — public bucket, for group & user profile photos
+--
+-- For each bucket, also add an RLS insert policy:
+--   Policy name: "Allow authenticated uploads"
+--   Allowed operation: INSERT
+--   Target roles: authenticated
+--   USING expression: (select auth.uid()) is not null
+--
 
 -- feedback table (for FeedbackScreen)
 create table if not exists feedback (

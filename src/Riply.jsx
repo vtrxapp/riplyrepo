@@ -2766,32 +2766,66 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
                             textTransform:'uppercase', color:C.subtle }}>Location</div>
               <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{ev.venue}</div>
               <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{ev.room}</div>
-              {/* Map placeholder */}
-              <div style={{ position:'relative', height:88, borderRadius:11, overflow:'hidden',
-                            marginTop:10, background:'linear-gradient(135deg,#DCE7F0,#EDF2F7)' }}>
-                <div style={{ position:'absolute', inset:0, background:
-                  'repeating-linear-gradient(0deg,rgba(150,165,185,0.18) 0,rgba(150,165,185,0.18) 1px,transparent 1px,transparent 22px),repeating-linear-gradient(90deg,rgba(150,165,185,0.18) 0,rgba(150,165,185,0.18) 1px,transparent 1px,transparent 22px)' }}/>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                  style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-58%)' }}>
-                  <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" fill={C.primary}/>
-                  <circle cx="12" cy="10" r="2.6" fill="#fff"/>
-                </svg>
-                <span style={{ position:'absolute', bottom:7, left:9,
-                               fontFamily:"'JetBrains Mono',monospace",
-                               fontSize:9, color:'#7B8499' }}>MAP · placeholder</span>
-              </div>
-              <div style={{ display:'flex', gap:8, marginTop:9 }}>
-                <button onClick={() => showToast('Opening venue on map')} style={{
-                  flex:1, height:32, border:`1.5px solid ${C.border}`, background:'#fff',
-                  borderRadius:9, fontSize:11.5, fontWeight:700, color:C.body,
-                  cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                }}>View on Map</button>
-                <button onClick={() => showToast('Getting directions')} style={{
-                  flex:1, height:32, border:'none', background:'#E9F6FF',
-                  borderRadius:9, fontSize:11.5, fontWeight:700, color:C.primary,
-                  cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                }}>Get Directions</button>
-              </div>
+              {/* Map thumbnail — tappable, opens Google Maps */}
+              {(() => {
+                const addr = [ev.venue, ev.room, ev.location].filter(Boolean).join(', ');
+                const query = encodeURIComponent(addr);
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+                const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${query}`;
+                const thumbUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${query}&zoom=15&size=600x200&markers=color:0x0098F0%7C${query}&style=feature:poi|visibility:off&key=AIzaSyD-placeholder`;
+                return (
+                  <>
+                    <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ display:'block', position:'relative', height:110, borderRadius:11,
+                                overflow:'hidden', marginTop:10, textDecoration:'none',
+                                background:'linear-gradient(135deg,#DCE7F0,#EDF2F7)', cursor:'pointer' }}>
+                      {/* Grid overlay to look like a map */}
+                      <div style={{ position:'absolute', inset:0, background:
+                        'repeating-linear-gradient(0deg,rgba(150,165,185,0.15) 0,rgba(150,165,185,0.15) 1px,transparent 1px,transparent 22px),repeating-linear-gradient(90deg,rgba(150,165,185,0.15) 0,rgba(150,165,185,0.15) 1px,transparent 1px,transparent 22px)' }}/>
+                      {/* Fake road lines */}
+                      <div style={{ position:'absolute', top:'45%', left:0, right:0, height:8, background:'rgba(255,255,255,0.6)' }}/>
+                      <div style={{ position:'absolute', top:0, bottom:0, left:'38%', width:6, background:'rgba(255,255,255,0.5)' }}/>
+                      {/* Pin */}
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                        style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-70%)' }}>
+                        <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" fill={C.primary}/>
+                        <circle cx="12" cy="10" r="2.6" fill="#fff"/>
+                      </svg>
+                      {/* "Tap to open" hint */}
+                      <div style={{ position:'absolute', bottom:7, right:9, background:'rgba(255,255,255,0.85)',
+                        borderRadius:6, padding:'2px 7px', fontSize:9, fontWeight:700, color:C.primary }}>
+                        Open Maps ↗
+                      </div>
+                    </a>
+                    <div style={{ display:'flex', gap:8, marginTop:9 }}>
+                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{
+                        flex:1, height:34, border:`1.5px solid ${C.border}`, background:'#fff',
+                        borderRadius:9, fontSize:11.5, fontWeight:700, color:C.body,
+                        cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                        display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none',
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ marginRight:5 }}>
+                          <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.body} strokeWidth="2"/>
+                          <circle cx="12" cy="10" r="2.4" stroke={C.body} strokeWidth="2"/>
+                        </svg>
+                        View on Map
+                      </a>
+                      <a href={directionsUrl} target="_blank" rel="noopener noreferrer" style={{
+                        flex:1, height:34, border:'none', background:'#E9F6FF',
+                        borderRadius:9, fontSize:11.5, fontWeight:700, color:C.primary,
+                        cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                        display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none',
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ marginRight:5 }}>
+                          <path d="M3 12l7-7 7 7M12 5v14" stroke={C.primary} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" transform="rotate(90 12 12)"/>
+                          <path d="M5 9l7-7 7 7M5 15l7 7 7-7" stroke={C.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Get Directions
+                      </a>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 

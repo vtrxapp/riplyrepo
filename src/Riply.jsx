@@ -4318,17 +4318,17 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
     </>
   );
 
-  // White pill input for dark background
+  // White pill input for dark background — icon always on the right
   const DarkPillInput = ({ value, onChange, placeholder, type='text', inputMode, icon, right }) => (
     <div style={{ display:'flex', alignItems:'center', gap:10,
       background:'rgba(255,255,255,0.95)', borderRadius:999,
-      padding:'0 18px', height:52 }}>
-      {icon && <span style={{ flexShrink:0, opacity:0.5 }}>{icon}</span>}
+      padding:'0 18px', height:54 }}>
       <input value={value} onChange={onChange} placeholder={placeholder}
         type={type} inputMode={inputMode}
         style={{ flex:1, border:'none', background:'none', outline:'none',
           fontSize:14, fontWeight:600, color:'#111', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
       {right}
+      {icon && <span style={{ flexShrink:0, opacity:0.5 }}>{icon}</span>}
     </div>
   );
 
@@ -4362,11 +4362,11 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
         {/* Fields */}
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <DarkPillInput value={email} onChange={e=>setEmail(e.target.value)}
-            placeholder="Student email" inputMode="email"
-            icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#111" strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke="#111" strokeWidth="1.9" strokeLinecap="round"/></svg>}
+            placeholder="student email" inputMode="email"
+            icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke="#111" strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke="#111" strokeWidth="1.9" strokeLinejoin="round"/></svg>}
           />
           <DarkPillInput value={password} onChange={e=>setPassword(e.target.value)}
-            placeholder="Password" type={showPw?'text':'password'}
+            placeholder="password" type={showPw?'text':'password'}
             right={<DarkEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
@@ -4418,26 +4418,23 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
         {/* Fields */}
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <DarkPillInput value={name} onChange={e=>setName(e.target.value)}
-            placeholder="Username"
+            placeholder="username"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#111" strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke="#111" strokeWidth="1.9" strokeLinecap="round"/></svg>}
           />
           <DarkPillInput value={email} onChange={e=>setEmail(e.target.value)}
-            placeholder="Student email" inputMode="email"
+            placeholder="student email" inputMode="email"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke="#111" strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke="#111" strokeWidth="1.9" strokeLinejoin="round"/></svg>}
           />
           {/* Gender picker */}
           <div>
             <div onClick={()=>setGenderOpen(v=>!v)} style={{ display:'flex', alignItems:'center',
               gap:10, background:'rgba(255,255,255,0.95)', borderRadius:999,
-              padding:'0 18px', height:52, cursor:'pointer' }}>
-              <span style={{ opacity:0.5 }}>
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 14a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 0v6m-3-3h6" stroke="#111" strokeWidth="1.9" strokeLinecap="round"/></svg>
-              </span>
+              padding:'0 18px', height:54, cursor:'pointer' }}>
               <span style={{ flex:1, fontSize:14, fontWeight:600,
                              color: gender ? '#111' : 'rgba(0,0,0,0.45)' }}>
-                {gender || 'Gender'}
+                {gender || 'gender'}
               </span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ opacity:0.45 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ opacity:0.45, flexShrink:0 }}>
                 <path d="m6 9 6 6 6-6" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
@@ -4457,11 +4454,11 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
             )}
           </div>
           <DarkPillInput value={password} onChange={e=>setPassword(e.target.value)}
-            placeholder="Password" type={showPw?'text':'password'}
+            placeholder="password" type={showPw?'text':'password'}
             right={<DarkEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
           <DarkPillInput value={confirm} onChange={e=>setConfirm(e.target.value)}
-            placeholder="Confirm password" type={showCf?'text':'password'}
+            placeholder="confirm password" type={showCf?'text':'password'}
             right={<DarkEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>

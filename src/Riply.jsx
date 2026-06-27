@@ -3123,10 +3123,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow:'0 10px 28px rgba(2,162,240,0.45)',
           }}>
-            {ev.price === 'Free' || ev.price === 0 || !ev.price ? 'Reserve Spot' : 'Buy Ticket'}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            {ev.price === 'Free' || ev.price === 0 || !ev.price ? 'Reserve Spot' : 'Buy Ticket'} >
           </button>
         )}
       </div>
@@ -3509,18 +3506,24 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 
           {/* Price */}
           <div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 0' }}>
-            <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:'#E6F8F0',
-                          display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M7 7h10M7 12h7M11 17l-4-2 4-2" stroke="#10B981" strokeWidth="1.9"
-                      strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="12" cy="12" r="9" stroke="#10B981" strokeWidth="1.9"/>
-              </svg>
+            <div style={{ width:36, height:36, borderRadius:10, flexShrink:0,
+                          background: spPrice === 'Free' ? '#E6F8F0' : '#FFF6E9',
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          position:'relative' }}>
+              <span style={{ fontSize:18, fontWeight:900,
+                             color: spPrice === 'Free' ? '#10B981' : '#F59E0B',
+                             fontFamily:'serif', lineHeight:1 }}>$</span>
+              {spPrice === 'Free' && (
+                <svg style={{ position:'absolute', inset:0 }} width="36" height="36" viewBox="0 0 36 36">
+                  <line x1="8" y1="28" x2="28" y2="8" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round"/>
+                </svg>
+              )}
             </div>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Price</div>
-              <div style={{ fontSize:13, fontWeight:800, color:C.ink, marginTop:3 }}>
+              <div style={{ fontSize:13, fontWeight:800, marginTop:3,
+                            color: spPrice === 'Free' ? '#10B981' : '#F59E0B' }}>
                 {spPrice}
                 {spPrice !== 'Free' && <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}> per session</span>}
               </div>
@@ -3577,23 +3580,15 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 
       </div>
 
-      {/* ── Sticky join/joined bar ────────────────────────── */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:6,
-                    background:'rgba(255,255,255,0.96)', backdropFilter:'blur(16px)',
-                    boxShadow:'0 -1px 0 rgba(16,24,40,0.07)', padding:'12px 16px 26px',
-                    display:'flex', alignItems:'center', gap:12 }}>
-        <div style={{ flexShrink:0 }}>
-          <div style={{ fontSize:10, color:C.subtle, fontWeight:600 }}>Price</div>
-          <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>
-            {spPrice}
-          </div>
-        </div>
+      {/* ── Floating join button ────────────────────────── */}
+      <div style={{ position:'absolute', bottom:24, left:24, right:24, zIndex:6 }}>
         {isFull && !joined ? (
           <button onClick={() => showToast("You'll be notified when a spot opens")} style={{
-            flex:1, height:50, border:'none', borderRadius:15, cursor:'pointer',
-            background:C.subtle, color:'#fff', fontSize:14, fontWeight:800,
+            width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
+            background:C.subtle, color:'#fff', fontSize:15, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            boxShadow:'0 10px 28px rgba(14,23,38,0.25)',
           }}>
             Notify When a Spot Opens
           </button>
@@ -3607,16 +3602,16 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               else await supabase.from('space_participants').delete().eq('space_id', sp.id).eq('user_id', user.id);
             }
           }} style={{
-            flex:1, height:50, borderRadius:15, cursor:'pointer',
+            width:'100%', height:54, borderRadius:18, cursor:'pointer',
             border: joined ? `1.6px solid #10B981` : 'none',
             background: joined ? '#E6F8F0' : C.grad,
             color: joined ? '#0E9F6E' : '#fff',
-            fontSize:14, fontWeight:800,
+            fontSize:15, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-            boxShadow: joined ? 'none' : '0 8px 20px rgba(2,162,240,0.4)',
+            boxShadow: joined ? 'none' : '0 10px 28px rgba(2,162,240,0.45)',
           }}>
-            {joined ? "You're In · Joined ✓" : 'Join Space'}
+            {joined ? "You're In · Joined ✓" : 'Join Space'} {!joined && '>'}
           </button>
         )}
       </div>

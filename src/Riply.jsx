@@ -691,18 +691,6 @@ const { groups: liveGroups } = useGroups();
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
       {/* Header */}
       <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 12px', boxShadow:'0 1px 0 rgba(16,24,40,0.06)', zIndex:4 }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9 }}>
-            <div style={{ width:34, height:34, borderRadius:10, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-              <RiplyMark size={18} white />
-            </div>
-            <span style={{ fontSize:19, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>Discover</span>
-          </div>
-          <button onClick={()=>showToast("You're all caught up — no new notifications")} style={{ position:'relative', width:40, height:40, border:'none', borderRadius:13, background:C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z" stroke="#39414F" strokeWidth="1.9" strokeLinejoin="round"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke="#39414F" strokeWidth="1.9" strokeLinecap="round"/></svg>
-            <span style={{ position:'absolute', top:8, right:9, width:8, height:8, borderRadius:'50%', background:'#FF3B6B', border:`2px solid ${C.chip}` }} />
-          </button>
-        </div>
         <SearchBar placeholder="What can we help you find?" hint='Try "Clubs to join this semester"' onFilter={()=>navigate('filters',{from:'discover'})} />
       </div>
 

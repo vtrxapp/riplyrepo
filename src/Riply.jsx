@@ -317,6 +317,19 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
   ];
 
   const [fabOpen, setFabOpen] = useState(false);
+  const homeSwipeRef = useRef(null);
+  const handleHomeSwipeStart = (e) => { homeSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const handleHomeSwipeEnd = (e) => {
+    if (!homeSwipeRef.current) return;
+    const dx = e.changedTouches[0].clientX - homeSwipeRef.current.x;
+    const dy = e.changedTouches[0].clientY - homeSwipeRef.current.y;
+    homeSwipeRef.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+    const ids = CATS.map(c => c.id);
+    const i = ids.indexOf(activeCat);
+    const next = dx < 0 ? Math.min(i + 1, ids.length - 1) : Math.max(i - 1, 0);
+    setActiveCat(ids[next]);
+  };
   const { events: liveEvents, loading: eventsLoading } = useEvents({ category: (activeCat === 'all' || activeCat === 'trending') ? null : activeCat, search: query, filters });
   const eventData = liveEvents.length > 0 ? liveEvents : EVENTS;
   let list = eventData.slice();
@@ -342,7 +355,8 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
       </div>
 
       {/* Feed */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
+        onTouchStart={handleHomeSwipeStart} onTouchEnd={handleHomeSwipeEnd}>
         {list.length===0 && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No events match your search — try a different term.</div>
         )}
@@ -611,6 +625,19 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
 function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast }) {
   const TABS = [{id:'all',label:'All'},{id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'}];
   const [spaceQuery, setSpaceQuery] = useState('');
+  const spacesSwipeRef = useRef(null);
+  const handleSpacesSwipeStart = (e) => { spacesSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const handleSpacesSwipeEnd = (e) => {
+    if (!spacesSwipeRef.current) return;
+    const dx = e.changedTouches[0].clientX - spacesSwipeRef.current.x;
+    const dy = e.changedTouches[0].clientY - spacesSwipeRef.current.y;
+    spacesSwipeRef.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+    const ids = TABS.map(t => t.id);
+    const i = ids.indexOf(spaceTab);
+    const next = dx < 0 ? Math.min(i + 1, ids.length - 1) : Math.max(i - 1, 0);
+    setSpaceTab(ids[next]);
+  };
 
   const { spaces: liveSpaces } = useSpaces();
   const spaceData = liveSpaces.length > 0 ? liveSpaces : SPACES;
@@ -635,7 +662,8 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
       </div>
 
       {/* Spaces list */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
+        onTouchStart={handleSpacesSwipeStart} onTouchEnd={handleSpacesSwipeEnd}>
         {list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No spaces in this category right now.</div>}
         {list.map(sp => {
           const isJoined = !!spaceJoined[sp.id];
@@ -2430,14 +2458,38 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
 
 
-  const [joinState,  setJoinState]  = useState(staticG.state || "join");   // 'join'|'joined'|'request'|'requested'
+  const [joinState,  setJoinState]  = useState(staticG.state || "join");
   const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
+  const GROUP_TABS = ['posts', 'events', 'media', 'rules'];
   const [activeTab,  setActiveTab]  = useState('posts');
-  const [scrollY,    setScrollY]    = useState(0);
+  const [coverCollapsed, setCoverCollapsed] = useState(false);
+  const prevScrollRef = useRef(0);
 
-  const COVER_H    = 150;
-  const COLLAPSE_T = 100; // scroll distance to fully collapse cover
-  const coverProgress = Math.min(1, scrollY / COLLAPSE_T); // 0→1 as cover collapses
+  const handleGroupScroll = (e) => {
+    const top = e.currentTarget.scrollTop;
+    const delta = top - prevScrollRef.current;
+    prevScrollRef.current = top;
+    if (delta > 8 && top > 60) setCoverCollapsed(true);
+    if (delta < -8) setCoverCollapsed(false);
+  };
+
+  // Swipe between group tabs
+  const swipeTouchStart = useRef(null);
+  const handleTabTouchStart = (e) => { swipeTouchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const handleTabTouchEnd = (e) => {
+    if (!swipeTouchStart.current) return;
+    const dx = e.changedTouches[0].clientX - swipeTouchStart.current.x;
+    const dy = e.changedTouches[0].clientY - swipeTouchStart.current.y;
+    swipeTouchStart.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+    setActiveTab(prev => {
+      const i = GROUP_TABS.indexOf(prev);
+      const next = dx < 0 ? Math.min(i + 1, GROUP_TABS.length - 1) : Math.max(i - 1, 0);
+      return GROUP_TABS[next];
+    });
+  };
+
+  const coverProgress = coverCollapsed ? 1 : 0;
   const [postText,   setPostText]   = useState('');
   const [posting,    setPosting]    = useState(false);
 
@@ -2497,18 +2549,18 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       {/* ── Sticky collapsing bar (sits above scroll area) ── */}
       <div style={{
         position:'relative', zIndex:20, overflow:'hidden',
-        height: Math.max(0, COVER_H - scrollY * 1.1),
-        transition:'none',
+        height: coverCollapsed ? 52 : 150,
+        transition:'height 0.3s cubic-bezier(0.4,0,0.2,1)',
         flexShrink:0,
       }}>
         {/* Cover */}
         <div style={{
           position:'absolute', inset:0,
           background:'linear-gradient(135deg,#1A1F2E 0%,#2E3548 60%,#465067 120%)',
-          opacity: 1 - coverProgress * 0.85,
-          transform:`scale(${1 + coverProgress * 0.04})`,
+          opacity: coverCollapsed ? 0 : 1,
+          transform: coverCollapsed ? 'scale(1.04)' : 'scale(1)',
           transformOrigin:'center top',
-          transition:'none',
+          transition:'opacity 0.3s ease, transform 0.3s ease',
         }}>
           <div style={{ position:'absolute', inset:0, background:
             'repeating-linear-gradient(135deg,rgba(255,255,255,0.06) 0,rgba(255,255,255,0.06) 2px,transparent 2px,transparent 18px)' }}/>
@@ -2519,33 +2571,34 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           position:'absolute', inset:0,
           background:'linear-gradient(145deg,rgba(240,242,248,0.97),rgba(220,225,238,0.97))',
           backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-          opacity: coverProgress,
+          opacity: coverCollapsed ? 1 : 0,
           borderBottom:`1px solid rgba(190,198,218,0.6)`,
+          transition:'opacity 0.3s ease',
           boxShadow:'0 2px 16px rgba(0,0,0,0.08)',
         }}/>
 
         {/* Back + menu buttons — always visible */}
         <button onClick={goBack} style={{ position:'absolute', top:50, left:14, width:40,
           height:40, border:'none', borderRadius:'50%',
-          background: coverProgress > 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
+          background: coverCollapsed ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
           backdropFilter:'blur(8px)',
           display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-          transition:'background 0.2s', zIndex:2 }}>
+          transition:'background 0.3s', zIndex:2 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M14 6l-6 6 6 6" stroke={coverProgress > 0.5 ? C.ink : '#fff'} strokeWidth="2.2"
+            <path d="M14 6l-6 6 6 6" stroke={coverCollapsed ? C.ink : '#fff'} strokeWidth="2.2"
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <button onClick={() => showToast('Mute, report, or leave this group')} style={{
           position:'absolute', top:50, right:14, width:40, height:40,
           border:'none', borderRadius:'50%',
-          background: coverProgress > 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
+          background: coverCollapsed ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
           backdropFilter:'blur(8px)', display:'flex', alignItems:'center',
-          justifyContent:'center', cursor:'pointer', transition:'background 0.2s', zIndex:2 }}>
+          justifyContent:'center', cursor:'pointer', transition:'background 0.3s', zIndex:2 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="5"  r="1.8" fill={coverProgress > 0.5 ? C.ink : '#fff'}/>
-            <circle cx="12" cy="12" r="1.8" fill={coverProgress > 0.5 ? C.ink : '#fff'}/>
-            <circle cx="12" cy="19" r="1.8" fill={coverProgress > 0.5 ? C.ink : '#fff'}/>
+            <circle cx="12" cy="5"  r="1.8" fill={coverCollapsed ? C.ink : '#fff'}/>
+            <circle cx="12" cy="12" r="1.8" fill={coverCollapsed ? C.ink : '#fff'}/>
+            <circle cx="12" cy="19" r="1.8" fill={coverCollapsed ? C.ink : '#fff'}/>
           </svg>
         </button>
 
@@ -2553,9 +2606,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         <div style={{
           position:'absolute', bottom:0, left:0, right:0, height:52,
           display:'flex', alignItems:'center', gap:10, padding:'0 70px 0 16px',
-          opacity: coverProgress,
-          transform:`translateX(${(1 - coverProgress) * -30}px)`,
-          transition:'none',
+          opacity: coverCollapsed ? 1 : 0,
+          transform: coverCollapsed ? 'translateX(0px)' : 'translateX(-30px)',
+          transition:'opacity 0.3s ease, transform 0.3s ease',
           zIndex:2,
         }}>
           <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0,
@@ -2575,7 +2628,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         </div>
       </div>
 
-      <div style={{ flex:1, overflowY:'auto' }} onScroll={e => setScrollY(e.currentTarget.scrollTop)}>
+      <div style={{ flex:1, overflowY:'auto' }} onScroll={handleGroupScroll}>
 
 
         {/* ── Avatar ──────────────────────────────────────── */}
@@ -2821,8 +2874,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               ))}
             </div>
 
-            {/* Tab content */}
-            <div style={{ padding:'14px 16px 100px', display:'flex', flexDirection:'column', gap:14 }}>
+            {/* Tab content — swipeable */}
+            <div
+              onTouchStart={handleTabTouchStart}
+              onTouchEnd={handleTabTouchEnd}
+              style={{ padding:'14px 16px 100px', display:'flex', flexDirection:'column', gap:14 }}>
 
               {/* POSTS */}
               {activeTab === 'posts' && (

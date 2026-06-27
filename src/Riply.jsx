@@ -2669,7 +2669,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   const ev = dbEvent || EVENTS.find(e => e.id === eventId) || EVENTS[0];
   const th = THEME[ev.primary || ev.category] || THEME.social;
   const [expanded, setExpanded] = useState(false);
-  const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isFollowing = !!following[ev.id];
+  const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isFollowing = !!following[ev.id], isShared = !!shared[ev.id];
 
   const attendeeCount = ev.attendee_count || ev.attendees || 0;
   const evTags = Array.isArray(ev.tags) ? ev.tags : [];
@@ -2717,11 +2717,11 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           }
           if (didShare) recordShare(ev.id);
         }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-            <circle cx="18" cy="5.5" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
-            <circle cx="6" cy="12" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
-            <circle cx="18" cy="18.5" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
-            <path d="m8.2 10.8 7.6-4.1M8.2 13.2l7.6 4.1" stroke="#39414F" strokeWidth="1.9"/>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
+              fill={isShared ? '#FF8A3D' : 'none'}
+              stroke={isShared ? '#FF8A3D' : '#39414F'}
+              strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
         <HeaderBtn onClick={() => { toggleSave(ev.id); showToast(isSaved ? 'Removed from saved' : 'Event saved!'); }}>

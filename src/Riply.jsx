@@ -4474,15 +4474,16 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [payOpen, setPayOpen] = useState(false);
   const [lang, setLang] = useState('English');
   const [saving, setSaving] = useState(false);
-  const [stats, setStats] = useState({ events: 0, groups: 0 });
+  const [stats, setStats] = useState({ events: 0, groups: 0, spaces: 0 });
 
   useEffect(() => {
     if (!cu?.userId) return;
     Promise.all([
       supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
       supabase.from('group_members').select('group_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
-    ]).then(([rsvps, grps]) => {
-      setStats({ events: rsvps.count || 0, groups: grps.count || 0 });
+      supabase.from('space_participants').select('space_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
+    ]).then(([rsvps, grps, spaces]) => {
+      setStats({ events: rsvps.count || 0, groups: grps.count || 0, spaces: spaces.count || 0 });
     });
   }, [cu?.userId]);
 
@@ -4598,7 +4599,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             };
             input.click();
           }} style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)', position:'relative', border:'none', cursor:'pointer' }}>
-            <div style={{ width:'100%', height:'100%', borderRadius:'50%', background:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, position:'relative', overflow:'hidden' }}>
+            <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: currentUser.avatarColor || 'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, position:'relative', overflow:'hidden' }}>
               {currentUser.avatarUrl
                 ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                 : <><div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 12px)' }} />
@@ -4632,7 +4633,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
 
         {/* Stats */}
         <div style={{ display:'flex', gap:10, marginTop:20 }}>
-          {[{v:stats.events||'–',l:'Events'},{v:stats.groups||'–',l:'Groups'},{v:'–',l:'Friends'}].map(s=>(
+          {[{v:stats.groups||'–',l:'Groups Joined'},{v:stats.spaces||'–',l:'Spaces Involved'},{v:stats.events||'–',l:'Events Attended'}].map(s=>(
             <div key={s.l} style={{ flex:1, background:cardBg, borderRadius:18, padding:'13px 8px', textAlign:'center', boxShadow:'0 4px 14px rgba(16,24,40,0.05)', transition:'background .3s' }}>
               <div style={{ fontSize:17, fontWeight:800, color:textColor }}>{s.v}</div>
               <div style={{ fontSize:9, fontWeight:600, color:subColor, marginTop:2 }}>{s.l}</div>

@@ -3124,7 +3124,8 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow:'0 10px 28px rgba(2,162,240,0.45)',
           }}>
-            {ev.price === 'Free' || ev.price === 0 || !ev.price ? 'Reserve Spot' : 'Buy Ticket'} >
+            {ev.price === 'Free' || ev.price === 0 || !ev.price ? 'Reserve Spot' : 'Buy Ticket'}
+            <span style={{ fontSize:18, fontWeight:900, lineHeight:1 }}>›</span>
           </button>
         )}
       </div>
@@ -3662,7 +3663,8 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow: joined ? 'none' : '0 10px 28px rgba(2,162,240,0.45)',
           }}>
-            {joined ? "You're In · Joined ✓" : 'Join Space'} {!joined && '>'}
+            {joined ? "You're In · Joined ✓" : 'Join Space'}
+            {!joined && <span style={{ fontSize:18, fontWeight:900, lineHeight:1 }}>›</span>}
           </button>
         )}
       </div>

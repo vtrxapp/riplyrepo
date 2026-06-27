@@ -2433,7 +2433,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [joinState,  setJoinState]  = useState(staticG.state || "join");   // 'join'|'joined'|'request'|'requested'
   const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
   const [activeTab,  setActiveTab]  = useState('posts');
-  const [headerScrolled, setHeaderScrolled] = useState(false);
+  const [scrollY,    setScrollY]    = useState(0);
+
+  const COVER_H    = 150;
+  const COLLAPSE_T = 100; // scroll distance to fully collapse cover
+  const coverProgress = Math.min(1, scrollY / COLLAPSE_T); // 0→1 as cover collapses
   const [postText,   setPostText]   = useState('');
   const [posting,    setPosting]    = useState(false);
 
@@ -2490,71 +2494,89 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
 
-      {/* ── Collapsible Silver Bar ── */}
+      {/* ── Sticky collapsing bar (sits above scroll area) ── */}
       <div style={{
-        position:'absolute', top:0, left:0, right:0, zIndex:20, pointerEvents:'none',
-        transform:`translateY(${headerScrolled ? '0px' : '-70px'})`,
-        transition:'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+        position:'relative', zIndex:20, overflow:'hidden',
+        height: Math.max(0, COVER_H - scrollY * 1.1),
+        transition:'none',
+        flexShrink:0,
       }}>
+        {/* Cover */}
         <div style={{
-          margin:'10px 16px 0',
-          background:'linear-gradient(145deg,rgba(255,255,255,0.93),rgba(228,233,244,0.93))',
-          backdropFilter:'blur(22px)', WebkitBackdropFilter:'blur(22px)',
-          borderRadius:999,
-          border:'1px solid rgba(190,196,214,0.65)',
-          boxShadow:'0 4px 20px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.85)',
-          padding:'10px 16px',
-          display:'flex', alignItems:'center', gap:10,
+          position:'absolute', inset:0,
+          background:'linear-gradient(135deg,#1A1F2E 0%,#2E3548 60%,#465067 120%)',
+          opacity: 1 - coverProgress * 0.85,
+          transform:`scale(${1 + coverProgress * 0.04})`,
+          transformOrigin:'center top',
+          transition:'none',
         }}>
-          {/* group avatar mini */}
-          <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
-                        background: g.logoColor || C.grad,
+          <div style={{ position:'absolute', inset:0, background:
+            'repeating-linear-gradient(135deg,rgba(255,255,255,0.06) 0,rgba(255,255,255,0.06) 2px,transparent 2px,transparent 18px)' }}/>
+        </div>
+
+        {/* Silver bar that fades in as cover fades out */}
+        <div style={{
+          position:'absolute', inset:0,
+          background:'linear-gradient(145deg,rgba(240,242,248,0.97),rgba(220,225,238,0.97))',
+          backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+          opacity: coverProgress,
+          borderBottom:`1px solid rgba(190,198,218,0.6)`,
+          boxShadow:'0 2px 16px rgba(0,0,0,0.08)',
+        }}/>
+
+        {/* Back + menu buttons — always visible */}
+        <button onClick={goBack} style={{ position:'absolute', top:50, left:14, width:40,
+          height:40, border:'none', borderRadius:'50%',
+          background: coverProgress > 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
+          backdropFilter:'blur(8px)',
+          display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+          transition:'background 0.2s', zIndex:2 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M14 6l-6 6 6 6" stroke={coverProgress > 0.5 ? C.ink : '#fff'} strokeWidth="2.2"
+                  strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <button onClick={() => showToast('Mute, report, or leave this group')} style={{
+          position:'absolute', top:50, right:14, width:40, height:40,
+          border:'none', borderRadius:'50%',
+          background: coverProgress > 0.5 ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
+          backdropFilter:'blur(8px)', display:'flex', alignItems:'center',
+          justifyContent:'center', cursor:'pointer', transition:'background 0.2s', zIndex:2 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="5"  r="1.8" fill={coverProgress > 0.5 ? C.ink : '#fff'}/>
+            <circle cx="12" cy="12" r="1.8" fill={coverProgress > 0.5 ? C.ink : '#fff'}/>
+            <circle cx="12" cy="19" r="1.8" fill={coverProgress > 0.5 ? C.ink : '#fff'}/>
+          </svg>
+        </button>
+
+        {/* Avatar + group name slide in from left as cover collapses */}
+        <div style={{
+          position:'absolute', bottom:0, left:0, right:0, height:52,
+          display:'flex', alignItems:'center', gap:10, padding:'0 70px 0 16px',
+          opacity: coverProgress,
+          transform:`translateX(${(1 - coverProgress) * -30}px)`,
+          transition:'none',
+          zIndex:2,
+        }}>
+          <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0,
+                        background: g.logoColor || g.logo_color || C.grad,
                         display:'flex', alignItems:'center', justifyContent:'center',
-                        color:'#fff', fontSize:11, fontWeight:800 }}>
-            {g.initial || (g.name?.[0] || '?').toUpperCase()}
+                        color:'#fff', fontSize:13, fontWeight:800,
+                        border:'2.5px solid rgba(255,255,255,0.5)',
+                        boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }}>
+            {g.initial || (g.name || 'G')[0].toUpperCase()}
           </div>
-          <span style={{ fontSize:14, fontWeight:800, color:'#0E1726', letterSpacing:'-0.3px', flex:1 }}>
+          <span style={{ fontSize:15, fontWeight:800, color:C.ink, letterSpacing:'-0.3px' }}>
             {g.name || 'Group'}
           </span>
-          {/* thin blue accent bottom line */}
-          <div style={{ position:'absolute', bottom:0, left:'20%', right:'20%', height:2,
-                        borderRadius:999, background:C.grad, opacity:0.5 }}/>
+          {/* blue underline accent */}
+          <div style={{ position:'absolute', bottom:0, left:16, right:16, height:2,
+                        borderRadius:999, background:C.grad, opacity:0.4 }}/>
         </div>
       </div>
 
-      <div style={{ flex:1, overflowY:'auto' }} onScroll={e => setHeaderScrolled(e.currentTarget.scrollTop > 120)}>
+      <div style={{ flex:1, overflowY:'auto' }} onScroll={e => setScrollY(e.currentTarget.scrollTop)}>
 
-        {/* ── Cover ───────────────────────────────────────── */}
-        <div style={{ position:'relative', height:150, overflow:'hidden',
-                      background:'linear-gradient(135deg,#1A1F2E 0%,#2E3548 60%,#465067 120%)' }}>
-          <div style={{ position:'absolute', inset:0, background:
-            'repeating-linear-gradient(135deg,rgba(255,255,255,0.06) 0,rgba(255,255,255,0.06) 2px,transparent 2px,transparent 18px)' }}/>
-          <span style={{ position:'absolute', bottom:10, left:14,
-                         fontFamily:"'JetBrains Mono',monospace",
-                         fontSize:10, color:'rgba(255,255,255,0.7)' }}>
-            GROUP COVER · placeholder
-          </span>
-          <button onClick={goBack} style={{ position:'absolute', top:50, left:14, width:40,
-            height:40, border:'none', borderRadius:'50%',
-            background:'rgba(14,23,38,0.5)', backdropFilter:'blur(8px)',
-            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M14 6l-6 6 6 6" stroke="#fff" strokeWidth="2.2"
-                    strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <button onClick={() => showToast('Mute, report, or leave this group')} style={{
-            position:'absolute', top:50, right:14, width:40, height:40,
-            border:'none', borderRadius:'50%', background:'rgba(14,23,38,0.5)',
-            backdropFilter:'blur(8px)', display:'flex', alignItems:'center',
-            justifyContent:'center', cursor:'pointer' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="5"  r="1.8" fill="#fff"/>
-              <circle cx="12" cy="12" r="1.8" fill="#fff"/>
-              <circle cx="12" cy="19" r="1.8" fill="#fff"/>
-            </svg>
-          </button>
-        </div>
 
         {/* ── Avatar ──────────────────────────────────────── */}
         <div style={{ display:'flex', justifyContent:'center', marginTop:-42, position:'relative', zIndex:2 }}>

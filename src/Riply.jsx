@@ -8913,9 +8913,6 @@ export default function RiplyApp() {
     toastRef.current = setTimeout(() => setToast(null), 2200);
   }, []);
 
-  // Current user
-  const currentUser = useCurrentUser();
-
   // Home state
   const { liked, saved, rsvpd: following, postLiked, toggleLike, toggleSave, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
   const [filters, setFilters] = useState({});

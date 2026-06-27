@@ -7195,7 +7195,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
   const MODERATION = [
     { label:'Review Reports',    iconBg:'#FFF1ED', iconColor:'#F4452B', badge:'3',
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#F4452B" strokeWidth="1.8"/><path d="M12 7.5v5M12 16h.01" stroke="#F4452B" strokeWidth="2" strokeLinecap="round"/></svg>,
-      onPress:()=>showToast('Reports coming soon') },
+      onPress:()=>navigate('review-reports',{groupId:g.id}) },
     { label:'Pending Requests',  iconBg:'#FFF6EC', iconColor:'#F59E0B', badge:'8',
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#F59E0B" strokeWidth="1.8"/><path d="M12 8v4.5l3 2" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
       onPress:()=>navigate('pending-requests',{groupId:g.id}) },
@@ -7295,7 +7295,20 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
         </div>
 
         {/* Change photo */}
-        <button onClick={() => showToast('Upload a new group photo')} style={{
+        <button onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file'; input.accept = 'image/*';
+          input.onchange = async (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            showToast('Uploading photo…');
+            try {
+              const url = await uploadImage(file, 'group avatars', `${groupId}-${Date.now()}.jpg`);
+              await supabase.from('groups').update({ avatar_url: url }).eq('id', g.id);
+              showToast('Group photo updated ✓');
+            } catch { showToast('Upload failed. Try again.'); }
+          };
+          input.click();
+        }} style={{
           width:'100%', display:'flex', alignItems:'center', gap:11,
           background:'#fff', border:'none', borderRadius:16,
           boxShadow:'0 4px 14px rgba(16,24,40,0.05)', padding:'13px 15px',
@@ -7394,7 +7407,14 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
         </div>
 
         {/* Archive */}
-        <button onClick={() => showToast('Archive Group? This cannot be undone.')} style={{
+        <button onClick={async () => {
+          const confirmed = window.confirm('Archive this group? Members will no longer be able to post or join. This cannot be undone.');
+          if (!confirmed) return;
+          const { error } = await supabase.from('groups').update({ archived: true }).eq('id', g.id);
+          if (error) { showToast('Failed to archive: ' + error.message); return; }
+          showToast('Group archived');
+          goBack();
+        }} style={{
           width:'100%', height:50, marginTop:18, border:`1.5px solid #FAD9D4`,
           borderRadius:15, background:'#fff', color:C.danger,
           fontSize:14.5, fontWeight:800, cursor:'pointer',
@@ -7407,6 +7427,100 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
           </svg>
           Archive Group
         </button>
+      </div>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// SCREEN: REVIEW REPORTS
+// ─────────────────────────────────────────────────────────────
+function ReviewReportsScreen({ groupId, goBack, showToast }) {
+  const INITIAL_REPORTS = [
+    { id:1, type:'post', reporter:'Alex M.', reportee:'Jamie L.', reason:'Spam / self-promotion', content:'Check out my new merch store…', time:'2h', color:'linear-gradient(135deg,#19BFFF,#0078E0)' },
+    { id:2, type:'comment', reporter:'Sam K.', reportee:'Riley S.', reason:'Harassment', content:'That was a terrible idea and you should feel bad', time:'5h', color:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
+    { id:3, type:'post', reporter:'Jordan P.', reportee:'Casey T.', reason:'Off-topic content', content:'Anyone selling tickets to the game tomorrow?', time:'1d', color:'linear-gradient(135deg,#7C5CFF,#B06BFF)' },
+  ];
+  const [dismissed, setDismissed] = useState({});
+  const open = INITIAL_REPORTS.filter(r => !dismissed[r.id]);
+
+  const resolve = (id, action, reportee) => {
+    setDismissed(s => ({ ...s, [id]: true }));
+    showToast(action === 'remove' ? `Content removed` : `Report dismissed`);
+  };
+
+  return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column',
+                  background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ flexShrink:0, background:'rgba(255,255,255,0.96)', backdropFilter:'blur(16px)',
+                    padding:'52px 14px 12px', display:'flex', alignItems:'center', gap:8,
+                    boxShadow:'0 1px 0 rgba(16,24,40,0.07)', zIndex:4 }}>
+        <button onClick={goBack} style={{ width:40, height:40, border:'none', borderRadius:13,
+          background:C.chip, display:'flex', alignItems:'center', justifyContent:'center',
+          cursor:'pointer', flexShrink:0 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
+                      letterSpacing:-0.3, color:C.ink }}>Review Reports</div>
+        <div style={{ width:40 }}/>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 30px',
+                    display:'flex', flexDirection:'column', gap:12 }}>
+        {open.length === 0 ? (
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
+                        textAlign:'center', padding:'60px 30px' }}>
+            <div style={{ width:78, height:78, borderRadius:24, background:'#E4F7EC',
+                          display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+                <path d="m5 12.5 4 4L19 7" stroke="#15A34A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ fontSize:17, fontWeight:800, color:C.ink, marginTop:18 }}>No open reports</div>
+            <div style={{ fontSize:13, color:C.subtle, marginTop:6, maxWidth:230 }}>All reports have been reviewed.</div>
+          </div>
+        ) : open.map(r => (
+          <div key={r.id} style={{ background:'#fff', borderRadius:18,
+                                    boxShadow:'0 4px 14px rgba(16,24,40,0.05)', padding:15 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+              <div style={{ width:38, height:38, borderRadius:11, flexShrink:0,
+                            background:'#FFF1ED', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="9" stroke="#F4452B" strokeWidth="1.8"/>
+                  <path d="M12 7.5v5M12 16h.01" stroke="#F4452B" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>{r.reason}</div>
+                <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
+                  Reported by {r.reporter} · {r.time}
+                </div>
+              </div>
+              <span style={{ fontSize:10.5, fontWeight:700, padding:'3px 9px', borderRadius:999,
+                             background:'#FFF1ED', color:'#F4452B' }}>{r.type}</span>
+            </div>
+            <div style={{ background:'#F7F8FB', borderRadius:12, padding:'10px 13px',
+                          fontSize:13, color:C.muted, lineHeight:1.45, marginBottom:12 }}>
+              <span style={{ fontWeight:700, color:C.ink }}>{r.reportee}: </span>{r.content}
+            </div>
+            <div style={{ display:'flex', gap:9 }}>
+              <button onClick={() => resolve(r.id, 'remove', r.reportee)} style={{
+                flex:1, height:40, border:'none', borderRadius:12,
+                background:'linear-gradient(135deg,#FF3B6B,#F4452B)',
+                color:'#fff', fontSize:12.5, fontWeight:800, cursor:'pointer',
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+              }}>Remove content</button>
+              <button onClick={() => resolve(r.id, 'dismiss', r.reportee)} style={{
+                flex:1, height:40, border:`1.5px solid ${C.border}`, borderRadius:12,
+                background:'#fff', color:C.muted, fontSize:12.5, fontWeight:800, cursor:'pointer',
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+              }}>Dismiss</button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -7892,20 +8006,38 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
 // SCREEN: GROUP EDIT
 // ─────────────────────────────────────────────────────────────
 function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
-  const g = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const [dbGroup, setDbGroup] = useState(null);
+  useEffect(() => {
+    if (!groupId) return;
+    supabase.from('groups').select('*').eq('id', groupId).single()
+      .then(({ data }) => { if (data) setDbGroup(data); });
+  }, [groupId]);
+  const g = dbGroup || staticG;
 
   const TABS = ['Info','Privacy','Rules','Social'];
   const tabId = (t) => t.toLowerCase();
 
   const [tab,        setTab]        = useState(editTab || 'info');
-  const [name,       setName]       = useState(g.name);
-  const [desc,       setDesc]       = useState(g.desc || g.description || "");
-  const [category,   setCategory]   = useState((g.cat || g.category || [])?.[0] || 'academic');
-  const [visibility, setVisibility] = useState('public');
+  const [name,       setName]       = useState(staticG.name);
+  const [desc,       setDesc]       = useState(staticG.desc || staticG.description || '');
+  const [category,   setCategory]   = useState((staticG.cat || staticG.category || [])?.[0] || 'academic');
+  const [visibility, setVisibility] = useState(staticG.privacy || 'public');
   const [perms,      setPerms]      = useState({ membersPost:true, requireApproval:false, allowInvites:true });
-  const [rules,      setRules]      = useState(g.rules?.length ? [...g.rules] : ['Be respectful and constructive','Original work only — credit sources','No spam or self-promotion','Keep feedback kind and specific']);
+  const [rules,      setRules]      = useState(staticG.rules?.length ? [...staticG.rules] : ['Be respectful and constructive','Original work only — credit sources','No spam or self-promotion','Keep feedback kind and specific']);
   const [ruleDraft,  setRuleDraft]  = useState('');
-  const [social,     setSocial]     = useState({ instagram:'@riply', tiktok:'', website:'riply.app', discord:'' });
+  const [social,     setSocial]     = useState({ instagram:'', tiktok:'', website:'', discord:'' });
+  const [saving,     setSaving]     = useState(false);
+  // Populate from DB once loaded
+  useEffect(() => {
+    if (!dbGroup) return;
+    setName(dbGroup.name || '');
+    setDesc(dbGroup.description || '');
+    setCategory((dbGroup.category || [])?.[0] || 'academic');
+    setVisibility(dbGroup.privacy || 'public');
+    if (dbGroup.rules?.length) setRules([...dbGroup.rules]);
+    if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', ...dbGroup.social_links });
+  }, [dbGroup]);
 
   const CATS = ['Academic','Social','Arts','Sports','Career','Culture'];
   const VIS  = [
@@ -7969,13 +8101,26 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
           </button>
           <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                         letterSpacing:-0.3, color:C.ink }}>Edit Group</div>
-          <button onClick={() => { showToast('Changes saved'); goBack(); }} style={{
+          <button disabled={saving} onClick={async () => {
+            setSaving(true);
+            const updates = {};
+            if (tab === 'info')    { updates.name = name.trim(); updates.description = desc.trim(); updates.category = [category]; updates.initial = name.trim()[0]?.toUpperCase() || 'G'; }
+            if (tab === 'privacy') { updates.privacy = visibility; updates.permissions = perms; }
+            if (tab === 'rules')   { updates.rules = rules; }
+            if (tab === 'social')  { updates.social_links = social; }
+            const { error } = await supabase.from('groups').update(updates).eq('id', groupId);
+            setSaving(false);
+            if (error) { showToast('Failed to save: ' + error.message); return; }
+            showToast('Changes saved');
+            goBack();
+          }} style={{
             height:40, padding:'0 16px', border:'none', borderRadius:13,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
-            fontSize:13, fontWeight:800, cursor:'pointer',
+            fontSize:13, fontWeight:800, cursor: saving ? 'default' : 'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             boxShadow:'0 4px 10px rgba(2,162,240,0.3)', flexShrink:0,
-          }}>Save</button>
+            opacity: saving ? 0.7 : 1,
+          }}>{saving ? 'Saving…' : 'Save'}</button>
         </div>
         {/* Tabs */}
         <div style={{ display:'flex', borderBottom:`1px solid ${C.divider}` }}>
@@ -7999,7 +8144,20 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
           <>
             {/* Photo */}
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-              <button onClick={() => showToast('Upload a new group photo')} style={{
+              <button onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file'; input.accept = 'image/*';
+                input.onchange = async (e) => {
+                  const file = e.target.files[0]; if (!file) return;
+                  showToast('Uploading…');
+                  try {
+                    const url = await uploadImage(file, 'group avatars', `${groupId}-${Date.now()}.jpg`);
+                    await supabase.from('groups').update({ avatar_url: url }).eq('id', groupId);
+                    showToast('Photo updated ✓');
+                  } catch { showToast('Upload failed'); }
+                };
+                input.click();
+              }} style={{
                 position:'relative', border:'none', background:'none',
                 cursor:'pointer', padding:0,
               }}>
@@ -9833,6 +9991,7 @@ export default function RiplyApp() {
       case 'group-manage':  return <GroupManageScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'pending-requests': return <PendingRequestsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'banned-members':   return <BannedMembersScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
+      case 'review-reports':   return <ReviewReportsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'group-edit':       return <GroupEditScreen groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

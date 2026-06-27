@@ -35,6 +35,12 @@ alter table users add column if not exists university text;
 alter table users add column if not exists year       text;
 alter table users add column if not exists program    text;
 
+-- Add extra columns to groups table
+alter table groups add column if not exists social_links  jsonb;
+alter table groups add column if not exists permissions   jsonb;
+alter table groups add column if not exists avatar_url    text;
+alter table groups add column if not exists archived      boolean default false;
+
 -- Add group/visibility fields to events table
 alter table events add column if not exists group_id  uuid;
 alter table events add column if not exists is_public boolean default true;

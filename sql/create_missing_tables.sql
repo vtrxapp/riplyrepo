@@ -10,6 +10,19 @@ create table if not exists feedback (
   created_at  timestamptz default now()
 );
 
+-- post_comments table
+create table if not exists post_comments (
+  id              uuid primary key default gen_random_uuid(),
+  post_id         uuid not null references posts(id) on delete cascade,
+  user_id         text not null,
+  content         text not null,
+  author_name     text,
+  author_initial  text,
+  author_color    text,
+  created_at      timestamptz default now()
+);
+create index if not exists post_comments_post_id_idx on post_comments(post_id);
+
 -- Add profile fields to users table
 alter table users add column if not exists university text;
 alter table users add column if not exists year       text;

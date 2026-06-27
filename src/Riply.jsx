@@ -8,6 +8,7 @@ import { useChats } from "./hooks/useChats";
 import { useEvents } from "./hooks/useEvents";
 import { useUserInteractions } from "./hooks/useUserInteractions";
 import { usePosts } from "./hooks/usePosts";
+import { useComments } from "./hooks/useComments";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
@@ -1997,9 +1998,150 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 }
 
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// POST CARD (extracts useComments per post)
+// ─────────────────────────────────────────────────────────────
+function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
+  const pid = p.id;
+  const liked = !!postLiked[pid];
+  const { comments, addComment } = useComments(pid);
+  const [cOpen, setCOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const inputRef = useRef(null);
+
+  const submitComment = async () => {
+    const t = draft.trim();
+    if (!t) return;
+    setDraft('');
+    await addComment(t, currentUser);
+  };
+
+  return (
+    <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:15 }}>
+      {/* Author */}
+      <div style={{ display:'flex', alignItems:'center', gap:11 }}>
+        <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
+                      background:p.aColor, display:'flex', alignItems:'center',
+                      justifyContent:'center', color:'#fff',
+                      fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
+          <span>{p.aInitial}</span>
+          <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 10px)'}}/>
+        </div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>{p.author}</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2.5l2.2 1.6 2.7-.2 1 2.5 2.3 1.4-.6 2.6.6 2.6-2.3 1.4-1 2.5-2.7-.2L12 21.5 9.8 19.9l-2.7.2-1-2.5-2.3-1.4.6-2.6L3.8 11l2.3-1.4 1-2.5 2.7.2L12 2.5Z" fill="#02B6FE"/>
+              <path d="m9 12 2 2 4-4.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{p.time}</div>
+        </div>
+        <button onClick={() => showToast('Post options')} style={{ width:30, height:30, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="5"  cy="12" r="1.7" fill={C.subtle}/>
+            <circle cx="12" cy="12" r="1.7" fill={C.subtle}/>
+            <circle cx="19" cy="12" r="1.7" fill={C.subtle}/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Post text */}
+      <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}>{p.text}</div>
+
+      {/* Image */}
+      {p.image_url && (
+        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11 }}>
+          <img src={p.image_url} alt="" style={{ width:'100%', display:'block', objectFit:'cover', maxHeight:240 }} />
+        </div>
+      )}
+
+      {/* Like / Comment / Share */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13, paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
+        <button onClick={() => togglePostLike(pid)}
+          style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0 }}>
+          <svg width="19" height="19" viewBox="0 0 24 24">
+            <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
+                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          </svg>
+          <span style={{ fontSize:13, fontWeight:700, color:liked?'#FF3B6B':'#7B8499' }}>{(p.likes||0)+(liked?1:0)}</span>
+        </button>
+        <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
+          style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z"
+                  stroke={cOpen?C.primary:C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          </svg>
+          <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
+        </button>
+        <button onClick={() => showToast('Post shared')}
+          style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
+                  stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          </svg>
+          <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>Share</span>
+        </button>
+      </div>
+
+      {/* Comments section */}
+      {cOpen && (
+        <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
+          {comments.length === 0 && (
+            <div style={{ fontSize:12, color:C.subtle, textAlign:'center', paddingBottom:8 }}>No comments yet. Be the first!</div>
+          )}
+          {comments.map((c, ci) => (
+            <div key={ci} style={{ display:'flex', gap:8, marginBottom:10 }}>
+              <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, background:c.aColor,
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            color:'#fff', fontSize:11, fontWeight:800 }}>{c.aInitial}</div>
+              <div style={{ flex:1 }}>
+                <div style={{ background:C.chip, borderRadius:12, padding:'8px 11px' }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:C.ink }}>{c.author}</div>
+                  <div style={{ fontSize:13, color:C.body, marginTop:2 }}>{c.text}</div>
+                </div>
+                <div style={{ fontSize:10, color:C.subtle, marginTop:3, paddingLeft:4 }}>{c.time}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ display:'flex', gap:8, marginTop:4, alignItems:'center' }}>
+            <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0,
+                          background:currentUser?.avatarUrl ? 'none' : C.grad,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          color:'#fff', fontSize:11, fontWeight:800, overflow:'hidden' }}>
+              {currentUser?.avatarUrl
+                ? <img src={currentUser.avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+                : (currentUser?.name?.[0] || 'Y').toUpperCase()}
+            </div>
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitComment(); } }}
+              placeholder="Write a comment…"
+              style={{ flex:1, height:36, border:`1.5px solid ${C.border}`, borderRadius:999,
+                       background:'#fff', padding:'0 13px', fontSize:12, outline:'none',
+                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+            />
+            {draft.trim() && (
+              <button onClick={submitComment} style={{ width:36, height:36, border:'none', borderRadius:'50%',
+                background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
-function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast }) {
+function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser }) {
   const { user } = useUser();
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup,     setDbGroup]     = useState(null);
@@ -2023,9 +2165,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [joinState,  setJoinState]  = useState(staticG.state || "join");   // 'join'|'joined'|'request'|'requested'
   const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
   const [activeTab,  setActiveTab]  = useState('posts');
-  const [commentsOpen, setCommentsOpen] = useState(null);
-  const [draft,      setDraft]      = useState('');
-  const [comments,   setComments]   = useState({});
   const [postText,   setPostText]   = useState('');
   const [posting,    setPosting]    = useState(false);
 
@@ -2400,171 +2539,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>Loading posts…</div>
                 ) : livePosts.length === 0 ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
-                ) : livePosts.map((p, i) => {
-                  const pid   = p.id || `${g.id}_${i}`;
-                  const liked = !!postLiked[pid];
-                  const cOpen = commentsOpen === pid;
-                  const cList = comments[pid] || [];
-                  return (
-                    <div key={i} style={{ background:'#fff', borderRadius:18,
-                                          boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:15 }}>
-                      {/* Author */}
-                      <div style={{ display:'flex', alignItems:'center', gap:11 }}>
-                        <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
-                                      background:p.aColor, display:'flex', alignItems:'center',
-                                      justifyContent:'center', color:'#fff',
-                                      fontSize:14, fontWeight:800, position:'relative',
-                                      overflow:'hidden' }}>
-                          <span>{p.aInitial}</span>
-                          <div style={{ position:'absolute', inset:0, background:
-                            'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 10px)'}}/>
-                        </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>
-                              {p.author}
-                            </span>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                              <path d="M12 2.5l2.2 1.6 2.7-.2 1 2.5 2.3 1.4-.6 2.6.6 2.6-2.3 1.4-1 2.5-2.7-.2L12 21.5 9.8 19.9l-2.7.2-1-2.5-2.3-1.4.6-2.6L3.8 11l2.3-1.4 1-2.5 2.7.2L12 2.5Z"
-                                    fill="#02B6FE"/>
-                              <path d="m9 12 2 2 4-4.5" stroke="#fff" strokeWidth="1.8"
-                                    strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
-                          <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{p.time}</div>
-                        </div>
-                        <button onClick={() => showToast('Post options')} style={{
-                          width:30, height:30, border:'none', background:'none',
-                          cursor:'pointer', display:'flex', alignItems:'center',
-                          justifyContent:'center', flexShrink:0 }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                            <circle cx="5"  cy="12" r="1.7" fill={C.subtle}/>
-                            <circle cx="12" cy="12" r="1.7" fill={C.subtle}/>
-                            <circle cx="19" cy="12" r="1.7" fill={C.subtle}/>
-                          </svg>
-                        </button>
-                      </div>
-
-                      {/* Reactions row */}
-                      <div style={{ display:'flex', gap:7, marginTop:11 }}>
-                        {[
-                          <div style={{background:'#7C5CFF',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 21V11l4-6a2 2 0 0 1 3 2l-1 4h4a2 2 0 0 1 2 2.3l-1.3 6A2 2 0 0 1 20 21H9Z" fill="#fff"/></svg></div>,
-                          <div style={{background:'#7C5CFF',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:15,fontWeight:800}}>?</div>,
-                          <div style={{background:'#7C5CFF',display:'flex',alignItems:'center',justifyContent:'center'}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z" fill="#fff"/></svg></div>,
-                        ].map((inner, ri) => (
-                          <div key={ri} style={{ width:30, height:30, borderRadius:'50%',
-                                                 overflow:'hidden', display:'flex',
-                                                 alignItems:'center', justifyContent:'center',
-                                                 background:'#7C5CFF' }}>
-                            {inner}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Post text */}
-                      <div style={{ fontSize:15, fontWeight:800, color:C.ink,
-                                    marginTop:11, lineHeight:1.35 }}>{p.text}</div>
-
-                      {/* Image */}
-                      {p.img && (
-                        <div style={{ position:'relative', height:170, borderRadius:14,
-                                      overflow:'hidden', marginTop:11,
-                                      background:'linear-gradient(135deg,#5B6473,#8A93A6)' }}>
-                          <div style={{ position:'absolute', inset:0, background:
-                            'repeating-linear-gradient(135deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 2px,transparent 16px)'}}/>
-                          <span style={{ position:'absolute', bottom:8, left:10,
-                                         fontFamily:"'JetBrains Mono',monospace",
-                                         fontSize:10, color:'rgba(255,255,255,0.85)' }}>
-                            POST IMAGE · placeholder
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Like / Comment / Share */}
-                      <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13,
-                                    paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
-                        <button onClick={() => togglePostLike(pid)}
-                          style={{ display:'flex', alignItems:'center', gap:6,
-                                   border:'none', background:'none', cursor:'pointer', padding:0 }}>
-                          <svg width="19" height="19" viewBox="0 0 24 24">
-                            <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
-                                  fill={liked?'#FF3B6B':'none'}
-                                  stroke={liked?'#FF3B6B':C.subtle}
-                                  strokeWidth="1.8" strokeLinejoin="round"/>
-                          </svg>
-                          <span style={{ fontSize:13, fontWeight:700,
-                                         color:liked?'#FF3B6B':'#7B8499' }}>
-                            {parseInt(p.likes,10)+(liked?1:0)}
-                          </span>
-                        </button>
-                        <button onClick={() => setCommentsOpen(cOpen?null:pid)}
-                          style={{ display:'flex', alignItems:'center', gap:6, border:'none',
-                                   background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                            <path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z"
-                                  stroke={cOpen?C.primary:C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
-                          </svg>
-                          <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>
-                            {parseInt(p.reactions,10)+cList.length}
-                          </span>
-                        </button>
-                        <button onClick={() => showToast('Post shared')}
-                          style={{ display:'flex', alignItems:'center', gap:6, border:'none',
-                                   background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-                                  stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
-                          </svg>
-                          <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>Share</span>
-                        </button>
-                      </div>
-
-                      {/* Inline comments */}
-                      {cOpen && (
-                        <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
-                          {cList.length === 0 && (
-                            <div style={{ fontSize:12, color:C.subtle, textAlign:'center',
-                                          paddingBottom:8 }}>
-                              No comments yet. Be the first!
-                            </div>
-                          )}
-                          {cList.map((c,ci) => (
-                            <div key={ci} style={{ display:'flex', gap:8, marginBottom:8 }}>
-                              <div style={{ width:28, height:28, borderRadius:'50%',
-                                            flexShrink:0, background:C.primary,
-                                            display:'flex', alignItems:'center',
-                                            justifyContent:'center', color:'#fff',
-                                            fontSize:11, fontWeight:800 }}>Y</div>
-                              <div style={{ flex:1, background:C.chip, borderRadius:12,
-                                            padding:'8px 11px' }}>
-                                <div style={{ fontSize:12, fontWeight:700, color:C.ink }}>{c.who}</div>
-                                <div style={{ fontSize:12, color:C.body, marginTop:2 }}>{c.text}</div>
-                              </div>
-                            </div>
-                          ))}
-                          <div style={{ display:'flex', gap:8, marginTop:4 }}>
-                            <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
-                                          background:C.primary, display:'flex',
-                                          alignItems:'center', justifyContent:'center',
-                                          color:'#fff', fontSize:11, fontWeight:800 }}>Y</div>
-                            <input value={draft} onChange={e=>setDraft(e.target.value)}
-                              onKeyDown={e=>{
-                                if(e.key==='Enter'&&draft.trim()){
-                                  setComments(s=>({...s,[pid]:[...(s[pid]||[]),{who:'You',text:draft.trim()}]}));
-                                  setDraft('');
-                                }
-                              }}
-                              placeholder="Write a comment…"
-                              style={{ flex:1, height:34, border:`1.5px solid ${C.border}`,
-                                       borderRadius:999, background:'#fff', padding:'0 13px',
-                                       fontSize:12, outline:'none',
-                                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                ) : livePosts.map((p) => (
+                  <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} currentUser={currentUser} showToast={showToast} />
+                ))}
                 </>
               )}
 
@@ -9695,7 +9672,7 @@ export default function RiplyApp() {
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} />;
-      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

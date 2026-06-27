@@ -561,14 +561,14 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
 // SCREEN: SPACES (Campus Groups)
 // ─────────────────────────────────────────────────────────────
 function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast }) {
-  const TABS = [{id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'}];
+  const TABS = [{id:'all',label:'All'},{id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'}];
   const [spaceQuery, setSpaceQuery] = useState('');
 
   const { spaces: liveSpaces } = useSpaces();
   const spaceData = liveSpaces.length > 0 ? liveSpaces : SPACES;
   let list = spaceData.slice();
   if(spaceTab==='today'||spaceTab==='tomorrow') list=list.filter(s=>s.day===spaceTab);
-  else list=list.filter(s=>(s.cat||s.category)===spaceTab);
+  else if(spaceTab!=='all') list=list.filter(s=>(s.cat||s.category)===spaceTab);
   if(spaceQuery.trim()) {
     const q = spaceQuery.toLowerCase();
     list = list.filter(s => (s.title||'').toLowerCase().includes(q) || (s.location||'').toLowerCase().includes(q) || (s.desc||s.description||'').toLowerCase().includes(q));
@@ -703,7 +703,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 // ─────────────────────────────────────────────────────────────
 function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoined, navigate, showToast }) {
   const { user } = useUser();
-  const TABS = [{id:'popular',label:'Popular'},{id:'all',label:'All'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
+  const TABS = [{id:'all',label:'All'},{id:'popular',label:'Popular'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
   const [discoverQuery, setDiscoverQuery] = useState('');
 
   const { groups: liveGroups } = useGroups();
@@ -9620,13 +9620,13 @@ export default function RiplyApp() {
   const [role, setRole] = useState('student');
 
   // Spaces state
-  const [spaceTab, setSpaceTab] = useState('today');
+  const [spaceTab, setSpaceTab] = useState('all');
   const [spaceJoined, setSpaceJoined] = useState({});
   const [spaceNotify, setSpaceNotify] = useState({});
   const [progress, setProgress] = useState({ 2:24, 4:8 });
 
   // Discover state
-  const [discoverTab, setDiscoverTab] = useState('popular');
+  const [discoverTab, setDiscoverTab] = useState('all');
   const [groupJoined, setGroupJoined] = useState({});
 
   // Messages state

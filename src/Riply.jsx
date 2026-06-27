@@ -506,7 +506,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 
               {/* Stats row */}
               <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginTop:15 }}>
-                {[{label:'Participants',val:`${count}/${sp.max_spots || sp.max || 10}`,color:C.body},{label:'Time',val:sp.time,color:C.primary},{label:'Duration',val:sp.duration,color:C.body}].map(s=>(
+                {[{label:'Participants',val:`${count}/${sp.max_spots || sp.max || 10}`,color:C.body},{label:'Time',val:sp.time,color:C.primary},{label:'Duration',val:(/^\d+$/.test(String(sp.duration||''))?`${sp.duration} min`:sp.duration)||'—',color:C.body}].map(s=>(
                   <div key={s.label} style={{ flex:1 }}>
                     <div style={{ fontSize:8.5, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:C.subtle }}>{s.label}</div>
                     <div style={{ fontSize:14, fontWeight:800, color:s.color, marginTop:3 }}>{s.val}</div>
@@ -559,7 +559,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               )}
 
               {/* Host */}
-              <div style={{ fontSize:9.5, color:C.subtle, textAlign:'center', marginTop:10 }}>{sp.hostText || sp.host_text || ""}</div>
+              <div style={{ fontSize:9.5, color:C.subtle, textAlign:'center', marginTop:10 }}>Created by {(sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i,'') || 'Organizer'}</div>
             </div>
           );
         })}
@@ -3000,6 +3000,9 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
                  : spCat === 'social'   ? 'linear-gradient(135deg,#FF5A8A,#FF8A3D)'
                  : 'linear-gradient(135deg,#2F6BFF,#6C4DF2)';
   const spPrice = sp.is_free || sp.price === 0 || sp.price === 'Free' ? 'Free' : (sp.price ? `$${sp.price}` : 'Free');
+  const fmtDur = v => v ? (/^\d+$/.test(String(v)) ? `${v} min` : String(v)) : '';
+  const hostName = (sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i, '');
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,
@@ -3056,6 +3059,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
         <div style={{ position:'relative', height:200, borderRadius:20, overflow:'hidden',
                       boxShadow:'0 10px 28px rgba(16,24,40,0.12)' }}>
           <div style={{ position:'absolute', inset:0, background:catColor }}/>
+          {sp.image_url && <img src={sp.image_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>}
           <div style={{ position:'absolute', inset:0, background:
             'repeating-linear-gradient(135deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 2px,transparent 16px)'}}/>
           <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
@@ -3065,43 +3069,57 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
           </div>
           <div style={{ position:'absolute', top:'50%', left:'50%',
                         transform:'translate(-50%,-50%)', textAlign:'center' }}>
-            <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10,
-                          letterSpacing:1, color:'rgba(255,255,255,0.85)' }}>SPACE COVER · 1200×630</div>
             <div style={{ fontSize:22, fontWeight:800, color:'#fff', letterSpacing:-0.5,
-                          marginTop:8, maxWidth:280, lineHeight:1.2 }}>{sp.title}</div>
+                          maxWidth:280, lineHeight:1.2, textShadow:'0 2px 8px rgba(0,0,0,0.25)' }}>{sp.title}</div>
           </div>
           <div style={{ position:'absolute', bottom:12, right:12, display:'inline-flex',
                         alignItems:'center', height:24, padding:'0 10px', borderRadius:7,
                         background:'rgba(14,23,38,0.55)', fontSize:10, fontWeight:700, color:'#fff' }}>
-            {sp.time} · {sp.duration}
+            {sp.time}{sp.duration ? ` · ${fmtDur(sp.duration)}` : ''}
           </div>
         </div>
 
         {/* Host card */}
         <div style={{ marginTop:13, background:C.card, borderRadius:16,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'12px 15px',
-                      display:'flex', alignItems:'center', gap:11 }}>
+                      display:'flex', alignItems:'center', gap:11, position:'relative' }}>
           <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
                         background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                         justifyContent:'center', color:'#fff', fontSize:16, fontWeight:800 }}>
             {sp.avatarInitial || sp.avatar_initial || "S"}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>
-              {sp.hostText || sp.host_text || "".replace('Created by ','').replace('Organized by ','')}
-            </div>
-            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>{sp.hostText || sp.host_text || "".split(' ')[0]}</div>
+            <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{hostName || 'Organizer'}</div>
+            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Student</div>
           </div>
-          <button onClick={() => setFollowed(v => !v)} style={{
-            flexShrink:0, height:30, padding:'0 14px', borderRadius:999,
-            border: followed ? `1.5px solid ${C.border}` : 'none',
-            background: followed ? '#fff' : C.primary,
-            color: followed ? '#7B8499' : '#fff',
-            fontSize:11, fontWeight:700, cursor:'pointer',
-            fontFamily:"'Montserrat',-apple-system,sans-serif",
-          }}>
-            {followed ? 'Following' : 'Follow'}
-          </button>
+          <div style={{ position:'relative', flexShrink:0 }}>
+            <button onClick={() => setMoreOpen(v => !v)} style={{
+              width:34, height:34, border:`1.5px solid ${C.border}`, borderRadius:999,
+              background:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="5" cy="12" r="1.5" fill={C.muted}/><circle cx="12" cy="12" r="1.5" fill={C.muted}/><circle cx="19" cy="12" r="1.5" fill={C.muted}/>
+              </svg>
+            </button>
+            {moreOpen && (
+              <div style={{ position:'absolute', right:0, top:40, background:'#fff', borderRadius:12,
+                            boxShadow:'0 8px 24px rgba(16,24,40,0.14)', border:`1px solid ${C.border}`,
+                            zIndex:99, minWidth:130, overflow:'hidden' }}>
+                <button onClick={() => { setMoreOpen(false); navigate('messages'); }} style={{
+                  width:'100%', padding:'12px 16px', border:'none', background:'none',
+                  textAlign:'left', fontSize:13, fontWeight:700, color:C.body,
+                  cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  display:'flex', alignItems:'center', gap:8,
+                }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                      stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Message
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Capacity card */}
@@ -3212,7 +3230,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
               <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
                 {sp.day === 'today' ? "Today" : "Tomorrow"} · {sp.time}
               </div>
-              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{sp.duration} session</div>
+              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtDur(sp.duration)} session</div>
               <button onClick={() => showToast('Added to your calendar')} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',

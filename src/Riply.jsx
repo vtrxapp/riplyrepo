@@ -2545,7 +2545,8 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
     {name:'DJ Maxwell',  role:'Resident DJ',       i:'M', c:'linear-gradient(135deg,#02B6FE,#0078E0)'},
     {name:'Harmony C.',  role:'Vocal Coach',       i:'H', c:'linear-gradient(135deg,#10B981,#06B6D4)'},
   ];
-  const similar = EVENTS.filter(e => e.id !== ev.id && e.tags.some(t => ev.tags.includes(t))).slice(0,2);
+  const evTags = Array.isArray(ev.tags) ? ev.tags : [];
+  const similar = EVENTS.filter(e => e.id !== ev.id && Array.isArray(e.tags) && e.tags.some(t => evTags.includes(t))).slice(0,2);
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,

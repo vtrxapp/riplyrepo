@@ -3271,7 +3271,16 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               <div style={{ position:'absolute', right:0, top:40, background:'#fff', borderRadius:12,
                             boxShadow:'0 8px 24px rgba(16,24,40,0.14)', border:`1px solid ${C.border}`,
                             zIndex:99, minWidth:130, overflow:'hidden' }}>
-                <button onClick={() => { setMoreOpen(false); navigate('messages'); }} style={{
+                <button onClick={() => {
+                  setMoreOpen(false);
+                  const dmId = `dm-${(hostName || 'host').toLowerCase().replace(/\s+/g, '-')}`;
+                  navigate('chat', {
+                    chatId: dmId,
+                    chatName: hostName || 'Organizer',
+                    chatInitial: (hostName || 'O')[0].toUpperCase(),
+                    chatColor: sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+                  });
+                }} style={{
                   width:'100%', padding:'12px 16px', border:'none', background:'none',
                   textAlign:'left', fontSize:13, fontWeight:700, color:C.body,
                   cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -3591,8 +3600,15 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
-function ChatScreen({ chatId, goBack, showToast, currentUser }) {
-  const chat = CHATS.find(c => c.id === chatId) || CHATS[0];
+function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToast, currentUser }) {
+  const found = CHATS.find(c => c.id === chatId);
+  const chat = found || {
+    id: chatId,
+    name: chatName || 'Chat',
+    initial: chatInitial || (chatName?.[0]?.toUpperCase() || '?'),
+    color: chatColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+    type: 'dm',
+  };
 
   const { messages: rawMessages, sendMessage, currentUserId } = useChat(chatId)
   const [draft,    setDraft]    = useState('');
@@ -9487,7 +9503,7 @@ export default function RiplyApp() {
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
-      case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
+      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} />;

@@ -27,6 +27,8 @@ create table if not exists feedback (
 alter table posts add column if not exists file_url            text;
 alter table posts add column if not exists file_name           text;
 alter table posts add column if not exists poll_options        jsonb;
+alter table posts add column if not exists poll_votes          jsonb default '{}'::jsonb;
+alter table posts add column if not exists poll_voter_ids      jsonb default '[]'::jsonb;
 alter table posts add column if not exists linked_event_id     uuid;
 alter table posts add column if not exists linked_event_title  text;
 

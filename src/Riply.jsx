@@ -2100,6 +2100,31 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
   const [draft, setDraft] = useState('');
   const inputRef = useRef(null);
 
+  // Poll state
+  const pollOptions = p.poll_options || null;
+  const [pollVotes, setPollVotes]     = useState(p.poll_votes || {});
+  const [myVote,    setMyVote]        = useState(() => {
+    const voters = p.poll_voter_ids || [];
+    if (!currentUser?.userId) return null;
+    const idx = voters.findIndex(v => typeof v === 'object' ? v.uid === currentUser.userId : v === currentUser.userId);
+    if (idx === -1) return null;
+    const voter = voters[idx];
+    return typeof voter === 'object' ? voter.opt : null;
+  });
+
+  const castVote = async (optIdx) => {
+    if (!currentUser?.userId) { showToast('Sign in to vote'); return; }
+    if (myVote !== null) { showToast('You already voted'); return; }
+    const newVotes = { ...pollVotes, [optIdx]: ((pollVotes[optIdx] || 0) + 1) };
+    setPollVotes(newVotes);
+    setMyVote(optIdx);
+    // Read current voter list and append
+    const { data: cur } = await supabase.from('posts').select('poll_voter_ids').eq('id', pid).single();
+    const voters = cur?.poll_voter_ids || [];
+    voters.push({ uid: currentUser.userId, opt: optIdx });
+    await supabase.from('posts').update({ poll_votes: newVotes, poll_voter_ids: voters }).eq('id', pid);
+  };
+
   const submitComment = async () => {
     const t = draft.trim();
     if (!t) return;
@@ -2139,6 +2164,64 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
 
       {/* Post text */}
       <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}>{p.text}</div>
+
+      {/* Poll */}
+      {pollOptions && pollOptions.length >= 2 && (() => {
+        const totalVotes = Object.values(pollVotes).reduce((s, n) => s + n, 0);
+        return (
+          <div style={{ marginTop:14, display:'flex', flexDirection:'column', gap:9 }}>
+            {pollOptions.map((opt, i) => {
+              const count  = pollVotes[i] || 0;
+              const pct    = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+              const isMyV  = myVote === i;
+              const voted  = myVote !== null;
+              return (
+                <button key={i} onClick={() => castVote(i)} disabled={voted}
+                  style={{ position:'relative', width:'100%', textAlign:'left', border:'none',
+                           borderRadius:12, overflow:'hidden', padding:0, cursor: voted ? 'default' : 'pointer',
+                           background:'transparent' }}>
+                  {/* progress bar bg */}
+                  <div style={{ position:'absolute', inset:0, borderRadius:12,
+                                background: isMyV
+                                  ? 'linear-gradient(135deg,#7C5CFF22,#B06BFF22)'
+                                  : voted ? '#F3F4F8' : '#F3F4F8' }}/>
+                  {/* filled portion */}
+                  {voted && (
+                    <div style={{ position:'absolute', top:0, left:0, bottom:0, borderRadius:12,
+                                  width:`${pct}%`, transition:'width 0.5s ease',
+                                  background: isMyV
+                                    ? 'linear-gradient(135deg,#7C5CFF,#B06BFF)'
+                                    : 'rgba(124,92,255,0.12)' }}/>
+                  )}
+                  {/* content */}
+                  <div style={{ position:'relative', display:'flex', alignItems:'center',
+                                justifyContent:'space-between', padding:'11px 14px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      {/* radio circle */}
+                      <div style={{ width:18, height:18, borderRadius:'50%', flexShrink:0,
+                                    border: isMyV ? 'none' : `2px solid ${voted ? '#CBD0DC' : '#7C5CFF'}`,
+                                    background: isMyV ? 'linear-gradient(135deg,#7C5CFF,#B06BFF)' : 'transparent',
+                                    display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        {isMyV && <div style={{ width:7, height:7, borderRadius:'50%', background:'#fff' }}/>}
+                      </div>
+                      <span style={{ fontSize:13.5, fontWeight: isMyV ? 800 : 600,
+                                     color: isMyV ? '#7C5CFF' : C.ink }}>{opt}</span>
+                    </div>
+                    {voted && (
+                      <span style={{ fontSize:12, fontWeight:700, color: isMyV ? '#7C5CFF' : C.subtle }}>
+                        {pct}%
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>
+              {totalVotes} vote{totalVotes !== 1 ? 's' : ''}{myVote === null ? ' · Tap to vote' : ''}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Image */}
       {p.image_url && (

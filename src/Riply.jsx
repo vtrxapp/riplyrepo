@@ -22,6 +22,43 @@ import { supabase } from "./lib/supabase";
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────
+// Add to Calendar — generates an ICS download, falls back to Google Calendar URL
+function addToCalendar({ title, location, description, dateStr, timeStr, durationMins = 60 }) {
+  try {
+    // Parse date + time into a JS Date
+    const base = dateStr ? new Date(dateStr) : new Date();
+    if (timeStr) {
+      const m = String(timeStr).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (m) {
+        let h = parseInt(m[1], 10);
+        const min = parseInt(m[2], 10);
+        if (m[3]) { if (/pm/i.test(m[3]) && h < 12) h += 12; if (/am/i.test(m[3]) && h === 12) h = 0; }
+        base.setHours(h, min, 0, 0);
+      }
+    }
+    const end = new Date(base.getTime() + durationMins * 60000);
+    const fmt = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const ics = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT',
+      `SUMMARY:${title || 'Event'}`,
+      `DTSTART:${fmt(base)}`,
+      `DTEND:${fmt(end)}`,
+      location ? `LOCATION:${location}` : '',
+      description ? `DESCRIPTION:${description}` : '',
+      'END:VEVENT', 'END:VCALENDAR',
+    ].filter(Boolean).join('\r\n');
+    const blob = new Blob([ics], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${(title || 'event').replace(/\s+/g,'-')}.ics`;
+    a.click(); URL.revokeObjectURL(url);
+  } catch {
+    // fallback: Google Calendar
+    const q = encodeURIComponent(title || 'Event');
+    window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${q}`, '_blank');
+  }
+}
+
 // Convert "HH:MM" (24-hr) to "H:MM AM/PM". Passes through anything else.
 function fmt12(t) {
   if (!t) return t;
@@ -2765,7 +2802,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
                             textTransform:'uppercase', color:C.subtle }}>Date &amp; Time</div>
               <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{(() => { const raw = ev.fullDate || ev.full_date || ev.date; if (!raw) return ''; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); })()}</div>
               <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtRange(ev.timeRange || ev.time_range)}</div>
-              <button onClick={() => showToast('Added to your calendar')} style={{
+              <button onClick={() => addToCalendar({ title: ev.title, location: ev.venue || ev.location, description: ev.description, dateStr: ev.fullDate || ev.full_date || ev.date, timeStr: ev.start_time, durationMins: 90 })} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',
                 borderRadius:999, fontSize:11, fontWeight:700, color:C.primary,
@@ -3066,7 +3103,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
 // ─────────────────────────────────────────────────────────────
 // SCREEN: SPACE DETAILS
 // ─────────────────────────────────────────────────────────────
-function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
+function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, toggleSaveSpace }) {
   const { user } = useUser();
   const [dbSpace, setDbSpace] = useState(null);
   useEffect(() => {
@@ -3076,7 +3113,6 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
   }, [spaceId]);
   const sp = dbSpace || SPACES.find(s => s.id === spaceId) || null;
   const [joined,   setJoined]   = useState(false);
-  const [saved,    setSaved]    = useState(false);
   const [liked,    setLiked]    = useState(false);
   const [followed, setFollowed] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -3159,11 +3195,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
             <path d="m8.2 10.8 7.6-4.1M8.2 13.2l7.6 4.1" stroke="#39414F" strokeWidth="1.9"/>
           </svg>
         </HeaderBtn>
-        <HeaderBtn onClick={() => setSaved(v => !v)}>
+        <HeaderBtn onClick={() => toggleSaveSpace && toggleSaveSpace(spaceId)}>
           <svg width="16" height="16" viewBox="0 0 24 24">
             <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z"
-                  fill={saved ? C.primary : 'rgba(0,0,0,0)'}
-                  stroke={saved ? C.primary : '#39414F'} strokeWidth="1.8" strokeLinejoin="round"/>
+                  fill={spaceSaved?.[spaceId] ? C.primary : 'rgba(0,0,0,0)'}
+                  stroke={spaceSaved?.[spaceId] ? C.primary : '#39414F'} strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
         <HeaderBtn onClick={() => setLiked(v => !v)}>
@@ -3354,7 +3390,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
                 {sp.day === 'today' ? "Today" : "Tomorrow"} · {sp.time}
               </div>
               <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtDur(sp.duration)} session</div>
-              <button onClick={() => showToast('Added to your calendar')} style={{
+              <button onClick={() => addToCalendar({ title: sp.title, location: sp.location, description: sp.desc || sp.description, timeStr: sp.time, durationMins: sp.duration ? (parseInt(sp.duration) || 60) : 60 })} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',
                 borderRadius:999, fontSize:11, fontWeight:700, color:C.primary,
@@ -3384,33 +3420,47 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
               <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
                 {sp.location}
               </div>
-              {/* Map placeholder */}
-              <div style={{ position:'relative', height:80, borderRadius:11, overflow:'hidden',
-                            marginTop:10, background:'linear-gradient(135deg,#DCE7F0,#EDF2F7)' }}>
-                <div style={{ position:'absolute', inset:0, background:
-                  'repeating-linear-gradient(0deg,rgba(150,165,185,0.18) 0,rgba(150,165,185,0.18) 1px,transparent 1px,transparent 22px),repeating-linear-gradient(90deg,rgba(150,165,185,0.18) 0,rgba(150,165,185,0.18) 1px,transparent 1px,transparent 22px)'}}/>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                  style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-58%)' }}>
-                  <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" fill={C.primary}/>
-                  <circle cx="12" cy="10" r="2.6" fill="#fff"/>
-                </svg>
-                <span style={{ position:'absolute', bottom:7, left:9,
-                               fontFamily:"'JetBrains Mono',monospace", fontSize:9, color:'#7B8499' }}>
-                  MAP · placeholder
-                </span>
-              </div>
-              <div style={{ display:'flex', gap:8, marginTop:9 }}>
-                <button onClick={() => showToast('Opening map…')} style={{
-                  flex:1, height:32, border:`1.5px solid ${C.border}`, background:'#fff',
-                  borderRadius:9, fontSize:11, fontWeight:700, color:C.body,
-                  cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                }}>View on Map</button>
-                <button onClick={() => showToast('Getting directions…')} style={{
-                  flex:1, height:32, border:'none', background:'#E9F6FF',
-                  borderRadius:9, fontSize:11, fontWeight:700, color:C.primary,
-                  cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                }}>Get Directions</button>
-              </div>
+              {(() => {
+                const addr = encodeURIComponent(sp.location || sp.title || '');
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${addr}`;
+                const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${addr}`;
+                return (
+                  <>
+                    <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ display:'block', position:'relative', height:80, borderRadius:11,
+                               overflow:'hidden', marginTop:10, textDecoration:'none',
+                               background:'linear-gradient(135deg,#DCE7F0,#EDF2F7)', cursor:'pointer' }}>
+                      <div style={{ position:'absolute', inset:0, background:
+                        'repeating-linear-gradient(0deg,rgba(150,165,185,0.15) 0,rgba(150,165,185,0.15) 1px,transparent 1px,transparent 22px),repeating-linear-gradient(90deg,rgba(150,165,185,0.15) 0,rgba(150,165,185,0.15) 1px,transparent 1px,transparent 22px)'}}/>
+                      <div style={{ position:'absolute', top:'42%', left:0, right:0, height:7, background:'rgba(255,255,255,0.6)' }}/>
+                      <div style={{ position:'absolute', top:0, bottom:0, left:'40%', width:5, background:'rgba(255,255,255,0.5)' }}/>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                        style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-65%)' }}>
+                        <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" fill={C.primary}/>
+                        <circle cx="12" cy="10" r="2.6" fill="#fff"/>
+                      </svg>
+                      <div style={{ position:'absolute', bottom:6, right:8, background:'rgba(255,255,255,0.85)',
+                        borderRadius:5, padding:'2px 6px', fontSize:9, fontWeight:700, color:C.primary }}>
+                        Open Maps ↗
+                      </div>
+                    </a>
+                    <div style={{ display:'flex', gap:8, marginTop:9 }}>
+                      <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{
+                        flex:1, height:32, border:`1.5px solid ${C.border}`, background:'#fff',
+                        borderRadius:9, fontSize:11, fontWeight:700, color:C.body,
+                        cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                        display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none',
+                      }}>View on Map</a>
+                      <a href={directionsUrl} target="_blank" rel="noopener noreferrer" style={{
+                        flex:1, height:32, border:'none', background:'#E9F6FF',
+                        borderRadius:9, fontSize:11, fontWeight:700, color:C.primary,
+                        cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                        display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none',
+                      }}>Get Directions</a>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -3928,7 +3978,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       rows: [
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name); setDraftEmail(currentUser.email); setEditOpen(true); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
-        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved Events', hasChevron:true, onClick:()=>navigate('saved-events') },
+        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved', hasChevron:true, onClick:()=>navigate('saved-events') },
         { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>showToast('Payment Methods coming soon') },
         ...(profileRole!=='student'?[{ icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M3 5h18M3 10h18M3 15h10', title:'Manage Events', hasChevron:true, onClick:()=>navigate('event-manager') }]:[]),
       ],
@@ -4894,100 +4944,148 @@ function makeQR(seed) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: SAVED EVENTS
 // ─────────────────────────────────────────────────────────────
-function SavedEventsScreen({ goBack, navigate, saved }) {
+function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
+  const [tab, setTab] = useState('events');
   const [dbEvents, setDbEvents] = useState({});
+  const [dbSpaces, setDbSpaces] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // IDs currently saved (live from toggleSave)
   const savedIds = Object.keys(saved || {}).filter(id => saved[id]);
+  const spaceSavedIds = Object.keys(spaceSaved || {}).filter(id => spaceSaved[id]);
 
-  // Fetch Supabase event details for any saved ID we don't have yet
   useEffect(() => {
     const missing = savedIds.filter(id => !dbEvents[id] && !EVENTS.find(e => String(e.id) === id));
     if (missing.length === 0) return;
     setLoading(true);
     supabase.from('events').select('*').in('id', missing)
       .then(({ data }) => {
-        if (data?.length) {
-          setDbEvents(prev => {
-            const next = { ...prev };
-            data.forEach(ev => { next[String(ev.id)] = ev; });
-            return next;
-          });
-        }
+        if (data?.length) setDbEvents(prev => { const n = { ...prev }; data.forEach(ev => { n[String(ev.id)] = ev; }); return n; });
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }).catch(() => setLoading(false));
   }, [savedIds.join(',')]);
 
-  // Build the ordered list from saved IDs
-  const allEvents = savedIds.map(id => {
-    return dbEvents[id] || EVENTS.find(e => String(e.id) === id);
-  }).filter(Boolean);
+  useEffect(() => {
+    const missing = spaceSavedIds.filter(id => !dbSpaces[id] && !SPACES.find(s => String(s.id) === id));
+    if (missing.length === 0) return;
+    supabase.from('spaces').select('*').in('id', missing)
+      .then(({ data }) => {
+        if (data?.length) setDbSpaces(prev => { const n = { ...prev }; data.forEach(s => { n[String(s.id)] = s; }); return n; });
+      });
+  }, [spaceSavedIds.join(',')]);
+
+  const allEvents = savedIds.map(id => dbEvents[id] || EVENTS.find(e => String(e.id) === id)).filter(Boolean);
+  const allSpaces = spaceSavedIds.map(id => dbSpaces[id] || SPACES.find(s => String(s.id) === id)).filter(Boolean);
+
+  const HERO_IMGS = {
+    social:   'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=700&q=80',
+    sports:   'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=700&q=80',
+    academic: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=700&q=80',
+    arts:     'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=700&q=80',
+    wellness: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=700&q=80',
+    career:   'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=700&q=80',
+  };
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
                   fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-      <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 14px',
-                    boxShadow:'0 1px 0 rgba(16,24,40,0.07)', display:'flex', alignItems:'center', gap:10 }}>
-        <button onClick={goBack} style={{ width:38, height:38, border:'none', borderRadius:12,
-          background:C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round"/>
-          </svg>
-        </button>
-        <span style={{ fontSize:18, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>Saved Events</span>
+      <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 0',
+                    boxShadow:'0 1px 0 rgba(16,24,40,0.07)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, paddingBottom:14 }}>
+          <button onClick={goBack} style={{ width:38, height:38, border:'none', borderRadius:12,
+            background:C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+          </button>
+          <span style={{ fontSize:18, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>Saved</span>
+        </div>
+        <div style={{ display:'flex', gap:0, borderTop:`1px solid ${C.divider}` }}>
+          {['events','spaces'].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex:1, height:40, border:'none', background:'none', cursor:'pointer',
+              fontSize:13, fontWeight:700,
+              color: tab === t ? C.primary : C.subtle,
+              borderBottom: tab === t ? `2px solid ${C.primary}` : '2px solid transparent',
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+              textTransform:'capitalize',
+            }}>{t === 'events' ? 'Events' : 'Spaces'}</button>
+          ))}
+        </div>
       </div>
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 100px' }}>
-        {loading && (
-          <div style={{ textAlign:'center', padding:'60px 0', color:C.subtle, fontSize:13 }}>Loading…</div>
-        )}
-        {!loading && allEvents.length === 0 && (
-          <div style={{ textAlign:'center', padding:'60px 20px' }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ margin:'0 auto 14px', display:'block' }}>
-              <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z"
-                stroke={C.border} strokeWidth="1.8" strokeLinejoin="round"/>
-            </svg>
-            <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>No saved events yet</div>
-            <div style={{ fontSize:13, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any event to save it here</div>
-          </div>
-        )}
-        {allEvents.map(ev => {
-          const HERO_IMGS = {
-            social:   'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=700&q=80',
-            sports:   'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=700&q=80',
-            academic: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=700&q=80',
-            arts:     'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=700&q=80',
-            wellness: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=700&q=80',
-            career:   'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=700&q=80',
-          };
-          const img = ev.image_url || ev.imageUrl || HERO_IMGS[ev.category || ev.primary] || HERO_IMGS.social;
-          return (
-            <div key={ev.id} onClick={() => navigate('event-details', { eventId: ev.id })}
-              style={{ background:C.card, borderRadius:16, marginBottom:12, overflow:'hidden',
-                       boxShadow:'0 2px 10px rgba(16,24,40,0.07)', cursor:'pointer' }}>
-              <div style={{ position:'relative', height:130 }}>
-                <img src={img} alt={ev.title}
-                  style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                <div style={{ position:'absolute', inset:0,
-                  background:'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)' }}/>
-                <div style={{ position:'absolute', bottom:10, left:12, right:12,
-                              fontSize:15, fontWeight:800, color:'#fff',
-                              textShadow:'0 1px 4px rgba(0,0,0,0.4)', lineHeight:1.3 }}>
-                  {ev.title}
-                </div>
+        {tab === 'events' && (
+          <>
+            {loading && <div style={{ textAlign:'center', padding:'60px 0', color:C.subtle, fontSize:13 }}>Loading…</div>}
+            {!loading && allEvents.length === 0 && (
+              <div style={{ textAlign:'center', padding:'60px 20px' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ margin:'0 auto 14px', display:'block' }}>
+                  <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" stroke={C.border} strokeWidth="1.8" strokeLinejoin="round"/>
+                </svg>
+                <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>No saved events yet</div>
+                <div style={{ fontSize:13, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any event to save it here</div>
               </div>
-              <div style={{ padding:'10px 14px 14px' }}>
-                <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
-                  {ev.full_date || ev.date}{ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}
+            )}
+            {allEvents.map(ev => {
+              const img = ev.image_url || ev.imageUrl || HERO_IMGS[ev.category || ev.primary] || HERO_IMGS.social;
+              return (
+                <div key={ev.id} onClick={() => navigate('event-details', { eventId: ev.id })}
+                  style={{ background:C.card, borderRadius:16, marginBottom:12, overflow:'hidden',
+                           boxShadow:'0 2px 10px rgba(16,24,40,0.07)', cursor:'pointer' }}>
+                  <div style={{ position:'relative', height:130 }}>
+                    <img src={img} alt={ev.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)' }}/>
+                    <div style={{ position:'absolute', bottom:10, left:12, right:12,
+                                  fontSize:15, fontWeight:800, color:'#fff',
+                                  textShadow:'0 1px 4px rgba(0,0,0,0.4)', lineHeight:1.3 }}>{ev.title}</div>
+                  </div>
+                  <div style={{ padding:'10px 14px 14px' }}>
+                    <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
+                      {ev.full_date || ev.date}{ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}
+                    </div>
+                    {(ev.venue || ev.location) && (
+                      <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{ev.venue || ev.location}</div>
+                    )}
+                  </div>
                 </div>
-                {(ev.venue || ev.location) && (
-                  <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{ev.venue || ev.location}</div>
-                )}
+              );
+            })}
+          </>
+        )}
+        {tab === 'spaces' && (
+          <>
+            {allSpaces.length === 0 && (
+              <div style={{ textAlign:'center', padding:'60px 20px' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ margin:'0 auto 14px', display:'block' }}>
+                  <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" stroke={C.border} strokeWidth="1.8" strokeLinejoin="round"/>
+                </svg>
+                <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>No saved spaces yet</div>
+                <div style={{ fontSize:13, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any space to save it here</div>
               </div>
-            </div>
-          );
-        })}
+            )}
+            {allSpaces.map(sp => {
+              const img = sp.image_url || sp.imageUrl || HERO_IMGS[sp.cat || sp.category] || HERO_IMGS.social;
+              return (
+                <div key={sp.id} onClick={() => navigate('space-details', { spaceId: sp.id })}
+                  style={{ background:C.card, borderRadius:16, marginBottom:12, overflow:'hidden',
+                           boxShadow:'0 2px 10px rgba(16,24,40,0.07)', cursor:'pointer' }}>
+                  <div style={{ position:'relative', height:130 }}>
+                    <img src={img} alt={sp.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)' }}/>
+                    <div style={{ position:'absolute', bottom:10, left:12, right:12,
+                                  fontSize:15, fontWeight:800, color:'#fff',
+                                  textShadow:'0 1px 4px rgba(0,0,0,0.4)', lineHeight:1.3 }}>{sp.title}</div>
+                  </div>
+                  <div style={{ padding:'10px 14px 14px' }}>
+                    <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
+                      {sp.day === 'today' ? 'Today' : 'Tomorrow'}{sp.time ? ' · ' + sp.time : ''}
+                    </div>
+                    {sp.location && <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{sp.location}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
     </div>
   );
@@ -9326,7 +9424,7 @@ export default function RiplyApp() {
   }, []);
 
   // Home state
-  const { liked, saved, rsvpd: following, postLiked, toggleLike, toggleSave, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
+  const { liked, saved, spaceSaved, rsvpd: following, postLiked, toggleLike, toggleSave, toggleSaveSpace, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
   const [filters, setFilters] = useState({});
   const [activeCat, setActiveCat] = useState('trending');
   const [query, setQuery] = useState('');
@@ -9377,14 +9475,14 @@ export default function RiplyApp() {
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
-      case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} />;
+      case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
-      case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;

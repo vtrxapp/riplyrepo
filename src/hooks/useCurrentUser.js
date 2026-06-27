@@ -30,8 +30,16 @@ export function useCurrentUser() {
       .from('users')
       .select('*')
       .eq('id', userId)
+      .maybeSingle()
+    if (error) { setProfileLoading(false); return }
+    if (data) { setProfile(data); setProfileLoading(false); return }
+    // Row doesn't exist yet — create it so updates work
+    const { data: created } = await supabase
+      .from('users')
+      .insert({ id: userId })
+      .select()
       .single()
-    if (!error && data) setProfile(data)
+    if (created) setProfile(created)
     setProfileLoading(false)
   }, [])
 
@@ -45,8 +53,7 @@ export function useCurrentUser() {
     if (!user?.id) return { error: 'Not logged in' }
     const { data, error } = await supabase
       .from('users')
-      .update(updates)
-      .eq('id', user.id)
+      .upsert({ id: user.id, ...updates }, { onConflict: 'id' })
       .select()
     if (!error && data?.[0]) setProfile(prev => ({ ...prev, ...data[0] }))
     return { data: data?.[0], error }

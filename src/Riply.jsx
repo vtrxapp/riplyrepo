@@ -4737,7 +4737,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             if(error){ showToast('Failed to save: ' + (error.message || 'Unknown error')); return; }
             await currentUser.refetchProfile();
             setEditOpen(false);
-            showToast('Profile updated');
+            showToast('Profile updated ✓');
           }} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)', opacity: saving?0.7:1 }}>{saving ? 'Saving…' : 'Save Changes'}</button>
         </Sheet>
       )}

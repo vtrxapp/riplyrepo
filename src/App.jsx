@@ -20,7 +20,7 @@ function SplashScreen({ onDone }) {
       zIndex: 9999,
     }}>
       <img src="/logo.png" alt="Riply"
-        style={{ width: 220, height: 110, objectFit: 'contain' }} />
+        style={{ width: 320, height: 160, objectFit: 'contain' }} />
     </div>
   )
 }

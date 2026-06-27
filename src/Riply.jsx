@@ -1137,15 +1137,9 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           setImagePreview(URL.createObjectURL(file));
           setUploading(true);
           try {
-            // Try post-images bucket first, fall back to group avatars bucket
-            let url;
-            try {
-              url = await uploadImage(file, 'post-images', `${user?.id}-${Date.now()}.jpg`);
-            } catch {
-              url = await uploadImage(file, 'group avatars', `posts/${user?.id}-${Date.now()}.jpg`);
-            }
+            const url = await uploadImage(file, 'uploads', `posts/${user?.id}-${Date.now()}.jpg`);
             setImageUrl(url);
-          } catch (err) { showToast('Image upload failed: ' + (err?.message || 'Check storage bucket')); setImagePreview(null); }
+          } catch (err) { showToast('Image upload failed: ' + (err?.message || 'Bucket not found')); setImagePreview(null); }
           setUploading(false);
           e.target.value = '';
         }} />
@@ -1154,17 +1148,12 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           setFileName(file.name);
           setUploading(true);
           try {
-            // Try attachments bucket first, fall back to group avatars
             const path = `files/${user?.id}-${Date.now()}-${file.name}`;
-            let publicUrl;
-            const { error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true });
-            if (error) {
-              publicUrl = (await uploadImage(file, 'group avatars', `files/${user?.id}-${Date.now()}`));
-            } else {
-              publicUrl = supabase.storage.from('attachments').getPublicUrl(path).data.publicUrl;
-            }
+            const { error } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
+            if (error) throw error;
+            const publicUrl = supabase.storage.from('uploads').getPublicUrl(path).data.publicUrl;
             setFileUrl(publicUrl);
-          } catch (err) { showToast('File upload failed: ' + (err?.message || 'Check storage bucket')); setFileName(null); }
+          } catch (err) { showToast('File upload failed: ' + (err?.message || 'Bucket not found')); setFileName(null); }
           setUploading(false);
           e.target.value = '';
         }} />
@@ -4294,7 +4283,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             input.onchange = async (e) => {
               const file = e.target.files[0]; if (!file) return;
               try {
-                const url = await uploadImage(file, 'group avatars', `${currentUser.userId}.jpg`);
+                const url = await uploadImage(file, 'uploads', `${currentUser.userId}.jpg`);
                 await currentUser.updateProfile({ avatar_url: url });
                 showToast('Profile photo updated');
               } catch { showToast('Upload failed. Try again.'); }
@@ -4394,7 +4383,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
               input.onchange = async (e) => {
                 const file = e.target.files[0]; if (!file) return;
                 try {
-                  const url = await uploadImage(file, 'group avatars', `${currentUser.userId}.jpg`);
+                  const url = await uploadImage(file, 'uploads', `${currentUser.userId}.jpg`);
                   await currentUser.updateProfile({ avatar_url: url });
                   showToast('Profile photo updated');
                 } catch { showToast('Upload failed. Try again.'); }
@@ -5782,7 +5771,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           input.onchange = async (e) => {
             const file = e.target.files[0];
             try {
-              const url = await uploadImage(file, 'event-covers', Date.now() + '.jpg');
+              const url = await uploadImage(file, 'uploads', Date.now() + '.jpg');
               setCoverUrl(url);
               showToast('Cover photo uploaded ✓');
             } catch(err) {
@@ -6195,7 +6184,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             if (!file) return;
             setUploading(true);
             try {
-              const url = await uploadImage(file, 'event-covers', Date.now() + '.jpg');
+              const url = await uploadImage(file, 'uploads', Date.now() + '.jpg');
               setCoverUrl(url);
               showToast('Cover photo uploaded ✓');
             } catch(err) {
@@ -6717,7 +6706,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             if (!file) return;
             setUploading(true);
             try {
-              const url = await uploadImage(file, 'event-covers', `${Date.now()}.jpg`);
+              const url = await uploadImage(file, 'uploads', `${Date.now()}.jpg`);
               setCoverUrl(url);
               showToast('Cover photo uploaded ✓');
             } catch(err) {
@@ -7321,7 +7310,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
             const file = e.target.files[0]; if (!file) return;
             showToast('Uploading photo…');
             try {
-              const url = await uploadImage(file, 'group avatars', `${groupId}-${Date.now()}.jpg`);
+              const url = await uploadImage(file, 'uploads', `${groupId}-${Date.now()}.jpg`);
               await supabase.from('groups').update({ avatar_url: url }).eq('id', g.id);
               showToast('Group photo updated ✓');
             } catch { showToast('Upload failed. Try again.'); }
@@ -8170,7 +8159,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
                   const file = e.target.files[0]; if (!file) return;
                   showToast('Uploading…');
                   try {
-                    const url = await uploadImage(file, 'group avatars', `${groupId}-${Date.now()}.jpg`);
+                    const url = await uploadImage(file, 'uploads', `${groupId}-${Date.now()}.jpg`);
                     await supabase.from('groups').update({ avatar_url: url }).eq('id', groupId);
                     showToast('Photo updated ✓');
                   } catch { showToast('Upload failed'); }

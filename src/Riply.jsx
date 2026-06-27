@@ -43,31 +43,18 @@ const THEME = {
 // RIPLY LOGO MARK  (matches the uploaded brand asset)
 // ─────────────────────────────────────────────────────────────
 function RiplyMark({ size = 32, white = false }) {
-  const color = white ? '#ffffff' : '#19BFFF';
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" fill="none"
-         xmlns="http://www.w3.org/2000/svg">
-      {/* Main C body */}
-      <path fill={color} d="
-        M 112 28
-        C 84 20 40 46 26 82
-        C 12 118 26 158 58 176
-        C 74 185 96 187 116 181
-        C 130 176 144 168 152 160
-        C 142 152 128 142 114 136
-        C 100 149 80 152 64 143
-        C 42 129 40 100 52 80
-        C 64 60 92 50 118 56
-        C 122 46 122 32 112 28 Z
-      "/>
-      {/* Floating tail piece — lower right */}
-      <path fill={color} d="
-        M 140 162
-        C 148 150 166 149 172 161
-        C 178 173 165 184 152 178
-        C 142 173 134 169 140 162 Z
-      "/>
-    </svg>
+    <img
+      src="/logo.png"
+      alt="Riply"
+      width={size}
+      height={size}
+      style={{
+        objectFit: 'contain',
+        display: 'block',
+        filter: white ? 'brightness(0) invert(1)' : 'none',
+      }}
+    />
   );
 }
 
@@ -75,33 +62,15 @@ function RiplyMark({ size = 32, white = false }) {
 // DATA
 // ─────────────────────────────────────────────────────────────
 const EVENTS = [
-  { id:1, trending:true,  title:'Karaoke Night',                   org:'VW Social Club',    orgInitial:'V', location:'3rd Floor, University Centre', date:'Jan 15 · 8:00 PM',  fullDate:'Tuesday, January 15, 2026',   timeRange:'8:00 PM – 1:00 AM (CST)',   venue:'UMSU University Centre',  room:'3rd Floor · Multipurpose Room',   price:'Free',  desc:'Join us for a night of karaoke with other students. Meet new people, show your talent, and enjoy free food & refreshments!',                                                                                    fullDesc:'Karaoke Night is all about music, laughter, and good vibes. Join us for an evening where the stage is open to everyone — whether you\'re a superstar singer or just here for the fun. Bring your friends, grab the mic, and show us your inner rock star. Free food and refreshments provided. A great chance to meet new people, unwind after classes, and be part of a welcoming campus community.',            primary:'social',   tags:['social'],           badge:'Every Tuesday', likes:312, saves:540,  shares:88,  attendees:5000, rules:['Have fun and be yourself','Respect all performers','Keep it safe and inclusive','Follow venue guidelines','Respect university policies'] },
-  { id:2,                  title:'Intro to AI: Build Your First Model', org:'CS Society',   orgInitial:'C', location:'Engineering Hall, Room 204',   date:'Jan 18 · 4:30 PM',  fullDate:'Saturday, January 18, 2026',  timeRange:'4:30 PM – 7:30 PM (CST)',   venue:'Engineering Hall',        room:'Room 204',                        price:'Free',  desc:"A hands-on workshop where you'll train and deploy your first machine learning model. No experience required — laptops provided.",                                                                                  fullDesc:"A hands-on workshop where you'll train and deploy your first machine learning model using Python and modern ML tools. No prior experience required — we'll walk you through everything from data preprocessing to deploying your model. Laptops are provided and all participants receive course materials to take home.",                                                                                          primary:'academic', tags:['academic','career'],  badge:'',             likes:210, saves:430,  shares:54,  attendees:320,  rules:['Bring a laptop or use ours','Be respectful of others','No photography without consent'] },
-  { id:3, trending:true,  title:'Spring Career Fair 2026',          org:'Career Center',    orgInitial:'C', location:'Main Gymnasium',               date:'Jan 22 · 10:00 AM', fullDate:'Thursday, January 22, 2026',  timeRange:'10:00 AM – 4:00 PM (CST)',  venue:'Main Gymnasium',          room:'Fort Garry Campus',               price:'Free',  desc:'Meet 80+ employers hiring for internships and full-time roles. Bring your résumé and dress to impress.',                                                                                                           fullDesc:'The Spring Career Fair brings together over 80 top employers actively recruiting students for internships, co-ops, and full-time positions. Bring multiple copies of your résumé and dress professionally. The Career Center will have resume review stations and interview prep coaches on-site.',                                                                                                              primary:'career',   tags:['career'],            badge:'80+ employers', likes:540, saves:1280, shares:160, attendees:2400, rules:['Professional attire required','Bring copies of your résumé','Respect employers\' time','No backpacks beyond the registration desk'] },
-  { id:4,                  title:'3v3 Basketball Tournament',        org:'Rec Sports',       orgInitial:'R', location:'Rec Center, Courts 1–4',        date:'Jan 25 · 1:00 PM',  fullDate:'Sunday, January 25, 2026',    timeRange:'1:00 PM – 6:00 PM (CST)',   venue:'Active Living Centre',    room:'Courts 1–4',                      price:'$5',    desc:'Grab your friends and compete for the campus championship. Prizes for the top three teams.',                                                                                                                     fullDesc:'The 3v3 Basketball Tournament is a fast-paced, high-energy event open to all skill levels. Teams of three compete in a round-robin bracket format with playoffs. Prizes for 1st, 2nd, and 3rd place. Register as a team or as an individual to be placed with other free agents.',                                                                                                                          primary:'sports',   tags:['sports'],            badge:'',             likes:188, saves:96,   shares:22,  attendees:240,  rules:['Teams of 3 players','Sportswear required','No aggressive play','Decisions by referee are final'] },
-  { id:5,                  title:'Founders Networking Mixer',        org:'Entrepreneur Club', orgInitial:'E', location:'Innovation Lab, 2nd Floor',   date:'Jan 20 · 6:00 PM',  fullDate:'Tuesday, January 20, 2026',   timeRange:'6:00 PM – 9:00 PM (CST)',   venue:'Innovation Lab',          room:'2nd Floor, EITC',                 price:'$15',   desc:'Connect with student founders, mentors, and investors over drinks and lightning pitches.',                                                                                                                       fullDesc:'The Founders Networking Mixer is a curated evening connecting student entrepreneurs with mentors, investors, and fellow founders. Expect lightning pitches, roundtable discussions, and plenty of time to network. Light refreshments and drinks provided. Whether you have an idea, a startup, or just curiosity — everyone is welcome.',                                                                      primary:'career',   tags:['career','social'],   badge:'',             likes:264, saves:470,  shares:70,  attendees:180,  rules:['Professional casual attire','Bring business cards or a LinkedIn QR','Be open to feedback','Respect each speaker\'s time'] },
-  { id:6, trending:true,  title:'Winter Campus Festival',           org:'Student Union',    orgInitial:'S', location:'Central Quad',                 date:'Jan 28 · 12:00 PM', fullDate:'Wednesday, January 28, 2026', timeRange:'12:00 PM – 8:00 PM (CST)',  venue:'Central Quad',            room:'Fort Garry Campus',               price:'Free',  desc:'Live music, food trucks, club booths, and games across the quad. The biggest community event of the semester.',                                                                                                  fullDesc:'The Winter Campus Festival is the biggest community celebration of the semester. Enjoy live performances from student bands, dozens of food trucks, club showcase booths, outdoor games, and a winter market. Free hot chocolate and bonfire provided. Dress warm — the fun happens outside!',                                                                                                                  primary:'festival', tags:['social'],            badge:'Free entry',   likes:920, saves:2100, shares:340, attendees:8000, rules:['Respect the campus grounds','Alcohol-free event','Dogs welcome on leash','No glass containers'] },
-  { id:7,                  title:'Intramural Soccer Finals',         org:'Rec Sports',       orgInitial:'R', location:'North Field',                  date:'Jan 24 · 5:00 PM',  fullDate:'Saturday, January 24, 2026',  timeRange:'5:00 PM – 8:00 PM (CST)',   venue:'North Field',             room:'Fort Garry Campus',               price:'Free',  desc:'Cheer on the final four teams as they battle for the intramural title. Free hot chocolate for fans.',                                                                                                            fullDesc:'Cheer on the final four teams as they compete for the intramural championship title. The action kicks off at 5PM with two semi-finals followed by the grand final under the lights. Free hot chocolate for fans in attendance. The atmosphere is electric and all are welcome!',                                                                                                                               primary:'sports',   tags:['sports'],            badge:'',             likes:142, saves:60,   shares:18,  attendees:300,  rules:['Respectful spectating only','No access to the field during play'] },
-  { id:8,                  title:'Quantum Computing Guest Lecture',  org:'Physics Dept',     orgInitial:'P', location:'Science Center, Auditorium A', date:'Jan 26 · 3:00 PM',  fullDate:'Monday, January 26, 2026',    timeRange:'3:00 PM – 5:00 PM (CST)',   venue:'Science Center',          room:'Auditorium A',                    price:'Free',  desc:'A renowned researcher breaks down the future of quantum computing in an accessible talk for all majors.',                                                                                                         fullDesc:'Dr. Aisha Malik from MIT joins us for a public lecture on the current state and future potential of quantum computing. Designed to be accessible for all academic backgrounds, the talk will cover quantum bits, entanglement, and real-world applications. Q&A session follows.',                                                                                                                              primary:'academic', tags:['academic'],          badge:'',             likes:176, saves:240,  shares:30,  attendees:410,  rules:['Questions held until Q&A','Recording permitted','Please be on time'] },
+  { id:1, trending:true, title:'Karaoke Night', org:'VW Social Club', orgInitial:'V', location:'3rd Floor, University Centre', date:'Jan 15 · 8:00 PM', fullDate:'Tuesday, January 15, 2026', timeRange:'8:00 PM – 1:00 AM (CST)', venue:'UMSU University Centre', room:'3rd Floor · Multipurpose Room', price:'Free', desc:'Join us for a night of karaoke with other students. Meet new people, show your talent, and enjoy free food & refreshments!', fullDesc:"Karaoke Night is all about music, laughter, and good vibes. Join us for an evening where the stage is open to everyone — whether you're a superstar singer or just here for the fun. Bring your friends, grab the mic, and show us your inner rock star. Free food and refreshments provided.", primary:'social', tags:['social'], badge:'Every Tuesday', likes:312, saves:540, shares:88, attendees:5000, rules:['Have fun and be yourself','Respect all performers','Keep it safe and inclusive','Follow venue guidelines','Respect university policies'] },
 ];
 
 const SPACES = [
   { id:1, title:'Seasonal Basketball 5v5', desc:'All-skills basketball game · 7 games', location:'ALC · Fridays', participants:9, max:12, time:'8PM', duration:'60 min', price:50, avatarColor:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', avatarInitial:'J', hostText:'Created by Jane Doe', started:false, day:'today', cat:'sports' },
-  { id:2, title:'Seasonal Basketball 5v5', desc:'All-skills basketball game · 7 games', location:'ALC · Fridays', participants:12, max:12, time:'8PM', duration:'60 min', price:50, avatarColor:'linear-gradient(135deg,#7C5CFF,#02B6FE)', avatarInitial:'J', hostText:'Organized by John Doe', started:true, endTime:'9:00 PM', day:'today', cat:'sports' },
-  { id:3, title:'Math 1300 A01 Study Group', desc:'Join me in preparation for the midterms', location:'Library · 4th Floor', participants:4, max:8, time:'6PM', duration:'90 min', price:0, avatarColor:'linear-gradient(135deg,#10B981,#06B6D4)', avatarInitial:'P', hostText:'Created by Priya Patel', started:false, day:'today', cat:'academic' },
-  { id:4, title:'Open Mic & Acoustic Jam', desc:'Bring an instrument or just vibe with us', location:'The Hub · Lounge', participants:18, max:30, time:'7PM', duration:'120 min', price:5, avatarColor:'linear-gradient(135deg,#FF5A8A,#B06BFF)', avatarInitial:'M', hostText:'Organized by Marcus Lee', started:true, endTime:'9:00 PM', day:'today', cat:'social' },
-  { id:5, title:'CS Capstone Co-Working', desc:'Quiet focus block, ship your final project', location:'EITC · Room 204', participants:6, max:10, time:'2PM', duration:'180 min', price:0, avatarColor:'linear-gradient(135deg,#02B6FE,#0078E0)', avatarInitial:'A', hostText:'Created by Aisha Khan', started:false, day:'tomorrow', cat:'academic' },
-  { id:6, title:'Sunday Soccer Pickup', desc:'Casual 7v7, all levels welcome', location:'North Field', participants:14, max:14, time:'11AM', duration:'90 min', price:0, avatarColor:'linear-gradient(135deg,#34D399,#0098F0)', avatarInitial:'D', hostText:'Organized by Diego Ramos', started:false, day:'tomorrow', cat:'sports' },
 ];
 
 const GROUPS = [
-  { id:1, name:'History Club', desc:'Explore the stories that shaped our world through talks, archives, and campus walking tours.', count:'2.4K', initial:'H', logoColor:'linear-gradient(135deg,#7C5CFF,#02B6FE)', cat:['culture'], state:'joined', members:[{initial:'A',color:'#FF5A8A'},{initial:'J',color:'#0098F0'},{initial:'M',color:'#10B981'}] },
-  { id:2, name:'UofM Prelaw Society', desc:'Building the future of law through mentorship, mock trials, and LSAT prep workshops.', count:'1.8K', initial:'P', logoColor:'linear-gradient(135deg,#0E1726,#3A4252)', cat:['academic'], state:'request', members:[{initial:'S',color:'#7C5CFF'},{initial:'K',color:'#FF8A3D'},{initial:'T',color:'#06B6D4'}] },
-  { id:3, name:'Science Student Association', desc:'Stay curious and connected with labs, research socials, and STEM career nights.', count:'1.3K', initial:'S', logoColor:'linear-gradient(135deg,#10B981,#06B6D4)', cat:['academic'], state:'join', members:[{initial:'D',color:'#FF5A8A'},{initial:'R',color:'#0098F0'},{initial:'N',color:'#B06BFF'}] },
-  { id:4, name:'SegueUofM', desc:'Stay fit and motivated with workout buddies, fitness challenges, and wellness tips.', count:'1.1K', initial:'S', logoColor:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', cat:['sports','social'], state:'join', members:[{initial:'L',color:'#10B981'},{initial:'A',color:'#7C5CFF'},{initial:'E',color:'#0098F0'}] },
-  { id:5, name:"Muslim Students Association", desc:'A welcoming community for prayer, iftars, and friendship across campus.', count:'980', initial:'M', logoColor:'linear-gradient(135deg,#0E9F6E,#06B6D4)', cat:['religion','social'], state:'request', members:[{initial:'Y',color:'#FF5A8A'},{initial:'Z',color:'#0098F0'},{initial:'H',color:'#FF8A3D'}] },
-  { id:6, name:'Photography Collective', desc:'Capture the beauty of campus life and improve your craft through photo walks and critiques.', count:'870', initial:'P', logoColor:'linear-gradient(135deg,#3A2150,#FF8A3D)', cat:['culture','social'], state:'joined', members:[{initial:'C',color:'#7C5CFF'},{initial:'B',color:'#10B981'},{initial:'F',color:'#0098F0'}] },
-  { id:7, name:'International Students Network', desc:'Connect with students from around the globe through culture nights and language swaps.', count:'1.6K', initial:'I', logoColor:'linear-gradient(135deg,#02B6FE,#7C5CFF)', cat:['culture','social'], state:'join', members:[{initial:'O',color:'#FF8A3D'},{initial:'P',color:'#10B981'},{initial:'Q',color:'#FF5A8A'}] },
+  { id:1, name:'History Club', desc:'Explore the stories that shaped our world through talks, archives, and campus walking tours.', count:'2.4K', initial:'H', logoColor:'linear-gradient(135deg,#7C5CFF,#02B6FE)', cat:['culture'], state:'join', members:[{initial:'A',color:'#FF5A8A'},{initial:'J',color:'#0098F0'},{initial:'M',color:'#10B981'}] },
 ];
 
 const NOTIFICATIONS = [
@@ -112,11 +81,7 @@ const NOTIFICATIONS = [
 ];
 
 const CHATS = [
-  { id:1, name:'Design Team', initial:'D', color:'linear-gradient(135deg,#7C5CFF,#02B6FE)', preview:'Mike: The new mockups are ready for…', time:'15m ago', unread:true, unreadCount:5 },
-  { id:2, name:'Alex Chen', initial:'A', color:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', preview:'Perfect! Thanks for the update', time:'1h ago', unread:false, read:true },
-  { id:3, name:'Emma Wilson', initial:'E', color:'linear-gradient(135deg,#10B981,#06B6D4)', preview:'Can you send me the project files?', time:'3h ago', unread:false, read:false },
-  { id:4, name:'MATH1500 A01 Study', initial:'M', color:'linear-gradient(135deg,#0098F0,#7C5CFF)', preview:"You: I'm not really sure about this…", time:'3h ago', unread:false, read:true },
-  { id:5, name:'Jennifer Lee', initial:'J', color:'linear-gradient(135deg,#FF5A8A,#B06BFF)', preview:'Thanks for your help with the presentation!', time:'1 week ago', unread:false, read:true },
+  { id:1, name:'Campus Community', initial:'C', color:'linear-gradient(135deg,#7C5CFF,#02B6FE)', preview:'Welcome to Riply!', time:'just now', unread:false, unreadCount:0, type:'group', memberCount:1 },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -288,22 +253,40 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
           return (
             <div key={ev.id} style={{ background:C.card, borderRadius:24, boxShadow:'0 8px 24px rgba(16,24,40,0.07),0 1px 2px rgba(16,24,40,0.04)', marginBottom:16, overflow:'hidden' }}>
               {/* Banner */}
-              <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ position:'relative', height:172, overflow:'hidden', cursor:'pointer' }}>
-                <div style={{ position:'absolute', inset:0, background:th.grad }} />
-                <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 16px)' }} />
-                <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0.18) 0%,transparent 32%,transparent 60%,rgba(0,0,0,0.42) 100%)' }} />
-                {/* Top row */}
-                <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
-                  <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)', boxShadow:'0 2px 6px rgba(0,0,0,0.12)' }}>
-                    <svg width="17" height="17" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l1-8Z" fill={ev.trending?'#FFB020':'rgba(255,255,255,0)'} stroke={ev.trending?'#F59E0B':'#7B8499'} strokeWidth="1.6" strokeLinejoin="round"/></svg>
+              {(() => {
+                const CARD_IMGS = {
+                  social:    'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=800&q=75',
+                  sports:    'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=75',
+                  academic:  'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&q=75',
+                  arts:      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=75',
+                  wellness:  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&q=75',
+                  career:    'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=75',
+                  festival:  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&q=75',
+                };
+                const cardImg = ev.image_url || ev.imageUrl || ev.cover_url || CARD_IMGS[ev.primary] || CARD_IMGS[ev.category] || CARD_IMGS.social;
+                const isFree = ev.price === 'Free' || ev.price === 0 || ev.price === 'free';
+                return (
+                  <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ position:'relative', height:172, overflow:'hidden', cursor:'pointer' }}>
+                    <img src={cardImg} alt={ev.title}
+                      style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0.22) 0%,transparent 35%,transparent 55%,rgba(0,0,0,0.48) 100%)' }} />
+                    {/* Top row: category chip + trending */}
+                    <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
+                      <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)', boxShadow:'0 2px 6px rgba(0,0,0,0.12)' }}>
+                        <svg width="17" height="17" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l1-8Z" fill={ev.trending?'#FFB020':'rgba(255,255,255,0)'} stroke={ev.trending?'#F59E0B':'#7B8499'} strokeWidth="1.6" strokeLinejoin="round"/></svg>
+                      </div>
+                    </div>
+                    {/* Bottom row: free entry (left) + recurring badge (right) */}
+                    <div style={{ position:'absolute', bottom:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      {isFree
+                        ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
+                        : <span/>}
+                      {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
+                    </div>
                   </div>
-                </div>
-                {/* Placeholder label */}
-                <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', fontFamily:"'JetBrains Mono',monospace", fontSize:9, letterSpacing:1, color:'rgba(255,255,255,0.82)', textAlign:'center' }}>{th.label.toUpperCase()} · EVENT PHOTO</div>
-                {/* Badge */}
-                {ev.badge && <span style={{ position:'absolute', bottom:12, right:12, display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
-              </div>
+                );
+              })()}
 
               {/* Content */}
               <div style={{ padding:'14px 16px' }}>
@@ -316,7 +299,9 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
-                  <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>{ev.date}</span>
+                  <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>
+                    {ev.date || '-'}{(ev.start_time || ev.startTime) ? (' · ' + (ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + ev.time_range.split(' – ')[0] : '')}
+                  </span>
                 </div>
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
 
@@ -353,7 +338,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke="#7B8499" strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{fmt(ev.attendees)} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
+                    <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
                   </div>
                 </div>
               </div>
@@ -514,12 +499,14 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                     <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
                   </div>
                 </div>
-                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)' }}>{sp.avatarInitial || sp.avatar_initial || "S"}</div>
+                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)', overflow:'hidden' }}>
+                  {sp.image_url ? <img src={sp.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (sp.avatarInitial || sp.avatar_initial || "S")}
+                </div>
               </div>
 
               {/* Stats row */}
               <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginTop:15 }}>
-                {[{label:'Participants',val:`${count}/${sp.max_spots || sp.max || 10}`,color:C.body},{label:'Time',val:sp.time,color:C.primary},{label:'Duration',val:sp.duration,color:C.body}].map(s=>(
+                {[{label:'Participants',val:`${count}/${sp.max_spots || sp.max || 10}`,color:C.body},{label:'Time',val:sp.time,color:C.primary},{label:'Duration',val:(/^\d+$/.test(String(sp.duration||''))?`${sp.duration} min`:sp.duration)||'—',color:C.body}].map(s=>(
                   <div key={s.label} style={{ flex:1 }}>
                     <div style={{ fontSize:8.5, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:C.subtle }}>{s.label}</div>
                     <div style={{ fontSize:14, fontWeight:800, color:s.color, marginTop:3 }}>{s.val}</div>
@@ -567,12 +554,12 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               ) : (
                 <button onClick={()=>setSpaceJoined(j=>({...j,[sp.id]:!j[sp.id]}))} style={{ width:'100%', marginTop:15, height:50, border: isJoined?'1.6px solid #10B981':'none', borderRadius:15, background: isJoined?'#E6F8F0':C.grad, color: isJoined?'#0E9F6E':'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:isJoined?'none':'0 8px 20px rgba(2,162,240,0.4)' }}>
                   <span>{isJoined?"You're in · Joined":'Join Space'}</span>
-                  {!isJoined && <span style={{ fontWeight:800 }}>{sp.price>0?`$${sp.price}`:'Free'}</span>}
+                  {!isJoined && <span style={{ fontWeight:800 }}>{(sp.is_free || !sp.price || sp.price === 'Free') ? 'Free' : `$${sp.price}`}</span>}
                 </button>
               )}
 
               {/* Host */}
-              <div style={{ fontSize:9.5, color:C.subtle, textAlign:'center', marginTop:10 }}>{sp.hostText || sp.host_text || ""}</div>
+              <div style={{ fontSize:9.5, color:C.subtle, textAlign:'center', marginTop:10 }}>Created by {(sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i,'') || 'Organizer'}</div>
             </div>
           );
         })}
@@ -590,6 +577,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 // SCREEN: DISCOVER GROUPS
 // ─────────────────────────────────────────────────────────────
 function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoined, navigate, showToast }) {
+  const { user } = useUser();
   const TABS = [{id:'popular',label:'Popular'},{id:'all',label:'All'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
 
 const { groups: liveGroups } = useGroups();
@@ -626,8 +614,8 @@ const { groups: liveGroups } = useGroups();
         {list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
         {list.map(g => {
           const localJoined = !!groupJoined[g.id];
-          const isJoined = g.state || "join"==='joined' || localJoined;
-          const isReq = g.state || "join"==='request' && !localJoined;
+          const isJoined = (g.state || "join") === 'joined' || localJoined;
+          const isReq = (g.state || "join") === 'request' && !localJoined;
 
           let joinLabel;
           let joinStyle = {};
@@ -658,7 +646,15 @@ const { groups: liveGroups } = useGroups();
                   <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.count || g.member_count || 0}</span>
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
                 </div>
-                <button onClick={()=>setGroupJoined(j=>({...j,[g.id]:!j[g.id]}))} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
+                <button onClick={async ()=>{
+                  const nowJoined = !isJoined;
+                  setGroupJoined(j=>({...j,[g.id]:nowJoined}));
+                  const isUuid = typeof g.id === 'string' && g.id.includes('-');
+                  if (user?.id && isUuid) {
+                    if (nowJoined) await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role:'member' });
+                    else await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);
+                  }
+                }} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
                   {joinLabel}
                 </button>
               </div>
@@ -799,7 +795,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
 function CreatePostScreen({ goBack, groupId, showToast }) {
   const { user } = useUser();
   const currentUser = useCurrentUser();
-  const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => g.state || "join" === 'joined') || GROUPS[0];
+  const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => (g.state || "join") === 'joined') || GROUPS[0];
 
   const [text,       setText]       = useState('');
   const [hasPhoto,   setHasPhoto]   = useState(false);
@@ -810,7 +806,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [posting,    setPosting]    = useState(false);
 
-  const joinedGroups = GROUPS.filter(g => g.state || "join" === 'joined');
+  const joinedGroups = GROUPS.filter(g => (g.state || "join") === 'joined');
 
   const canPost = hasPoll
     ? text.trim().length > 0 && pollOpts.filter(o => o.trim()).length >= 2
@@ -914,13 +910,15 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         {/* Author + group picker */}
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
           <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
-                        background:'linear-gradient(135deg,#FF8A3D,#FF5A8A)',
+                        background: currentUser?.avatar_url ? 'transparent' : 'linear-gradient(135deg,#FF8A3D,#FF5A8A)',
                         display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:15, fontWeight:800, color:'#fff' }}>
-            JD
+                        fontSize:15, fontWeight:800, color:'#fff', overflow:'hidden' }}>
+            {currentUser?.avatar_url
+              ? <img src={currentUser.avatar_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+              : (currentUser?.name || user?.firstName || 'M')[0].toUpperCase()}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>Jane Doe</div>
+            <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>{currentUser?.name || user?.username || user?.firstName || 'Member'}</div>
 
             {/* Group picker pill */}
             <div style={{ position:'relative', display:'inline-block', marginTop:4 }}>
@@ -1280,6 +1278,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
 function FeedbackScreen({ goBack, showToast }) {
   const CATS    = ['Bug report','Feature idea','Events','Groups','Payments','Other'];
   const LABELS  = ['','Poor','Fair','Good','Great','Excellent!'];
+  const { user } = useUser();
 
   const [rating,    setRating]    = useState(0);
   const [category,  setCategory]  = useState('');
@@ -1289,9 +1288,16 @@ function FeedbackScreen({ goBack, showToast }) {
 
   const canSubmit = rating > 0 && message.trim().length > 0;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0)          { showToast('Please add a star rating'); return; }
     if (!message.trim())       { showToast('Tell us a bit more first'); return; }
+    const { error } = await supabase.from('feedback').insert({
+      user_id:  user?.id || null,
+      rating,
+      category: category || null,
+      message:  message.trim(),
+    });
+    if (error) { showToast('Failed to send feedback. Try again.'); return; }
     setSent(true);
   };
 
@@ -1877,26 +1883,55 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
 function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast }) {
-  const g = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const { user } = useUser();
+  const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const [dbGroup,     setDbGroup]     = useState(null);
+  const [groupEvents, setGroupEvents] = useState([]);
+  useEffect(() => {
+    if (!groupId) return;
+    supabase.from('groups').select('*').eq('id', groupId).single()
+      .then(({ data }) => { if (data) setDbGroup(data); });
+    supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
+      .then(({ data }) => { if (data?.length) setGroupEvents(data); });
+    if (user?.id) {
+      supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).single()
+        .then(({ data }) => {
+          if (data) setJoinState(data.role === 'pending' ? 'requested' : 'joined');
+        });
+    }
+  }, [groupId, user?.id]);
+  const g = dbGroup || staticG;
   const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
 
-  const [joinState,  setJoinState]  = useState(g.state || "join");   // 'join'|'joined'|'request'|'requested'
-  const [notifyOn,   setNotifyOn]   = useState(g.state || "join" === 'joined');
+  const [joinState,  setJoinState]  = useState(staticG.state || "join");   // 'join'|'joined'|'request'|'requested'
+  const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
   const [activeTab,  setActiveTab]  = useState('posts');
   const [commentsOpen, setCommentsOpen] = useState(null);
   const [draft,      setDraft]      = useState('');
   const [comments,   setComments]   = useState({});
+  const [postText,   setPostText]   = useState('');
+  const [posting,    setPosting]    = useState(false);
 
   const isPrivate  = joinState === 'request' || joinState === 'requested';
   const isJoined   = joinState === 'joined';
   const isRequested= joinState === 'requested';
-  const canSee     = isJoined || g.state || "join" === 'joined';
+  const canSee     = isJoined || (g.state || "join") === 'joined';
 
-  const handlePrimary = () => {
-    if      (joinState === 'join')      setJoinState('joined');
-    else if (joinState === 'joined')    setJoinState('join');
-    else if (joinState === 'request')   setJoinState('requested');
-    else if (joinState === 'requested') setJoinState('request');
+  const handlePrimary = async () => {
+    if (!user?.id) { showToast('Sign in to join groups'); return; }
+    if (joinState === 'join') {
+      setJoinState('joined');
+      await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
+    } else if (joinState === 'joined') {
+      setJoinState('join');
+      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+    } else if (joinState === 'request') {
+      setJoinState('requested');
+      await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
+    } else if (joinState === 'requested') {
+      setJoinState('request');
+      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+    }
   };
 
   // ── primary button spec per state ───────────────────────
@@ -2211,7 +2246,40 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
               {/* POSTS */}
               {activeTab === 'posts' && (
-                postsLoading ? (
+                <>
+                {/* Inline compose bar */}
+                {isJoined && (
+                  <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14 }}>
+                    <textarea
+                      value={postText} onChange={e => setPostText(e.target.value)}
+                      placeholder="Share something with the group…"
+                      rows={3}
+                      style={{ width:'100%', border:'none', outline:'none', resize:'none', fontSize:14,
+                               fontWeight:500, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                               background:'none', boxSizing:'border-box' }}
+                    />
+                    <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8 }}>
+                      <button
+                        disabled={!postText.trim() || posting}
+                        onClick={async () => {
+                          if (!postText.trim()) return;
+                          setPosting(true);
+                          const { error } = await createPost({ content: postText });
+                          setPosting(false);
+                          if (error) { showToast('Failed to post: ' + error.message); return; }
+                          setPostText('');
+                          showToast('Post shared!');
+                        }}
+                        style={{ height:34, padding:'0 18px', border:'none', borderRadius:999,
+                                 background: postText.trim() ? C.grad : '#D1D5DB',
+                                 color:'#fff', fontSize:12, fontWeight:700, cursor: postText.trim() ? 'pointer' : 'default',
+                                 fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                        {posting ? 'Posting…' : 'Post'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {postsLoading ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>Loading posts…</div>
                 ) : livePosts.length === 0 ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
@@ -2379,43 +2447,47 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                       )}
                     </div>
                   );
-                })
+                })}
+                </>
               )}
 
               {/* EVENTS */}
-              {activeTab === 'events' && GEVENTS.map(ev => (
-                <div key={ev.id} onClick={() => navigate('event-details',{eventId:ev.id})}
-                  style={{ display:'flex', gap:13, background:'#fff', borderRadius:18,
-                           boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:13, cursor:'pointer' }}>
-                  <div style={{ width:58, height:58, borderRadius:14, flexShrink:0,
-                                background:ev.grad, position:'relative', overflow:'hidden',
-                                display:'flex', flexDirection:'column', alignItems:'center',
-                                justifyContent:'center', color:'#fff' }}>
-                    <div style={{ position:'absolute', inset:0, background:
-                      'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
-                    <span style={{ position:'relative', fontSize:18, fontWeight:800, lineHeight:1 }}>
-                      {ev.day}
-                    </span>
-                    <span style={{ position:'relative', fontSize:9.5, fontWeight:700,
-                                   letterSpacing:0.5, marginTop:2 }}>{ev.mon}</span>
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14.5, fontWeight:800, color:C.ink,
-                                  lineHeight:1.25 }}>{ev.title}</div>
-                    <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{ev.when}</div>
-                    <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
-                        <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5"
-                              stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
-                      </svg>
-                      <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>
-                        {ev.going} going
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {activeTab === 'events' && (
+                groupEvents.length === 0
+                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No upcoming events</div>
+                  : groupEvents.map(ev => {
+                    const d = ev.date ? new Date(ev.date) : null;
+                    const day = d ? d.getDate().toString() : '';
+                    const mon = d ? d.toLocaleString('en',{month:'short'}).toUpperCase() : '';
+                    const grad = THEME[ev.category || ev.primary]?.grad || 'linear-gradient(135deg,#7C5CFF,#02B6FE)';
+                    return (
+                      <div key={ev.id} onClick={() => navigate('event-details',{eventId:ev.id})}
+                        style={{ display:'flex', gap:13, background:'#fff', borderRadius:18,
+                                 boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:13, cursor:'pointer', marginBottom:10 }}>
+                        <div style={{ width:58, height:58, borderRadius:14, flexShrink:0,
+                                      background:grad, position:'relative', overflow:'hidden',
+                                      display:'flex', flexDirection:'column', alignItems:'center',
+                                      justifyContent:'center', color:'#fff' }}>
+                          <div style={{ position:'absolute', inset:0, background:
+                            'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
+                          <span style={{ position:'relative', fontSize:18, fontWeight:800, lineHeight:1 }}>{day}</span>
+                          <span style={{ position:'relative', fontSize:9.5, fontWeight:700, letterSpacing:0.5, marginTop:2 }}>{mon}</span>
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25 }}>{ev.title}</div>
+                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{ev.date || ''}</div>
+                          <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
+                              <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
+                            </svg>
+                            <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{ev.attendees_count || ev.going || 0} going</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
 
               {/* MEDIA */}
               {activeTab === 'media' && (
@@ -2468,7 +2540,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
       {/* ── FAB: Compose (joined) ────────────────────────── */}
       {isJoined && (
-        <button onClick={() => navigate('create-post')} style={{
+        <button onClick={() => navigate('create-post', { groupId })} style={{
           position:'absolute', bottom:22, right:16, width:52, height:52,
           border:'none', borderRadius:'50%', background:C.grad,
           display:'flex', alignItems:'center', justifyContent:'center',
@@ -2487,23 +2559,21 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
-function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, following, toggleFollowing, navigate, goBack, showToast }) {
-  const ev = EVENTS.find(e => e.id === eventId) || EVENTS[0];
-  const th = THEME[ev.primary] || THEME.social;
+function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, following, toggleFollowing, navigate, goBack, showToast, role }) {
+  const [dbEvent, setDbEvent] = useState(null);
+  useEffect(() => {
+    if (!eventId) return;
+    supabase.from('events').select('*').eq('id', eventId).single()
+      .then(({ data }) => { if (data) setDbEvent(data); });
+  }, [eventId]);
+  const ev = dbEvent || EVENTS.find(e => e.id === eventId) || EVENTS[0];
+  const th = THEME[ev.primary || ev.category] || THEME.social;
   const [expanded, setExpanded] = useState(false);
   const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isFollowing = !!following[ev.id];
 
-  const ATTENDEES = [
-    {i:'A',c:'#FF5A8A'},{i:'J',c:'#0098F0'},{i:'M',c:'#10B981'},
-    {i:'R',c:'#7C5CFF'},{i:'K',c:'#FF8A3D'},{i:'T',c:'#06B6D4'},
-  ];
-  const GUESTS = [
-    {name:'Sarah James',role:'Host · MC',         i:'S', c:'linear-gradient(135deg,#FF5A8A,#FF8A3D)'},
-    {name:'The Rhythms', role:'Live Band',         i:'R', c:'linear-gradient(135deg,#7C5CFF,#B06BFF)'},
-    {name:'DJ Maxwell',  role:'Resident DJ',       i:'M', c:'linear-gradient(135deg,#02B6FE,#0078E0)'},
-    {name:'Harmony C.',  role:'Vocal Coach',       i:'H', c:'linear-gradient(135deg,#10B981,#06B6D4)'},
-  ];
-  const similar = EVENTS.filter(e => e.id !== ev.id && e.tags.some(t => ev.tags.includes(t))).slice(0,2);
+  const attendeeCount = ev.attendee_count || ev.attendees || 0;
+  const evTags = Array.isArray(ev.tags) ? ev.tags : [];
+  const similar = EVENTS.filter(e => e.id !== ev.id && Array.isArray(e.tags) && e.tags.some(t => evTags.includes(t))).slice(0,2);
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,
@@ -2557,31 +2627,42 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 110px' }}>
 
         {/* Hero banner */}
-        <div style={{ position:'relative', height:206, borderRadius:20, overflow:'hidden',
-                      boxShadow:'0 10px 28px rgba(16,24,40,0.12)' }}>
-          <div style={{ position:'absolute', inset:0, background:th.grad }}/>
-          <div style={{ position:'absolute', inset:0, background:
-            'repeating-linear-gradient(135deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 2px,transparent 16px)'}}/>
-          <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
-                        alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
-                        background:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:700, color:C.body }}>
-            {th.label} · Event
-          </div>
-          <div style={{ position:'absolute', top:'50%', left:'50%',
-                        transform:'translate(-50%,-50%)', textAlign:'center' }}>
-            <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10,
-                          letterSpacing:1, color:'rgba(255,255,255,0.85)' }}>EVENT HERO · 1200×630</div>
-            <div style={{ fontSize:24, fontWeight:800, color:'#fff', letterSpacing:-0.5,
-                          marginTop:8, maxWidth:280, lineHeight:1.2 }}>{ev.title}</div>
-          </div>
-          {ev.badge && (
-            <div style={{ position:'absolute', bottom:12, right:12, display:'inline-flex',
-                          alignItems:'center', height:24, padding:'0 10px', borderRadius:7,
-                          background:'rgba(14,23,38,0.55)', fontSize:10, fontWeight:700, color:'#fff' }}>
-              {ev.badge}
+        {(() => {
+          const HERO_IMGS = {
+            social:    'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=900&q=80',
+            sports:    'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=900&q=80',
+            academic:  'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=900&q=80',
+            arts:      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=80',
+            wellness:  'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=900&q=80',
+            career:    'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=900&q=80',
+          };
+          const heroImg = ev.image_url || ev.imageUrl || HERO_IMGS[ev.primary] || HERO_IMGS.social;
+          return (
+            <div style={{ position:'relative', height:206, borderRadius:20, overflow:'hidden',
+                          boxShadow:'0 10px 28px rgba(16,24,40,0.12)' }}>
+              <img src={heroImg} alt={ev.title}
+                   style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
+              <div style={{ position:'absolute', inset:0,
+                background:'linear-gradient(to top,rgba(14,23,38,0.75) 0%,rgba(14,23,38,0.2) 55%,transparent 100%)' }}/>
+              <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
+                            alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
+                            background:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:700, color:C.body }}>
+                {th.label} · Event
+              </div>
+              <div style={{ position:'absolute', bottom:14, left:14, right:14 }}>
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', letterSpacing:-0.5,
+                              lineHeight:1.2, textShadow:'0 1px 6px rgba(0,0,0,0.5)' }}>{ev.title}</div>
+              </div>
+              {ev.badge && (
+                <div style={{ position:'absolute', top:12, right:12, display:'inline-flex',
+                              alignItems:'center', height:24, padding:'0 10px', borderRadius:7,
+                              background:'rgba(14,23,38,0.55)', fontSize:10, fontWeight:700, color:'#fff' }}>
+                  {ev.badge}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* Organizer card */}
         <div style={{ marginTop:13, background:C.card, borderRadius:16,
@@ -2629,8 +2710,8 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
             <div style={{ flex:1 }}>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Date &amp; Time</div>
-              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{ev.fullDate}</div>
-              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{ev.timeRange}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{ev.fullDate || ev.full_date || ev.date}</div>
+              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{ev.timeRange || ev.time_range}</div>
               <button onClick={() => showToast('Added to your calendar')} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',
@@ -2760,66 +2841,57 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
         </div>
 
         {/* Attending */}
-        <div onClick={() => showToast('Viewing all attendees')}
-          style={{ marginTop:13, background:C.card, borderRadius:16,
-                   boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14, cursor:'pointer' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.8"/>
-              <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
-              <path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
-            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Attending</span>
+        {attendeeCount > 0 && (
+          <div onClick={() => showToast('Viewing all attendees')}
+            style={{ marginTop:13, background:C.card, borderRadius:16,
+                     boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14, cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:10 }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.8"/>
+                <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
+                <path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+              <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Attending</span>
+            </div>
+            <div style={{ fontSize:12, color:'#6B7385' }}>
+              <span style={{ fontWeight:800, color:C.body }}>{attendeeCount} attending</span>
+            </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center' }}>
-            {ATTENDEES.map((a, i) => (
-              <div key={i} style={{ width:32, height:32, borderRadius:'50%',
-                                    marginLeft: i > 0 ? -9 : 0, border:'2.5px solid #fff',
-                                    flexShrink:0, display:'flex', alignItems:'center',
-                                    justifyContent:'center', color:'#fff', fontSize:11,
-                                    fontWeight:800, background:a.c }}>{a.i}</div>
-            ))}
-            <div style={{ width:32, height:32, borderRadius:'50%', marginLeft:-9, border:'2.5px solid #fff',
-                          flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                          background:C.chip, color:C.muted, fontSize:10, fontWeight:800 }}>+44</div>
-          </div>
-          <div style={{ fontSize:12, color:'#6B7385', marginTop:9 }}>
-            <span style={{ fontWeight:800, color:C.body }}>50 attending</span> · 5 friends going
-          </div>
-        </div>
+        )}
 
-        {/* Guest Speakers */}
-        {GUESTS.length > 0 && (
+        {/* Guest Speakers — only shown if event has guests */}
+        {Array.isArray(ev.guests) && ev.guests.length > 0 && (
           <div style={{ marginTop:16 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                           padding:'0 2px 10px' }}>
               <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Guest Speakers</span>
-              <button onClick={() => showToast('Viewing all speakers')} style={{
-                border:'none', background:'none', fontSize:12, fontWeight:800,
-                color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-              }}>View All</button>
             </div>
             <div style={{ display:'flex', gap:11, overflowX:'auto', padding:'2px 2px 4px',
                           scrollbarWidth:'none' }}>
-              {GUESTS.map((g, i) => (
-                <div key={i} style={{ flexShrink:0, width:116, background:C.card,
-                                      borderRadius:14, boxShadow:'0 4px 14px rgba(16,24,40,0.06)',
-                                      padding:11 }}>
-                  <div style={{ height:84, borderRadius:11, background:g.c, position:'relative',
-                                overflow:'hidden', display:'flex', alignItems:'center',
-                                justifyContent:'center' }}>
-                    <span style={{ fontSize:22, fontWeight:800, color:'#fff' }}>{g.i}</span>
-                    <div style={{ position:'absolute', inset:0, background:
-                      'repeating-linear-gradient(135deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 2px,transparent 14px)'}}/>
+              {ev.guests.map((g, i) => {
+                const GRAD = ['linear-gradient(135deg,#FF5A8A,#FF8A3D)','linear-gradient(135deg,#7C5CFF,#B06BFF)','linear-gradient(135deg,#02B6FE,#0078E0)','linear-gradient(135deg,#10B981,#06B6D4)'];
+                return (
+                  <div key={i} style={{ flexShrink:0, width:116, background:C.card,
+                                        borderRadius:14, boxShadow:'0 4px 14px rgba(16,24,40,0.06)',
+                                        padding:11 }}>
+                    <div style={{ height:84, borderRadius:11, background:GRAD[i % GRAD.length],
+                                  position:'relative', overflow:'hidden', display:'flex',
+                                  alignItems:'center', justifyContent:'center' }}>
+                      <span style={{ fontSize:22, fontWeight:800, color:'#fff' }}>
+                        {(g.name || '?')[0].toUpperCase()}
+                      </span>
+                    </div>
+                    <div style={{ fontSize:12, fontWeight:800, color:C.ink, marginTop:8,
+                                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                      {g.name}
+                    </div>
+                    {g.role && (
+                      <div style={{ fontSize:10, color:'#8A93A6', marginTop:2, whiteSpace:'nowrap',
+                                    overflow:'hidden', textOverflow:'ellipsis' }}>{g.role}</div>
+                    )}
                   </div>
-                  <div style={{ fontSize:12, fontWeight:800, color:C.ink, marginTop:8,
-                                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                    {g.name}
-                  </div>
-                  <div style={{ fontSize:10, color:'#8A93A6', marginTop:2, whiteSpace:'nowrap',
-                                overflow:'hidden', textOverflow:'ellipsis' }}>{g.role}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -2908,24 +2980,39 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
 // SCREEN: SPACE DETAILS
 // ─────────────────────────────────────────────────────────────
 function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
-  const sp = SPACES.find(s => s.id === spaceId) || SPACES[0];
+  const { user } = useUser();
+  const [dbSpace, setDbSpace] = useState(null);
+  useEffect(() => {
+    if (!spaceId) return;
+    supabase.from('spaces').select('*').eq('id', spaceId).single()
+      .then(({ data }) => { if (data) setDbSpace(data); });
+  }, [spaceId]);
+  const sp = dbSpace || SPACES.find(s => s.id === spaceId) || null;
   const [joined,   setJoined]   = useState(false);
   const [saved,    setSaved]    = useState(false);
   const [liked,    setLiked]    = useState(false);
   const [followed, setFollowed] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [progress, setProgress] = useState(sp.started ? 38 : 0);
+  const [progress, setProgress] = useState(0);
 
   // Animate live progress bar
   useEffect(() => {
-    if (!sp.started) return;
+    if (!sp?.started) return;
     const t = setInterval(() => setProgress(p => Math.min(100, p + 1)), 700);
     return () => clearInterval(t);
-  }, [sp.started]);
+  }, [sp?.started]);
 
-  const count = sp.participants + (joined ? 1 : 0);
-  const isFull = count >= (sp.max_spots || sp.max || 10);
-  const pct = Math.round((count / sp.max_spots || sp.max || 10) * 100);
+  if (!sp) return (
+    <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center',
+                  background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ fontSize:13, color:C.subtle }}>Loading space…</div>
+    </div>
+  );
+
+  const count = (sp.participants || 0) + (joined ? 1 : 0);
+  const maxSpots = sp.max_spots || sp.max || 10;
+  const isFull = count >= maxSpots;
+  const pct = Math.round((count / maxSpots) * 100);
   const done = progress >= 100;
 
   const PARTICIPANTS = [
@@ -2943,10 +3030,15 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
     'No food or drink in the activity area',
   ];
 
-  const catColor = sp.cat === 'sports' ? 'linear-gradient(135deg,#10B981,#06B6D4)'
-                 : sp.cat === 'academic' ? 'linear-gradient(135deg,#7C5CFF,#B06BFF)'
-                 : sp.cat === 'social'   ? 'linear-gradient(135deg,#FF5A8A,#FF8A3D)'
+  const spCat = sp.cat || sp.category || 'social';
+  const catColor = spCat === 'sports' ? 'linear-gradient(135deg,#10B981,#06B6D4)'
+                 : spCat === 'academic' ? 'linear-gradient(135deg,#7C5CFF,#B06BFF)'
+                 : spCat === 'social'   ? 'linear-gradient(135deg,#FF5A8A,#FF8A3D)'
                  : 'linear-gradient(135deg,#2F6BFF,#6C4DF2)';
+  const spPrice = sp.is_free || sp.price === 0 || sp.price === 'Free' ? 'Free' : (sp.price ? `$${sp.price}` : 'Free');
+  const fmtDur = v => v ? (/^\d+$/.test(String(v)) ? `${v} min` : String(v)) : '';
+  const hostName = (sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i, '');
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,
@@ -3003,52 +3095,67 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
         <div style={{ position:'relative', height:200, borderRadius:20, overflow:'hidden',
                       boxShadow:'0 10px 28px rgba(16,24,40,0.12)' }}>
           <div style={{ position:'absolute', inset:0, background:catColor }}/>
+          {sp.image_url && <img src={sp.image_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>}
           <div style={{ position:'absolute', inset:0, background:
             'repeating-linear-gradient(135deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 2px,transparent 16px)'}}/>
           <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
                         alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
                         background:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:700, color:C.body }}>
-            {sp.cat.charAt(0).toUpperCase()+sp.cat.slice(1)} · Space
+            {spCat.charAt(0).toUpperCase()+spCat.slice(1)} · Space
           </div>
           <div style={{ position:'absolute', top:'50%', left:'50%',
                         transform:'translate(-50%,-50%)', textAlign:'center' }}>
-            <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10,
-                          letterSpacing:1, color:'rgba(255,255,255,0.85)' }}>SPACE COVER · 1200×630</div>
             <div style={{ fontSize:22, fontWeight:800, color:'#fff', letterSpacing:-0.5,
-                          marginTop:8, maxWidth:280, lineHeight:1.2 }}>{sp.title}</div>
+                          maxWidth:280, lineHeight:1.2, textShadow:'0 2px 8px rgba(0,0,0,0.25)' }}>{sp.title}</div>
           </div>
           <div style={{ position:'absolute', bottom:12, right:12, display:'inline-flex',
                         alignItems:'center', height:24, padding:'0 10px', borderRadius:7,
                         background:'rgba(14,23,38,0.55)', fontSize:10, fontWeight:700, color:'#fff' }}>
-            {sp.time} · {sp.duration}
+            {sp.time}{sp.duration ? ` · ${fmtDur(sp.duration)}` : ''}
           </div>
         </div>
 
         {/* Host card */}
         <div style={{ marginTop:13, background:C.card, borderRadius:16,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'12px 15px',
-                      display:'flex', alignItems:'center', gap:11 }}>
+                      display:'flex', alignItems:'center', gap:11, position:'relative' }}>
           <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
                         background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                         justifyContent:'center', color:'#fff', fontSize:16, fontWeight:800 }}>
             {sp.avatarInitial || sp.avatar_initial || "S"}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>
-              {sp.hostText || sp.host_text || "".replace('Created by ','').replace('Organized by ','')}
-            </div>
-            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>{sp.hostText || sp.host_text || "".split(' ')[0]}</div>
+            <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{hostName || 'Organizer'}</div>
+            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Student</div>
           </div>
-          <button onClick={() => setFollowed(v => !v)} style={{
-            flexShrink:0, height:30, padding:'0 14px', borderRadius:999,
-            border: followed ? `1.5px solid ${C.border}` : 'none',
-            background: followed ? '#fff' : C.primary,
-            color: followed ? '#7B8499' : '#fff',
-            fontSize:11, fontWeight:700, cursor:'pointer',
-            fontFamily:"'Montserrat',-apple-system,sans-serif",
-          }}>
-            {followed ? 'Following' : 'Follow'}
-          </button>
+          <div style={{ position:'relative', flexShrink:0 }}>
+            <button onClick={() => setMoreOpen(v => !v)} style={{
+              width:34, height:34, border:`1.5px solid ${C.border}`, borderRadius:999,
+              background:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <circle cx="5" cy="12" r="1.5" fill={C.muted}/><circle cx="12" cy="12" r="1.5" fill={C.muted}/><circle cx="19" cy="12" r="1.5" fill={C.muted}/>
+              </svg>
+            </button>
+            {moreOpen && (
+              <div style={{ position:'absolute', right:0, top:40, background:'#fff', borderRadius:12,
+                            boxShadow:'0 8px 24px rgba(16,24,40,0.14)', border:`1px solid ${C.border}`,
+                            zIndex:99, minWidth:130, overflow:'hidden' }}>
+                <button onClick={() => { setMoreOpen(false); navigate('messages'); }} style={{
+                  width:'100%', padding:'12px 16px', border:'none', background:'none',
+                  textAlign:'left', fontSize:13, fontWeight:700, color:C.body,
+                  cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  display:'flex', alignItems:'center', gap:8,
+                }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                      stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Message
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Capacity card */}
@@ -3159,7 +3266,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
               <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
                 {sp.day === 'today' ? "Today" : "Tomorrow"} · {sp.time}
               </div>
-              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{sp.duration} session</div>
+              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtDur(sp.duration)} session</div>
               <button onClick={() => showToast('Added to your calendar')} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',
@@ -3234,8 +3341,8 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Price</div>
               <div style={{ fontSize:13, fontWeight:800, color:C.ink, marginTop:3 }}>
-                {sp.price === 0 ? 'Free' : `$${sp.price}`}
-                {sp.price > 0 && <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}> per session</span>}
+                {spPrice}
+                {spPrice !== 'Free' && <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}> per session</span>}
               </div>
             </div>
           </div>
@@ -3298,7 +3405,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
         <div style={{ flexShrink:0 }}>
           <div style={{ fontSize:10, color:C.subtle, fontWeight:600 }}>Price</div>
           <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>
-            {sp.price === 0 ? 'Free' : `$${sp.price}`}
+            {spPrice}
           </div>
         </div>
         {isFull && !joined ? (
@@ -3311,7 +3418,15 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
             Notify When a Spot Opens
           </button>
         ) : (
-          <button onClick={() => setJoined(j => !j)} style={{
+          <button onClick={async () => {
+            const next = !joined;
+            setJoined(next);
+            const isUuid = typeof sp.id === 'string' && sp.id.includes('-');
+            if (user?.id && isUuid) {
+              if (next) await supabase.from('space_participants').upsert({ space_id: sp.id, user_id: user.id });
+              else await supabase.from('space_participants').delete().eq('space_id', sp.id).eq('user_id', user.id);
+            }
+          }} style={{
             flex:1, height:50, borderRadius:15, cursor:'pointer',
             border: joined ? `1.6px solid #10B981` : 'none',
             background: joined ? '#E6F8F0' : C.grad,
@@ -3369,8 +3484,12 @@ function ChatScreen({ chatId, goBack, showToast, currentUser }) {
   // Auto-scroll when messages change
   useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
-  // Online status indicator label
-  const onlineLabel = chatId === 4 ? 'Online · 8 members' : 'Online';
+  // Online status — group chats (id 4) show member count, DMs show 'Active recently'
+  const isGroup = chat.type === 'group' || chat.isGroup;
+  const memberCount = chat.memberCount || chat.members;
+  const onlineLabel = isGroup
+    ? memberCount ? `Online · ${memberCount} members` : 'Online'
+    : 'Active recently';
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -3616,9 +3735,60 @@ function ChatScreen({ chatId, goBack, showToast, currentUser }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// COMPONENT: CHANGE PASSWORD
+// ─────────────────────────────────────────────────────────────
+function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColor, subColor }) {
+  const { user } = useUser();
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw,     setNewPw]     = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [loading,   setLoading]   = useState(false);
+
+  const handleUpdate = async () => {
+    if (!newPw || newPw.length < 8) { showToast('New password must be at least 8 characters'); return; }
+    if (newPw !== confirmPw) { showToast("Passwords don't match"); return; }
+    if (!currentPw) { showToast('Enter your current password'); return; }
+    setLoading(true);
+    try {
+      await user.updatePassword({ currentPassword: currentPw, newPassword: newPw });
+      showToast('Password updated successfully');
+      onClose();
+    } catch (err) {
+      showToast(err?.errors?.[0]?.message || 'Failed to update password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputStyle = { width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:13, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" };
+  const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 };
+
+  return (
+    <Sheet onClose={onClose} title="Change Password">
+      <div style={{ marginBottom:14 }}>
+        <div style={labelStyle}>Current Password</div>
+        <input type="password" value={currentPw} onChange={e=>setCurrentPw(e.target.value)} style={inputStyle} />
+      </div>
+      <div style={{ marginBottom:14 }}>
+        <div style={labelStyle}>New Password</div>
+        <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} style={inputStyle} />
+      </div>
+      <div style={{ marginBottom:14 }}>
+        <div style={labelStyle}>Confirm Password</div>
+        <input type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} style={inputStyle} />
+      </div>
+      <button onClick={handleUpdate} disabled={loading} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
+        {loading ? 'Updating…' : 'Update Password'}
+      </button>
+    </Sheet>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // SCREEN: PROFILE
 // ─────────────────────────────────────────────────────────────
 function ProfileScreen({ navigate, showToast, currentUser }) {
+  const cu = currentUser || {};
   const [editOpen, setEditOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
@@ -3631,10 +3801,21 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
   const [privateProfile, setPrivateProfile] = useState(false);
   const [lang, setLang] = useState('English');
   const [saving, setSaving] = useState(false);
+  const [stats, setStats] = useState({ events: 0, groups: 0 });
 
-  const name = currentUser.name;
-  const email = currentUser.email;
-  const profileRole = currentUser.role;
+  useEffect(() => {
+    if (!cu?.userId) return;
+    Promise.all([
+      supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
+      supabase.from('group_members').select('group_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
+    ]).then(([rsvps, grps]) => {
+      setStats({ events: rsvps.count || 0, groups: grps.count || 0 });
+    });
+  }, [cu?.userId]);
+
+  const name = cu.name || 'Student';
+  const email = cu.email || '';
+  const [profileRole, setProfileRole] = useState(cu.role || 'student');
   const [draftName, setDraftName] = useState('');
   const [draftEmail, setDraftEmail] = useState('');
 
@@ -3758,7 +3939,7 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
 
         {/* Stats */}
         <div style={{ display:'flex', gap:10, marginTop:20 }}>
-          {[{v:12,l:'Events'},{v:8,l:'Groups'},{v:'340',l:'Friends'}].map(s=>(
+          {[{v:stats.events,l:'Events'},{v:stats.groups,l:'Groups'},{v:'–',l:'Friends'}].map(s=>(
             <div key={s.l} style={{ flex:1, background:cardBg, borderRadius:18, padding:'13px 8px', textAlign:'center', boxShadow:'0 4px 14px rgba(16,24,40,0.05)', transition:'background .3s' }}>
               <div style={{ fontSize:17, fontWeight:800, color:textColor }}>{s.v}</div>
               <div style={{ fontSize:9, fontWeight:600, color:subColor, marginTop:2 }}>{s.l}</div>
@@ -3799,7 +3980,7 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
         ))}
 
         {/* Logout */}
-        <button onClick={async ()=>{ await currentUser.logout(); }} style={{ width:'100%', height:52, marginTop:24, border:'none', borderRadius:16, background:'linear-gradient(135deg,#FF6B4D,#F4452B)', color:'#fff', fontSize:13.5, fontWeight:800, letterSpacing:0.4, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:9, boxShadow:'0 8px 20px rgba(244,69,43,0.32)' }}>
+        <button onClick={async ()=>{ if (cu.logout) await cu.logout(); else showToast('Signed out'); }} style={{ width:'100%', height:52, marginTop:24, border:'none', borderRadius:16, background:'linear-gradient(135deg,#FF6B4D,#F4452B)', color:'#fff', fontSize:13.5, fontWeight:800, letterSpacing:0.4, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:9, boxShadow:'0 8px 20px rgba(244,69,43,0.32)' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 12h10m0 0-3-3m3 3-3 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           LOGOUT
         </button>
@@ -3842,17 +4023,7 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
       )}
 
       {/* Change Password Sheet */}
-      {pwOpen && (
-        <Sheet onClose={()=>setPwOpen(false)} title="Change Password">
-          {['Current Password','New Password','Confirm Password'].map(label=>(
-            <div key={label} style={{ marginBottom:14 }}>
-              <div style={{ fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>{label}</div>
-              <input type="password" style={{ width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:13, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }} />
-            </div>
-          ))}
-          <button onClick={()=>{setPwOpen(false);showToast('Password updated successfully');}} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)' }}>Update Password</button>
-        </Sheet>
-      )}
+      {pwOpen && <ChangePasswordSheet onClose={()=>setPwOpen(false)} showToast={showToast} chipBg={chipBg} borderColor={borderColor} textColor={textColor} subColor={subColor} />}
     </div>
   );
 }
@@ -3864,202 +4035,151 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
 
 
 // ─────────────────────────────────────────────────────────────
-// SCREEN: WELCOME (4-slide onboarding carousel)
+// SCREEN: WELCOME (2-slide onboarding carousel)
 // ─────────────────────────────────────────────────────────────
 function WelcomeScreen({ navigate, setScreen }) {
   const SLIDES = [
-    {
-      icon: 'discover',
-      grad: 'linear-gradient(160deg,#FF8A3D,#FF5A8A)',
-      shadow: 'rgba(255,90,138,0.38)',
-      accent: '#FF5A8A',
-      title: 'Discover what\'s happening on campus',
-      body: 'From karaoke nights to career fairs — find every event, club, and activity around you in one personalised feed.',
-    },
-    {
-      icon: 'groups',
-      grad: 'linear-gradient(160deg,#10B981,#06B6D4)',
-      shadow: 'rgba(6,182,212,0.38)',
-      accent: '#06B6D4',
-      title: 'Join clubs & communities',
-      body: 'Connect with student groups that match your interests, post with members, and never miss what they\'re planning.',
-    },
-    {
-      icon: 'ticket',
-      grad: 'linear-gradient(160deg,#2F6BFF,#6C4DF2)',
-      shadow: 'rgba(108,77,242,0.38)',
-      accent: '#6C4DF2',
-      title: 'Get tickets & check in fast',
-      body: 'Reserve your spot, store tickets with QR codes, and breeze through check-in when you arrive at the event.',
-    },
-    {
-      icon: 'spark',
-      grad: 'linear-gradient(160deg,#19BFFF,#0E84E0)',
-      shadow: 'rgba(2,162,240,0.40)',
-      accent: '#0E84E0',
-      title: 'Stay connected to campus life',
-      body: 'Get reminders, weekly digests, and recommendations tuned to you — so you\'re always part of what\'s going on.',
-    },
+    { img: 'https://images.unsplash.com/photo-1562774053-701939374585?w=900&q=80' },
+    { img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80' },
   ];
 
-  const ICONS = {
-    discover: (color) => (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="8.5" stroke={color} strokeWidth="1.9"/>
-        <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" stroke={color} strokeWidth="1.9" strokeLinejoin="round"/>
-      </svg>
-    ),
-    groups: (color) => (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-        <circle cx="8" cy="9" r="2.6" stroke={color} strokeWidth="1.9"/>
-        <circle cx="16" cy="9" r="2.6" stroke={color} strokeWidth="1.9"/>
-        <path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2"
-              stroke={color} strokeWidth="1.9" strokeLinecap="round"/>
-      </svg>
-    ),
-    ticket: (color) => (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-        <path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4A1.8 1.8 0 0 0 20 15.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6A1.8 1.8 0 0 0 4 8.5Z"
-              stroke={color} strokeWidth="1.8" strokeLinejoin="round"/>
-        <path d="M14 6.5v11" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeDasharray="0.5 3"/>
-      </svg>
-    ),
-    spark: (color) => (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-        <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.6 2.6M15.4 15.4 18 18M18 6l-2.6 2.6M8.6 15.4 6 18"
-              stroke={color} strokeWidth="2" strokeLinecap="round"/>
-        <circle cx="12" cy="12" r="2.6" stroke={color} strokeWidth="2"/>
-      </svg>
-    ),
-  };
-
   const [slide, setSlide] = useState(0);
-  const cur  = SLIDES[slide];
-  const last = slide === SLIDES.length - 1;
+  const onSlide2 = slide === 1;
 
-  const next = () => {
-    if (last) { setScreen('auth', { initialStep: 'signup' }); return; }
-    setSlide(s => s + 1);
+  const goRole = (role) => {
+    setScreen('auth', { initialStep: 'signup', role });
   };
 
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
-                  background:'#ffffff', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  overflow:'hidden' }}>
+    <div style={{ height:'100%', position:'relative', overflow:'hidden',
+                  background:'#0a0a0a', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <style>{`@keyframes wFade{from{opacity:0}to{opacity:1}}`}</style>
 
-      {/* ── Top bar ─────────────────────────────────────── */}
-      <div style={{ flexShrink:0, padding:'52px 22px 0', display:'flex',
-                    alignItems:'center', justifyContent:'space-between', zIndex:4 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:28, height:28, borderRadius:9, background:C.grad,
-                        display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <RiplyMark size={15} white />
-          </div>
-          <span style={{ fontSize:17, fontWeight:800, letterSpacing:-0.4, color:C.primary }}>Riply</span>
-        </div>
-        {!last && (
-          <button onClick={() => setScreen('auth', { initialStep: 'signup' })} style={{ border:'none', background:'none',
-            cursor:'pointer', fontSize:13, fontWeight:700, color:C.subtle,
-            fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-            Skip
-          </button>
-        )}
+      {/* Full-bleed background photo */}
+      <div key={slide} style={{ position:'absolute', inset:0, animation:'wFade 0.45s ease' }}>
+        <img src={SLIDES[slide].img} alt=""
+          style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
+        {/* dark overlay */}
+        <div style={{ position:'absolute', inset:0,
+          background:'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.72) 100%)' }}/>
       </div>
 
-      {/* ── Hero ────────────────────────────────────────── */}
-      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center',
-                    padding:'20px 32px', minHeight:0 }}>
-        <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center' }}>
+      {/* Content layer */}
+      <div style={{ position:'relative', zIndex:4, height:'100%', display:'flex',
+                    flexDirection:'column', alignItems:'center' }}>
 
-          {/* Gradient card */}
-          <div style={{ position:'relative', width:222, height:222, borderRadius:40,
-                        background:cur.grad, display:'flex', alignItems:'center',
-                        justifyContent:'center',
-                        boxShadow:`0 20px 50px ${cur.shadow}`,
-                        overflow:'hidden',
-                        transition:'background 0.4s ease' }}>
-            {/* texture */}
-            <div style={{ position:'absolute', inset:0, background:
-              'repeating-linear-gradient(135deg,rgba(255,255,255,0.09) 0,rgba(255,255,255,0.09) 2px,transparent 2px,transparent 18px)' }}/>
-            {/* decorative circles */}
-            <div style={{ position:'absolute', width:116, height:116, borderRadius:'50%',
-                          background:'rgba(255,255,255,0.13)', top:-28, right:-24 }}/>
-            <div style={{ position:'absolute', width:76, height:76, borderRadius:'50%',
-                          background:'rgba(255,255,255,0.09)', bottom:-16, left:-12 }}/>
-            {/* icon card */}
-            <div style={{ position:'relative', display:'flex', flexDirection:'column',
-                          alignItems:'center', gap:14 }}>
-              <div style={{ width:82, height:82, borderRadius:24,
-                            background:'rgba(255,255,255,0.95)',
-                            display:'flex', alignItems:'center', justifyContent:'center',
-                            boxShadow:'0 12px 26px rgba(0,0,0,0.16)' }}>
-                {ICONS[cur.icon](cur.accent)}
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:7, alignItems:'center' }}>
-                <div style={{ height:8, width:118, borderRadius:5, background:'rgba(255,255,255,0.65)' }}/>
-                <div style={{ height:8, width:82,  borderRadius:5, background:'rgba(255,255,255,0.40)' }}/>
-              </div>
-            </div>
-          </div>
-
-          {/* Text */}
-          <div style={{ textAlign:'center', marginTop:36 }}>
-            <div style={{ fontSize:23, fontWeight:800, letterSpacing:-0.6, color:C.ink,
-                          lineHeight:1.2 }}>
-              {cur.title}
-            </div>
-            <div style={{ fontSize:13.5, lineHeight:1.65, color:'#7B8499',
-                          marginTop:12, maxWidth:294, margin:'12px auto 0' }}>
-              {cur.body}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Footer ──────────────────────────────────────── */}
-      <div style={{ flexShrink:0, padding:'0 24px 36px', zIndex:4 }}>
-
-        {/* Dot indicator */}
-        <div style={{ display:'flex', justifyContent:'center', gap:8, marginBottom:22 }}>
+        {/* Pill indicators */}
+        <div style={{ display:'flex', gap:8, marginTop:58, marginBottom:0 }}>
           {SLIDES.map((_, i) => (
-            <button key={i} onClick={() => setSlide(i)} style={{
-              border:'none', cursor:'pointer', padding:0, height:8, borderRadius:999,
-              transition:'all .25s',
-              width: i===slide ? 26 : 8,
-              background: i===slide ? C.primary : '#D4DBE5',
+            <div key={i} style={{
+              height:4, borderRadius:999, transition:'all .35s',
+              width: i === slide ? 36 : 20,
+              background: i === slide ? '#19BFFF' : 'rgba(255,255,255,0.45)',
             }}/>
           ))}
         </div>
 
-        {/* Primary button */}
-        <button onClick={next} style={{
-          width:'100%', height:52, border:'none', borderRadius:16,
-          background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
-          fontSize:15, fontWeight:800, cursor:'pointer',
-          fontFamily:"'Montserrat',-apple-system,sans-serif",
-          display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-          boxShadow:'0 10px 26px rgba(2,162,240,0.40)',
-        }}>
-          {last ? 'Get Started' : 'Next'}
-          {!last && (
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          )}
-        </button>
-
-        {/* Secondary */}
-        <div style={{ textAlign:'center', marginTop:15, fontSize:13, color:'#7B8499' }}>
-          Already have an account?{' '}
-          <span onClick={() => setScreen('auth')}
-            style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>
-            Log In
-          </span>
+        {/* Logo block */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginTop:40 }}>
+          <RiplyMark size={90} white />
+          <div style={{ fontSize:32, fontWeight:900, letterSpacing:6, color:'#19BFFF', marginTop:10 }}>
+            RIPLY
+          </div>
+          <div style={{ fontSize:11, fontWeight:800, letterSpacing:3, color:'rgba(255,255,255,0.85)',
+                        marginTop:6, textAlign:'center' }}>
+            CAMPUS CONNECTIONS MADE EASY
+          </div>
         </div>
+
+        {/* Spacer */}
+        <div style={{ flex:1 }}/>
+
+        {/* Slide 1 content */}
+        {!onSlide2 && (
+          <div style={{ width:'100%', padding:'0 28px 60px', display:'flex',
+                        flexDirection:'column', alignItems:'center' }}>
+            <div style={{ fontSize:22, fontWeight:800, color:'#fff', textAlign:'center',
+                          lineHeight:1.45, marginBottom:48 }}>
+              Find your space.<br/>
+              Explore campus events.<br/>
+              Build real lasting connections.
+            </div>
+            <button onClick={() => setSlide(1)}
+              style={{ border:'none', background:'none', cursor:'pointer', padding:0,
+                       display:'flex', alignItems:'center', gap:8,
+                       fontSize:17, fontWeight:700, color:'#19BFFF' }}>
+              Swipe
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14M14 6l6 6-6 6" stroke="#19BFFF" strokeWidth="2.4"
+                  strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Slide 2 content */}
+        {onSlide2 && (
+          <div style={{ width:'100%', padding:'0 22px 32px' }}>
+            <div style={{ fontSize:24, fontWeight:800, color:'#fff', textAlign:'center',
+                          marginBottom:10 }}>
+              Lets get started !
+            </div>
+            <div style={{ fontSize:14, color:'rgba(255,255,255,0.78)', textAlign:'center',
+                          lineHeight:1.55, marginBottom:28 }}>
+              Join thousands of students on campus<br/>and make meaningful connections
+            </div>
+
+            {/* Role buttons */}
+            {[
+              { label:'Group Moderators', icon:(
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L3 7l9 5 9-5-9-5Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
+                  <path d="M3 12l9 5 9-5M3 17l9 5 9-5" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
+                </svg>
+              ), role:'admin' },
+              { label:'Event Organizers', icon:(
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="2"/>
+                  <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              ), role:'organizer' },
+              { label:'Student SignUp', icon:(
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3L2 9l10 6 10-6-10-6Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
+                  <path d="M6 12v5c0 2 2.686 3 6 3s6-1 6-3v-5" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              ), role:'student' },
+            ].map(({ label, icon, role }) => (
+              <button key={role} onClick={() => goRole(role)} style={{
+                width:'100%', height:54, border:'none', borderRadius:999, marginBottom:12,
+                background:'#19BFFF', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+                fontSize:15, fontWeight:700, color:'#fff',
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                boxShadow:'0 6px 20px rgba(25,191,255,0.35)',
+              }}>
+                {label}
+                {icon}
+              </button>
+            ))}
+
+            <div style={{ textAlign:'center', marginTop:4, fontSize:11.5,
+                          color:'rgba(255,255,255,0.55)', lineHeight:1.6 }}>
+              By signing up, you agree to our{' '}
+              <span style={{ color:'#19BFFF', cursor:'pointer' }}>Terms of Service</span> and{' '}
+              <span style={{ color:'#19BFFF', cursor:'pointer' }}>Privacy Policy</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+const bgWash = {
+  position:'absolute', inset:0, pointerEvents:'none',
+  background:'radial-gradient(ellipse at 60% 0%,rgba(2,182,254,0.10) 0%,transparent 65%),radial-gradient(ellipse at 20% 100%,rgba(124,92,255,0.08) 0%,transparent 60%)',
+};
 
 function AuthPillInput({ value, onChange, placeholder, type='text', inputMode, icon, right }) {
   return (
@@ -4133,7 +4253,7 @@ function AuthLogo({ size=100 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
-function AuthScreen({ setScreen, showToast, initialStep }) {
+function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
   // ── step machine ──────────────────────────────────────────
   const [step,    setStep]    = useState(initialStep || 'login');  // login | signup | verify | onboard | role
   const [animKey, setAnimKey] = useState(0);
@@ -4166,7 +4286,7 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
   const [year,       setYear]       = useState('');
 
   // role
-  const [role, setRole] = useState('');
+  const [role, setRole] = useState(initialRole || '');
 
   const CAMPUSES = ['Fort Garry', 'Bannatyne', 'William Norrie Centre'];
   const YEARS    = ['1st Year','2nd Year','3rd Year','4th Year','5th+ Year'];
@@ -4178,11 +4298,38 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
     { id:'admin',     title:'Group Admin',      sub:'Run a campus club — post, moderate and manage members.',  color:'#15A34A', bg:'#E4F7EC' },
   ];
 
-  // ── shared styles ─────────────────────────────────────────
-  const bgWash = { position:'absolute', top:0, left:0, right:0, height:320,
-    background:'radial-gradient(circle at 50% 0%,rgba(25,191,255,0.15),transparent 62%)' };
-
   const slideStyle = { animation:`authSlide 0.26s cubic-bezier(.4,0,.2,1)` };
+
+  // Shared hero image header for login & signup
+  const AuthHero = ({ onBack }) => (
+    <div style={{ position:'relative', height:220, flexShrink:0, overflow:'hidden' }}>
+      <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=700&q=80"
+        alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 30%' }} />
+      <div style={{ position:'absolute', inset:0,
+        background:'linear-gradient(to bottom,rgba(14,23,38,0.45) 0%,rgba(14,23,38,0.1) 50%,rgba(249,250,252,1) 100%)' }}/>
+      {/* back / logo row */}
+      <div style={{ position:'absolute', top:0, left:0, right:0, padding:'52px 20px 0',
+                    display:'flex', alignItems:'center', gap:12 }}>
+        {onBack && (
+          <button onClick={onBack} style={{ width:36, height:36, border:'none', borderRadius:999,
+            background:'rgba(255,255,255,0.2)', backdropFilter:'blur(8px)',
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ width:30, height:30, borderRadius:10, background:'rgba(255,255,255,0.2)',
+            backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.3)',
+            display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <RiplyMark size={16} white />
+          </div>
+          <span style={{ fontSize:16, fontWeight:800, color:'#fff', letterSpacing:-0.3 }}>Riply</span>
+        </div>
+      </div>
+    </div>
+  );
 
   // ── LOGIN ─────────────────────────────────────────────────
   if (step === 'login') return (
@@ -4190,32 +4337,44 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
                   overflow:'hidden', ...slideStyle }}>
       <style>{`@keyframes authSlide{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div style={bgWash}/>
-      <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
-                    alignItems:'center', padding:'74px 26px 32px', overflowY:'auto' }}>
-        <AuthLogo size={106}/>
-        <div style={{ flex:1 }}/>
-        <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:13 }}>
+      <AuthHero />
+      <div style={{ flex:1, overflowY:'auto', padding:'4px 26px 36px', display:'flex',
+                    flexDirection:'column' }}>
+        <div style={{ marginBottom:22 }}>
+          <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>Welcome back</div>
+          <div style={{ fontSize:13, color:C.muted, marginTop:4 }}>Sign in to your campus account</div>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:13 }}>
           <AuthPillInput value={email} onChange={e=>setEmail(e.target.value)}
-            placeholder="student email" inputMode="email"
-            icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.subtle} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>}
+            placeholder="Student email" inputMode="email"
+            icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke={C.subtle} strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/></svg>}
           />
           <AuthPillInput value={password} onChange={e=>setPassword(e.target.value)}
-            placeholder="password" type={showPw?'text':'password'}
+            placeholder="Password" type={showPw?'text':'password'}
             right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
-        <div style={{ height:28 }}/>
-        <AuthBigBtn onClick={withLoading(()=>login(email, password))} loading={loading}>Log In</AuthBigBtn>
-        <span onClick={()=>showToast('Password reset link sent')}
-          style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
+        <span onClick={()=>showToast('Password reset coming soon')}
+          style={{ fontSize:12.5, fontWeight:700, color:C.primary, marginTop:10,
+                   cursor:'pointer', alignSelf:'flex-end' }}>
           Forgot Password?
         </span>
-        <div style={{ width:'100%', height:1, background:'#E4E8EF', margin:'18px 0' }}/>
-        <div style={{ fontSize:13, color:'#7B8499' }}>
-          New to RIPLY?{' '}
+        <div style={{ height:22 }}/>
+        <button onClick={withLoading(()=>login(email, password))}
+          style={{ width:'100%', height:54, border:'none', borderRadius:16,
+            background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
+            fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
+            fontFamily:"'Montserrat',-apple-system,sans-serif",
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            boxShadow:'0 10px 26px rgba(2,162,240,0.40)', opacity: loading?0.75:1 }}>
+          {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
+          {loading ? 'Signing in…' : 'Log In'}
+        </button>
+        <div style={{ flex:1 }}/>
+        <div style={{ textAlign:'center', fontSize:13, color:C.muted, marginTop:24 }}>
+          New to Riply?{' '}
           <span onClick={()=>go('signup')} style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>
-            Sign Up
+            Create Account
           </span>
         </div>
       </div>
@@ -4227,17 +4386,20 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
     <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
                   overflow:'hidden', ...slideStyle }}>
-      <div style={bgWash}/>
-      <div style={{ position:'relative', flex:1, overflowY:'auto', display:'flex',
-                    flexDirection:'column', alignItems:'center', padding:'60px 26px 30px' }}>
-        <AuthLogo size={96}/>
-        <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:12, marginTop:22 }}>
+      <AuthHero onBack={()=>go('login')} />
+      <div style={{ flex:1, overflowY:'auto', padding:'4px 26px 36px', display:'flex',
+                    flexDirection:'column' }}>
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>Create account</div>
+          <div style={{ fontSize:13, color:C.muted, marginTop:4 }}>Join your campus community</div>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <AuthPillInput value={name} onChange={e=>setName(e.target.value)}
-            placeholder="username"
+            placeholder="Username"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.subtle} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>}
           />
           <AuthPillInput value={email} onChange={e=>setEmail(e.target.value)}
-            placeholder="student email" inputMode="email"
+            placeholder="Student email" inputMode="email"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke={C.subtle} strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/></svg>}
           />
           {/* Gender picker */}
@@ -4246,9 +4408,10 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
               gap:11, background:'#fff', border:`1.5px solid ${C.border}`, borderRadius:999,
               padding:'0 20px', height:54, cursor:'pointer',
               boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 14a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 0v6m-3-3h6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>
               <span style={{ flex:1, fontSize:14, fontWeight:600,
                              color: gender ? C.body : C.subtle }}>
-                {gender || 'gender'}
+                {gender || 'Gender'}
               </span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="m6 9 6 6 6-6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4256,8 +4419,7 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
             </div>
             {genderOpen && (
               <div style={{ background:'#fff', border:`1.5px solid ${C.border}`, borderRadius:16,
-                            boxShadow:'0 6px 18px rgba(16,24,40,0.10)', overflow:'hidden',
-                            marginTop:6 }}>
+                            boxShadow:'0 6px 18px rgba(16,24,40,0.10)', overflow:'hidden', marginTop:6 }}>
                 {GENDERS.map(g => (
                   <div key={g} onClick={()=>{setGender(g);setGenderOpen(false);}}
                     style={{ padding:'13px 20px', fontSize:14, fontWeight:600,
@@ -4271,22 +4433,26 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
             )}
           </div>
           <AuthPillInput value={password} onChange={e=>setPassword(e.target.value)}
-            placeholder="password" type={showPw?'text':'password'}
+            placeholder="Password" type={showPw?'text':'password'}
             right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
           <AuthPillInput value={confirm} onChange={e=>setConfirm(e.target.value)}
-            placeholder="confirm password" type={showCf?'text':'password'}
+            placeholder="Confirm password" type={showCf?'text':'password'}
             right={<AuthEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <div style={{ height:28 }}/>
-        <AuthBigBtn onClick={withLoading(()=>signup(name, email, password, confirm))} loading={loading}>Sign Up</AuthBigBtn>
-        <span onClick={()=>showToast('Password reset link sent')}
-          style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
-          Forgot Password?
-        </span>
-        <div style={{ width:'100%', height:1, background:'#E4E8EF', margin:'16px 0 14px' }}/>
-        <div style={{ fontSize:13, color:'#7B8499' }}>
+        <div style={{ height:22 }}/>
+        <button onClick={withLoading(()=>signup(name, email, password, confirm))}
+          style={{ width:'100%', height:54, border:'none', borderRadius:16,
+            background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
+            fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
+            fontFamily:"'Montserrat',-apple-system,sans-serif",
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            boxShadow:'0 10px 26px rgba(2,162,240,0.40)', opacity: loading?0.75:1 }}>
+          {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
+          {loading ? 'Creating account…' : 'Sign Up'}
+        </button>
+        <div style={{ textAlign:'center', fontSize:13, color:C.muted, marginTop:18 }}>
           Already have an account?{' '}
           <span onClick={()=>go('login')} style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>
             Log In
@@ -5296,20 +5462,23 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
     { id:'culture',  label:'Culture',  grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)' },
   ];
 
-  const [cat,        setCat]        = useState('academic');
-  const [title,      setTitle]      = useState('');
-  const [recurrence, setRecurrence] = useState('');
-  const [firstDate,  setFirstDate]  = useState('');
-  const [startTime,  setStartTime]  = useState('');
-  const [endTime,    setEndTime]    = useState('');
-  const [venue,      setVenue]      = useState('');
-  const [area,       setArea]       = useState('');
-  const [maxSpots,   setMaxSpots]   = useState(10);
-  const [notifySpot, setNotifySpot] = useState(false);
-  const [pricing,    setPricing]    = useState('free');
-  const [price,      setPrice]      = useState('');
-  const [about,      setAbout]      = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [cat,         setCat]        = useState('academic');
+  const [title,       setTitle]      = useState('');
+  const [firstDate,   setFirstDate]  = useState('');
+  const [startTime,   setStartTime]  = useState('');
+  const [duration,    setDuration]   = useState('');
+  const [repeat,      setRepeat]     = useState(false);
+  const [repeatWeeks, setRepeatWeeks]= useState('');
+  const [venue,       setVenue]      = useState('');
+  const [area,        setArea]       = useState('');
+  const [maxSpots,    setMaxSpots]   = useState(10);
+  const [notifySpot,  setNotifySpot] = useState(false);
+  const [pricing,     setPricing]    = useState('free');
+  const [price,       setPrice]      = useState('');
+  const [about,       setAbout]      = useState('');
+  const [coverUrl,    setCoverUrl]   = useState(null);
+  const [uploading,   setUploading]  = useState(false);
+  const [submitting,  setSubmitting] = useState(false);
 
   const activeCat  = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid     = pricing === 'paid';
@@ -5375,12 +5544,14 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
       <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
 
         {/* Cover */}
-        <button onClick={() => {
+        <div onClick={() => {
           const input = document.createElement('input');
           input.type = 'file';
           input.accept = 'image/*';
           input.onchange = async (e) => {
             const file = e.target.files[0];
+            if (!file) return;
+            setUploading(true);
             try {
               const url = await uploadImage(file, 'event-covers', Date.now() + '.jpg');
               setCoverUrl(url);
@@ -5388,6 +5559,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             } catch(err) {
               showToast('Upload failed. Try again.');
             }
+            setUploading(false);
             input.value = '';
           };
           input.click();
@@ -5403,21 +5575,25 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           <div style={{ width:44, height:44, borderRadius:14,
                         background:'rgba(255,255,255,0.9)',
                         display:'flex', alignItems:'center', justifyContent:'center',
-                        position:'relative' }}>
+                        position:'relative', zIndex:2 }}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
               <rect x="3.5" y="6" width="17" height="13" rx="3" stroke={C.primary} strokeWidth="1.9"/>
               <circle cx="12" cy="12.5" r="3" stroke={C.primary} strokeWidth="1.9"/>
               <path d="M8.5 6l1-2h5l1 2" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div style={{ fontSize:12, fontWeight:800, color:'#fff', position:'relative' }}>
-            Add space cover
+          <div style={{ fontSize:12, fontWeight:800, color:'#fff', position:'relative', zIndex:2 }}>
+            {uploading ? 'Uploading…' : coverUrl ? 'Cover uploaded ✓' : 'Add space cover'}
           </div>
           <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
-                        color:'rgba(255,255,255,0.85)', position:'relative' }}>
-            Recommended 1200×630
+                        color:'rgba(255,255,255,0.85)', position:'relative', zIndex:2 }}>
+            {coverUrl ? 'Tap to change' : 'Recommended 1200×630'}
           </div>
-        </button>
+          {coverUrl && (
+            <img src={coverUrl} style={{ position:'absolute', inset:0, width:'100%',
+              height:'100%', objectFit:'cover', borderRadius:18, zIndex:1 }}/>
+          )}
+        </div>
 
         {/* Category */}
         <div style={{ marginTop:20 }}>
@@ -5465,47 +5641,79 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           </div>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`,
                         borderRadius:16, padding:'2px 14px' }}>
-            {[
-              { label:'Recurrence', icon:'repeat', val:recurrence, set:setRecurrence, ph:'Every Tuesday'  },
-              { label:'First date',  icon:'cal',    val:firstDate,  set:setFirstDate,  ph:'Jan 15, 2026'  },
-              { label:'Start time',  icon:'clock',  val:startTime,  set:setStartTime,  ph:'8:00 PM'       },
-              { label:'End time',    icon:'clock2', val:endTime,    set:setEndTime,    ph:'9:00 PM', last:true },
-            ].map(r => (
-              <div key={r.label} style={{ display:'flex', alignItems:'center', gap:11,
-                                          padding:'11px 0',
-                                          borderBottom: r.last ? 'none' : `1px solid ${C.divider}` }}>
-                {/* Icon */}
-                {r.icon === 'repeat' && (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                    <path d="M4 7l3-3 3 3M7 4v8a4 4 0 0 0 8 0V8a4 4 0 0 1 8 0v3"
-                          stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-                {r.icon === 'cal' && (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                    <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
-                    <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
-                  </svg>
-                )}
-                {(r.icon === 'clock' || r.icon === 'clock2') && (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                    <circle cx="12" cy="12" r="8.5"
-                            stroke={r.icon === 'clock' ? C.primary : C.subtle} strokeWidth="1.9"/>
-                    <path d="M12 8v4.5l3 2"
-                          stroke={r.icon === 'clock' ? C.primary : C.subtle}
-                          strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-                <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>
-                  {r.label}
-                </span>
-                <input value={r.val} onChange={e => r.set(e.target.value)}
-                  placeholder={r.ph}
-                  style={{ width:130, textAlign:'right', border:'none', background:'none',
-                           fontSize:13, fontWeight:700, color:C.body, outline:'none',
-                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+            {/* First date */}
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0', borderBottom:`1px solid ${C.divider}` }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
+                <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>First date</span>
+              <input type="date" value={firstDate} onChange={e => setFirstDate(e.target.value)}
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
+                         color: firstDate ? C.body : C.muted, outline:'none', textAlign:'right',
+                         fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}/>
+            </div>
+            {/* Start time */}
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0', borderBottom:`1px solid ${C.divider}` }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.9"/>
+                <path d="M12 8v4.5l3 2" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Start time</span>
+              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
+                         color: startTime ? C.body : C.muted, outline:'none', textAlign:'right',
+                         fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}/>
+            </div>
+            {/* Duration */}
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <circle cx="12" cy="13" r="7.5" stroke={C.primary} strokeWidth="1.9"/>
+                <path d="M12 9.5v4l2.5 1.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 3h6M12 3v2.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Duration</span>
+              <select value={duration} onChange={e => setDuration(e.target.value)}
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
+                         color: duration ? C.body : C.muted, outline:'none', textAlign:'right',
+                         fontFamily:"'Montserrat',-apple-system,sans-serif", cursor:'pointer' }}>
+                <option value="">Select</option>
+                {[30,45,60,75,90,120,150,180].map(m => (
+                  <option key={m} value={`${m}`}>{m < 60 ? `${m} min` : `${m/60}h${m%60 ? ' '+m%60+'min' : ''}`}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {/* Repeats weekly + number of weeks */}
+          <div style={{ display:'flex', alignItems:'center', gap:9, marginTop:11 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M4 7l3-3 3 3M7 4v8a4 4 0 0 0 8 0V8a4 4 0 0 1 8 0v3"
+                stroke={C.muted} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Repeats weekly</span>
+            {repeat && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginRight:8 }}>
+                <input
+                  value={repeatWeeks} onChange={e => setRepeatWeeks(e.target.value.replace(/\D/g,''))}
+                  placeholder="?"
+                  inputMode="numeric"
+                  style={{ width:36, height:26, border:`1.5px solid ${C.border}`, borderRadius:8,
+                           background:C.card, textAlign:'center', fontSize:12, fontWeight:700,
+                           color:C.body, outline:'none',
+                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+                />
+                <span style={{ fontSize:11, fontWeight:600, color:C.muted }}>wks</span>
               </div>
-            ))}
+            )}
+            <button onClick={() => setRepeat(v => !v)} style={{
+              width:44, height:26, border:'none', borderRadius:999, padding:0,
+              background: repeat ? C.primary : '#D1D5DB', cursor:'pointer',
+              position:'relative', transition:'background .2s', flexShrink:0,
+            }}>
+              <span style={{ position:'absolute', top:3, left: repeat ? 21 : 3, width:20, height:20,
+                             borderRadius:'50%', background:'#fff', display:'block',
+                             boxShadow:'0 1px 3px rgba(0,0,0,0.2)', transition:'left .2s' }}/>
+            </button>
           </div>
         </div>
 
@@ -5667,7 +5875,6 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           setSubmitting(true);
           const activeCatObj = CATS.find(c => c.id === cat) || CATS[0];
           const location = [venue, area].filter(Boolean).join(' · ');
-          const timeStr = [startTime, endTime].filter(Boolean).join(' – ');
           const { data: space, error } = await supabase.from('spaces').insert({
             title: title.trim(),
             description: about.trim(),
@@ -5675,15 +5882,18 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             host_text: currentUser.name || 'Host',
             category: cat,
             location: location || null,
-            time: timeStr || null,
-            duration: recurrence || null,
-            price: isPaid ? price : 'Free',
+            time: startTime || null,
+            duration: duration || null,
+            repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
+            price: isPaid ? (parseFloat(price) || 0) : 0,
+            is_free: !isPaid,
             max_spots: maxSpots,
             participants: 1,
             started: false,
             day: firstDate || null,
             avatar_color: activeCatObj.grad,
             avatar_initial: title.trim()[0]?.toUpperCase() || 'S',
+            ...(coverUrl ? { image_url: coverUrl } : {}),
           }).select().single();
           setSubmitting(false);
           if (error) { showToast('Failed to create space: ' + error.message); return; }
@@ -5800,10 +6010,11 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
 
   const [cat,       setCat]       = useState('social');
   const [title,     setTitle]     = useState('');
-  const [date,      setDate]      = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime,   setEndTime]   = useState('');
-  const [repeat,    setRepeat]    = useState(false);
+  const [date,        setDate]        = useState('');
+  const [startTime,   setStartTime]   = useState('');
+  const [endTime,     setEndTime]     = useState('');
+  const [repeat,      setRepeat]      = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState('');
   const [venue,     setVenue]     = useState('');
   const [coverUrl,  setCoverUrl]  = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -5814,6 +6025,16 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
   const [unlimited, setUnlimited] = useState(false);
   const [about,     setAbout]     = useState('');
   const [rules,     setRules]     = useState({});
+
+  const [guests,     setGuests]     = useState([]);
+  const [guestInput, setGuestInput] = useState({ name:'', role:'' });
+
+  const addGuest = () => {
+    if (!guestInput.name.trim()) return;
+    setGuests(g => [...g, { name: guestInput.name.trim(), role: guestInput.role.trim() }]);
+    setGuestInput({ name:'', role:'' });
+  };
+  const removeGuest = (i) => setGuests(g => g.filter((_, idx) => idx !== i));
 
   const [submitting, setSubmitting] = useState(false);
   const activeCat = CATS.find(c => c.id === cat) || CATS[0];
@@ -5937,10 +6158,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
           <EventLabel>Date &amp; Time</EventLabel>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'2px 14px' }}>
             {[
-              { label:'Date',       icon:'cal',   val:date,      set:setDate,      ph:'Jan 15, 2026' },
-              { label:'Start time', icon:'clock', val:startTime, set:setStartTime, ph:'8:00 PM'      },
-              { label:'End time',   icon:'clock', val:endTime,   set:setEndTime,   ph:'1:00 AM',     last:true },
-            ].map((r, i) => (
+              { label:'Date',       icon:'cal',   val:date,      set:setDate,      type:'date' },
+              { label:'Start time', icon:'clock', val:startTime, set:setStartTime, type:'time' },
+              { label:'End time',   icon:'clock', val:endTime,   set:setEndTime,   type:'time', last:true },
+            ].map((r) => (
               <div key={r.label} style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
                                           borderBottom: r.last ? 'none' : `1px solid ${C.divider}` }}>
                 {r.icon === 'cal'
@@ -5955,10 +6176,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
                 }
                 <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>{r.label}</span>
                 <input
-                  value={r.val} onChange={e => r.set(e.target.value)} placeholder={r.ph}
-                  style={{ width:120, textAlign:'right', border:'none', background:'none',
-                           fontSize:13, fontWeight:700, color:C.body, outline:'none',
-                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+                  type={r.type} value={r.val} onChange={e => r.set(e.target.value)}
+                  style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
+                           color: r.val ? C.body : C.muted, outline:'none', textAlign:'right',
+                           fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}
                 />
               </div>
             ))}
@@ -5970,6 +6191,16 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
                 stroke={C.muted} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Repeats weekly</span>
+            {repeat && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginRight:8 }}>
+                <input value={repeatWeeks} onChange={e => setRepeatWeeks(e.target.value.replace(/\D/g,''))}
+                  placeholder="?" inputMode="numeric"
+                  style={{ width:36, height:26, border:`1.5px solid ${C.border}`, borderRadius:8,
+                           background:C.card, textAlign:'center', fontSize:12, fontWeight:700,
+                           color:C.body, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+                <span style={{ fontSize:11, fontWeight:600, color:C.muted }}>wks</span>
+              </div>
+            )}
             <button onClick={() => setRepeat(v => !v)} style={{
               width:44, height:26, border:'none', borderRadius:999, padding:0,
               background: repeat ? C.primary : '#D1D5DB', cursor:'pointer',
@@ -6076,6 +6307,79 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
           />
         </div>
 
+        {/* Guest List */}
+        <div style={{ marginTop:20 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <EventLabel>Guest List</EventLabel>
+            <span style={{ fontSize:10, fontWeight:700, color:C.subtle }}>{guests.length} added</span>
+          </div>
+          {/* Existing guests */}
+          {guests.length > 0 && (
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:11 }}>
+              {guests.map((g, i) => (
+                <div key={i} style={{ display:'flex', alignItems:'center', gap:11, background:C.card,
+                                      border:`1.5px solid ${C.border}`, borderRadius:13, padding:'10px 14px' }}>
+                  <div style={{ width:34, height:34, borderRadius:10, flexShrink:0,
+                                background:'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                color:'#fff', fontSize:13, fontWeight:800 }}>
+                    {g.name[0].toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12.5, fontWeight:700, color:C.body,
+                                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{g.name}</div>
+                    {g.role && <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>{g.role}</div>}
+                  </div>
+                  <button onClick={() => removeGuest(i)} style={{ border:'none', background:'none',
+                    padding:4, cursor:'pointer', color:'#9AA3B2', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Add guest inputs */}
+          <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'2px 14px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
+                          borderBottom:`1px solid ${C.divider}` }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <circle cx="12" cy="8" r="3.5" stroke={C.primary} strokeWidth="1.9"/>
+                <path d="M4.5 20c0-3.5 3-5.5 7.5-5.5s7.5 2 7.5 5.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+              <input value={guestInput.name} onChange={e => setGuestInput(s => ({...s, name: e.target.value}))}
+                placeholder="Guest name"
+                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12.5,
+                         fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+              />
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <path d="M4 6h10M4 12h10M4 18h6" stroke={C.muted} strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+              <input value={guestInput.role} onChange={e => setGuestInput(s => ({...s, role: e.target.value}))}
+                onKeyDown={e => e.key === 'Enter' && addGuest()}
+                placeholder="Role (e.g. MC, DJ, Live Band)"
+                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12.5,
+                         fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+              />
+            </div>
+          </div>
+          <button onClick={addGuest} style={{
+            marginTop:9, width:'100%', height:40, border:`1.5px solid ${C.border}`,
+            borderRadius:12, background:C.card, fontSize:12, fontWeight:700,
+            color: guestInput.name.trim() ? C.primary : C.subtle,
+            cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+            display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+            Add Guest
+          </button>
+        </div>
+
         {/* Rules */}
         <div style={{ marginTop:20 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
@@ -6150,7 +6454,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
               room: room.trim() || null,
               date: date || null,
               full_date: date || null,
+              start_time: startTime || null,
               time_range: timeRange || null,
+              repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
+              image_url: coverUrl || null,
               price: isPaid ? `$${price}` : 'Free',
               capacity: unlimited ? null : capacity,
               attendee_count: 0,
@@ -6158,8 +6465,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
               saves: 0,
               shares: 0,
               trending: false,
-              badge: repeat ? 'Every Week' : null,
+              badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
               rules: selectedRules.length ? selectedRules : null,
+              guests: guests.length ? guests : null,
             }).select().single();
             setSubmitting(false);
             if (error) { showToast('Failed to publish: ' + error.message); return; }
@@ -8752,18 +9060,20 @@ export default function RiplyApp() {
   // Navigation stack
   const [navStack, setNavStack] = useState([{ screen: 'welcome' }]);
 
-  // Auth guard: once Clerk loads, route to the right place
+  // Auth guard: once Clerk loads, route to the right place.
+  // Wait for profileLoading to finish — if authenticated but no Supabase profile yet,
+  // the user is mid-onboarding (just verified email); don't skip to home.
   useEffect(() => {
-    if (!currentUser.isLoaded) return;
+    if (!currentUser.isLoaded || currentUser.profileLoading) return;
     const current = navStack[navStack.length - 1].screen;
     const authScreens = ['welcome', 'auth'];
-    if (currentUser.isAuthenticated && authScreens.includes(current)) {
+    if (currentUser.isAuthenticated && currentUser.profile && authScreens.includes(current)) {
       setNavStack([{ screen: 'home' }]);
     }
     if (!currentUser.isAuthenticated && !authScreens.includes(current)) {
       setNavStack([{ screen: 'welcome' }]);
     }
-  }, [currentUser.isLoaded, currentUser.isAuthenticated]);
+  }, [currentUser.isLoaded, currentUser.profileLoading, currentUser.isAuthenticated, currentUser.profile]);
 
   // Request FCM push permission once the user is authenticated
   useEffect(() => {
@@ -8845,7 +9155,7 @@ export default function RiplyApp() {
   const renderScreen = () => {
     switch(screen) {
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
-      case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} />;
+      case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} />;
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
@@ -8856,7 +9166,7 @@ export default function RiplyApp() {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} />;
+      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
@@ -8880,17 +9190,13 @@ export default function RiplyApp() {
   };
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#E9ECF2', padding:32, boxSizing:'border-box', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-      <div style={{ width:402, height:874, borderRadius:48, overflow:'hidden', position:'relative', background:C.pageBg, boxShadow:'0 40px 80px rgba(0,0,0,0.18),0 0 0 1px rgba(0,0,0,0.12)', flexShrink:0 }}>
-        <div style={{ height:'100%' }}>
-          {renderScreen()}
-        </div>
-        {toast && <Toast msg={toast} />}
-        {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={notifs.unreadCount} />}
-        <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:60, height:34, display:'flex', justifyContent:'center', alignItems:'flex-end', paddingBottom:8, pointerEvents:'none' }}>
-          <div style={{ width:139, height:5, borderRadius:100, background:'rgba(0,0,0,0.25)' }} />
-        </div>
+    <div style={{ width:'100%', height:'100vh', position:'relative', background:C.pageBg,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden' }}>
+      <div style={{ height:'100%' }}>
+        {renderScreen()}
       </div>
+      {toast && <Toast msg={toast} />}
+      {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={notifs.unreadCount} />}
     </div>
   );
 }

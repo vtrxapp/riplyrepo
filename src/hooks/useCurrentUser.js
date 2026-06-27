@@ -51,7 +51,6 @@ export function useCurrentUser() {
     updateProfile,
     logout,
     refetchProfile: () => user?.id && fetchProfile(user.id),
-    // Convenience getters with safe fallbacks
     userId: user?.id || null,
     name: profile?.name || user?.username || '',
     email: profile?.email || user?.primaryEmailAddress?.emailAddress || '',

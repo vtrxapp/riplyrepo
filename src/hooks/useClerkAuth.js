@@ -31,7 +31,17 @@ export function useClerkAuth(showToast, setScreen, go) {
         showToast('Login incomplete: ' + result.status)
       }
     } catch(e) {
-      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Login failed. Try again.')
+      const msg = e.errors?.[0]?.longMessage || e.errors?.[0]?.message || ''
+      const code = e.errors?.[0]?.code || ''
+      // "client_not_found" / "client trust id" — stale Clerk session in browser.
+      // Clear all Clerk storage and reload so Clerk reinitializes from scratch.
+      if (code.includes('client') || msg.toLowerCase().includes('client') || msg.toLowerCase().includes('trust')) {
+        Object.keys(localStorage).filter(k => k.startsWith('__clerk')).forEach(k => localStorage.removeItem(k))
+        Object.keys(sessionStorage).filter(k => k.startsWith('__clerk')).forEach(k => sessionStorage.removeItem(k))
+        window.location.reload()
+        return
+      }
+      showToast(msg || 'Login failed. Try again.')
     }
   }
 

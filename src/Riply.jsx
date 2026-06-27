@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
-import { useCurrentUser } from "./hooks/useCurrentUser";
+import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
 import { useChat } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
@@ -1036,7 +1036,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       comment_count:  0,
       author_name:    authorName,
       author_initial: authorName[0]?.toUpperCase() || 'M',
-      author_color:   'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+      author_color:   currentUser?.avatarColor || deriveAvatarColor(user?.id || ''),
     };
     if (imageUrl)          payload.image_url         = imageUrl;
     if (fileUrl)           payload.file_url          = fileUrl;
@@ -1128,15 +1128,16 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         {/* Author + group picker */}
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
           <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
-                        background: currentUser?.avatar_url ? 'transparent' : 'linear-gradient(135deg,#FF8A3D,#FF5A8A)',
+                        background: currentUser?.avatarUrl ? 'transparent' : (currentUser?.avatarColor || C.grad),
                         display:'flex', alignItems:'center', justifyContent:'center',
                         fontSize:15, fontWeight:800, color:'#fff', overflow:'hidden' }}>
-            {currentUser?.avatar_url
-              ? <img src={currentUser.avatar_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+            {currentUser?.avatarUrl
+              ? <img src={currentUser.avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
               : (currentUser?.name || user?.firstName || 'M')[0].toUpperCase()}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>{currentUser?.name || user?.username || user?.firstName || 'Member'}</div>
+
 
             {/* Group picker pill */}
             <div style={{ position:'relative', display:'inline-block', marginTop:4 }}>
@@ -2459,7 +2460,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
           {/* Input */}
           <div style={{ display:'flex', gap:8, marginTop:4, alignItems:'center' }}>
             <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0,
-                          background:currentUser?.avatarUrl ? 'none' : C.grad,
+                          background:currentUser?.avatarUrl ? 'none' : (currentUser?.avatarColor || C.grad),
                           display:'flex', alignItems:'center', justifyContent:'center',
                           color:'#fff', fontSize:11, fontWeight:800, overflow:'hidden' }}>
               {currentUser?.avatarUrl
@@ -7444,7 +7445,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                 comment_count:      0,
                 author_name:        authorName,
                 author_initial:     authorName[0]?.toUpperCase() || 'O',
-                author_color:       'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+                author_color:       currentUser?.avatarColor || deriveAvatarColor(currentUser?.userId || ''),
               });
             }
             setSubmitting(false);

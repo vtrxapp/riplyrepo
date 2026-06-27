@@ -70,9 +70,10 @@ returns void language sql as $$
 $$;
 
 -- Add profile fields to users table
-alter table users add column if not exists university text;
-alter table users add column if not exists year       text;
-alter table users add column if not exists program    text;
+alter table users add column if not exists university   text;
+alter table users add column if not exists year         text;
+alter table users add column if not exists program      text;
+alter table users add column if not exists avatar_color text;
 
 -- Add extra columns to groups table
 alter table groups add column if not exists social_links  jsonb;

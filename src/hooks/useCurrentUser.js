@@ -2,6 +2,23 @@ import { useState, useEffect, useCallback } from 'react'
 import { useUser, useClerk } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 
+const AVATAR_COLORS = [
+  'linear-gradient(135deg,#FF6B6B,#FF8A3D)',
+  'linear-gradient(135deg,#19BFFF,#0098F0)',
+  'linear-gradient(135deg,#10B981,#06B6D4)',
+  'linear-gradient(135deg,#FF5A8A,#FF8A3D)',
+  'linear-gradient(135deg,#F59E0B,#EF4444)',
+  'linear-gradient(135deg,#2F6BFF,#6C4DF2)',
+  'linear-gradient(135deg,#10B981,#34D399)',
+  'linear-gradient(135deg,#8B5CF6,#EC4899)',
+]
+
+export function deriveAvatarColor(seed = '') {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
 export function useCurrentUser() {
   const { user, isLoaded } = useUser()
   const { signOut } = useClerk()
@@ -41,6 +58,9 @@ export function useCurrentUser() {
 
   const isAuthenticated = isLoaded && !!user
 
+  const name = profile?.name || user?.username || ''
+  const avatarColor = profile?.avatar_color || deriveAvatarColor(user?.id || name)
+
   return {
     clerkUser: user,
     profile,
@@ -51,9 +71,10 @@ export function useCurrentUser() {
     logout,
     refetchProfile: () => user?.id && fetchProfile(user.id),
     userId: user?.id || null,
-    name: profile?.name || user?.username || '',
+    name,
     email: profile?.email || user?.primaryEmailAddress?.emailAddress || '',
     avatarUrl: profile?.avatar_url || null,
+    avatarColor,
     role: profile?.role || 'student',
     university: profile?.university || '',
     campus: profile?.campus || '',

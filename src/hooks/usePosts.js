@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
+import { deriveAvatarColor } from './useCurrentUser'
 
 function formatTime(iso) {
   if (!iso) return ''
@@ -61,8 +62,9 @@ export function usePosts(groupId) {
     return () => { supabase.removeChannel(channel) }
   }, [groupId])
 
-  const createPost = useCallback(async ({ content, imageUrl }) => {
+  const createPost = useCallback(async ({ content, imageUrl, currentUser }) => {
     if (!user?.id || !groupId || !content?.trim()) return { error: 'Missing fields' }
+    const authorName = currentUser?.name || user.username || user.firstName || 'Member'
     const { data, error } = await supabase.from('posts').insert({
       group_id:       groupId,
       user_id:        user.id,
@@ -70,9 +72,9 @@ export function usePosts(groupId) {
       image_url:      imageUrl || null,
       likes_count:    0,
       comment_count:  0,
-      author_name:    user.username || user.firstName || 'Member',
-      author_initial: (user.username || user.firstName || 'M')[0].toUpperCase(),
-      author_color:   'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+      author_name:    authorName,
+      author_initial: authorName[0]?.toUpperCase() || 'M',
+      author_color:   currentUser?.avatarColor || deriveAvatarColor(user.id),
     }).select().single()
     return { data, error }
   }, [user?.id, groupId])

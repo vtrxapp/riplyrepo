@@ -24,6 +24,7 @@ create table if not exists feedback (
 );
 
 -- Add extra columns to posts table
+alter table posts add column if not exists avatar_url          text;
 alter table posts add column if not exists file_url            text;
 alter table posts add column if not exists file_name           text;
 alter table posts add column if not exists poll_options        jsonb;

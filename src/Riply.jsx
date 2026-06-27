@@ -1037,6 +1037,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       author_name:    authorName,
       author_initial: authorName[0]?.toUpperCase() || 'M',
       author_color:   currentUser?.avatarColor || deriveAvatarColor(user?.id || ''),
+      avatar_url:     currentUser?.avatarUrl || null,
     };
     if (imageUrl)          payload.image_url         = imageUrl;
     if (fileUrl)           payload.file_url          = fileUrl;
@@ -2230,16 +2231,29 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
     <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:15 }}>
       {/* Author */}
       <div style={{ display:'flex', alignItems:'center', gap:11 }}>
-        <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
-                      background:p.aColor, display:'flex', alignItems:'center',
-                      justifyContent:'center', color:'#fff',
-                      fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
-          <span>{p.aInitial}</span>
-          <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 10px)'}}/>
-        </div>
+        {(() => {
+          const isMe = currentUser?.userId && p.user_id === currentUser.userId;
+          const avatarUrl = isMe ? currentUser.avatarUrl : (p.avatar_url || null);
+          const avatarColor = isMe ? (currentUser.avatarColor || p.aColor) : p.aColor;
+          const initial = isMe ? (currentUser.name?.[0] || p.aInitial) : p.aInitial;
+          return (
+            <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
+                          background: avatarUrl ? 'transparent' : avatarColor,
+                          display:'flex', alignItems:'center', justifyContent:'center', color:'#fff',
+                          fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
+              {avatarUrl
+                ? <img src={avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+                : <><span>{initial}</span>
+                    <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 10px)'}}/></>
+              }
+            </div>
+          );
+        })()}
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>{p.author}</span>
+            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>
+              {currentUser?.userId && p.user_id === currentUser.userId ? (currentUser.name || p.author) : p.author}
+            </span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
               <path d="M12 2.5l2.2 1.6 2.7-.2 1 2.5 2.3 1.4-.6 2.6.6 2.6-2.3 1.4-1 2.5-2.7-.2L12 21.5 9.8 19.9l-2.7.2-1-2.5-2.3-1.4.6-2.6L3.8 11l2.3-1.4 1-2.5 2.7.2L12 2.5Z" fill="#02B6FE"/>
               <path d="m9 12 2 2 4-4.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4495,6 +4509,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [draftUniversity, setDraftUniversity] = useState('');
   const [draftYear, setDraftYear] = useState('');
   const [draftProgram, setDraftProgram] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const pageBg = darkMode?'#0E1726':C.pageBg;
   const cardBg = darkMode?'#1A2233':C.card;
@@ -4591,14 +4606,17 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             input.type = 'file'; input.accept = 'image/*';
             input.onchange = async (e) => {
               const file = e.target.files[0]; if (!file) return;
+              setUploadingPhoto(true);
               try {
-                const url = await uploadImage(file, 'post-media', `${currentUser.userId}.jpg`);
-                await currentUser.updateProfile({ avatar_url: url });
-                showToast('Profile photo updated');
-              } catch { showToast('Upload failed. Try again.'); }
+                const url = await uploadImage(file, 'post-media', `avatars/${currentUser.userId}.jpg`);
+                const { error } = await currentUser.updateProfile({ avatar_url: url });
+                if (error) showToast('Save failed: ' + error.message);
+                else showToast('Profile photo updated ✓');
+              } catch(err) { showToast('Upload failed: ' + err.message); }
+              finally { setUploadingPhoto(false); }
             };
             input.click();
-          }} style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)', position:'relative', border:'none', cursor:'pointer' }}>
+          }} style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)', position:'relative', border:'none', cursor:'pointer', opacity: uploadingPhoto ? 0.6 : 1 }}>
             <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: currentUser.avatarColor || 'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, position:'relative', overflow:'hidden' }}>
               {currentUser.avatarUrl
                 ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -4691,15 +4709,18 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
               input.type = 'file'; input.accept = 'image/*';
               input.onchange = async (e) => {
                 const file = e.target.files[0]; if (!file) return;
+                setUploadingPhoto(true);
                 try {
-                  const url = await uploadImage(file, 'post-media', `${currentUser.userId}.jpg`);
-                  await currentUser.updateProfile({ avatar_url: url });
-                  showToast('Profile photo updated');
-                } catch { showToast('Upload failed. Try again.'); }
+                  const url = await uploadImage(file, 'post-media', `avatars/${currentUser.userId}.jpg`);
+                  const { error } = await currentUser.updateProfile({ avatar_url: url });
+                  if (error) showToast('Save failed: ' + error.message);
+                  else showToast('Profile photo updated ✓');
+                } catch(err) { showToast('Upload failed: ' + err.message); }
+                finally { setUploadingPhoto(false); }
               };
               input.click();
-            }} style={{ width:80, height:80, borderRadius:'50%', padding:3, background:C.grad, border:'none', cursor:'pointer', position:'relative', boxShadow:'0 6px 16px rgba(2,162,240,0.3)' }}>
-              <div style={{ width:'100%', height:'100%', borderRadius:'50%', background:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, overflow:'hidden' }}>
+            }} style={{ width:80, height:80, borderRadius:'50%', padding:3, background:C.grad, border:'none', cursor:'pointer', position:'relative', boxShadow:'0 6px 16px rgba(2,162,240,0.3)', opacity: uploadingPhoto ? 0.6 : 1 }}>
+              <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: currentUser.avatarColor || 'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, overflow:'hidden' }}>
                 {currentUser.avatarUrl
                   ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                   : <span style={{ fontSize:24, fontWeight:800, color:'#fff' }}>{initials}</span>

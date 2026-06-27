@@ -22,6 +22,24 @@ import { supabase } from "./lib/supabase";
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────
+// Convert "HH:MM" (24-hr) to "H:MM AM/PM". Passes through anything else.
+function fmt12(t) {
+  if (!t) return t;
+  const m = String(t).match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return t;
+  let h = parseInt(m[1], 10);
+  const min = m[2];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${min} ${ampm}`;
+}
+
+// Format a stored time_range string ("HH:MM – HH:MM") to 12-hr.
+function fmtRange(r) {
+  if (!r) return r;
+  return r.split(' – ').map(fmt12).join(' – ');
+}
+
 const C = {
   primary: '#0098F0', bright: '#19BFFF',
   grad: 'linear-gradient(135deg,#19BFFF,#0098F0)',
@@ -307,7 +325,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
                   <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>
-                    {ev.date || '-'}{(ev.start_time || ev.startTime) ? (' · ' + (ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + ev.time_range.split(' – ')[0] : '')}
+                    {ev.date || '-'}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
                   </span>
                 </div>
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
@@ -2718,7 +2736,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Date &amp; Time</div>
               <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{(() => { const raw = ev.fullDate || ev.full_date || ev.date; if (!raw) return ''; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); })()}</div>
-              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{ev.timeRange || ev.time_range}</div>
+              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtRange(ev.timeRange || ev.time_range)}</div>
               <button onClick={() => showToast('Added to your calendar')} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',
@@ -6472,7 +6490,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
             if (!currentUser.userId) { showToast('You must be logged in to publish an event'); return; }
             setSubmitting(true);
             const location = [venue, room].filter(Boolean).join(' · ');
-            const timeRange = [startTime, endTime].filter(Boolean).join(' – ');
+            const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
             const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
             const { data: event, error } = await supabase.from('events').insert({
               title: title.trim(),
@@ -6487,7 +6505,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
               room: room.trim() || null,
               date: date || null,
               full_date: date || null,
-              start_time: startTime || null,
+              start_time: startTime ? fmt12(startTime) : null,
               time_range: timeRange || null,
               repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
               image_url: coverUrl || null,

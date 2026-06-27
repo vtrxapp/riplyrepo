@@ -3125,7 +3125,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             boxShadow:'0 10px 28px rgba(2,162,240,0.45)',
           }}>
             {ev.price === 'Free' || ev.price === 0 || !ev.price ? 'Reserve Spot' : 'Buy Ticket'}
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
         )}
       </div>
@@ -3664,7 +3664,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             boxShadow: joined ? 'none' : '0 10px 28px rgba(2,162,240,0.45)',
           }}>
             {joined ? "You're In · Joined ✓" : 'Join Space'}
-            {!joined && <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            {!joined && <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
           </button>
         )}
       </div>

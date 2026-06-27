@@ -3961,69 +3961,38 @@ function ProfileScreen({ navigate, showToast, currentUser }) {
 function WelcomeScreen({ navigate, setScreen }) {
   const SLIDES = [
     {
-      icon: 'discover',
-      grad: 'linear-gradient(160deg,#FF8A3D,#FF5A8A)',
-      shadow: 'rgba(255,90,138,0.38)',
+      img: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=700&q=80',
       accent: '#FF5A8A',
+      grad: 'linear-gradient(to top,#0E1726 0%,rgba(14,23,38,0.55) 55%,transparent 100%)',
+      tag: '🎉  Events',
       title: 'Discover what\'s happening on campus',
-      body: 'From karaoke nights to career fairs — find every event, club, and activity around you in one personalised feed.',
+      body: 'From karaoke nights to career fairs — find every event and activity around you in one personalised feed.',
     },
     {
-      icon: 'groups',
-      grad: 'linear-gradient(160deg,#10B981,#06B6D4)',
-      shadow: 'rgba(6,182,212,0.38)',
-      accent: '#06B6D4',
+      img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=700&q=80',
+      accent: '#10B981',
+      grad: 'linear-gradient(to top,#0B1E17 0%,rgba(11,30,23,0.55) 55%,transparent 100%)',
+      tag: '👥  Groups',
       title: 'Join clubs & communities',
-      body: 'Connect with student groups that match your interests, post with members, and never miss what they\'re planning.',
+      body: 'Connect with groups that match your interests, post with members, and never miss what they\'re planning.',
     },
     {
-      icon: 'ticket',
-      grad: 'linear-gradient(160deg,#2F6BFF,#6C4DF2)',
-      shadow: 'rgba(108,77,242,0.38)',
+      img: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=700&q=80',
       accent: '#6C4DF2',
+      grad: 'linear-gradient(to top,#120D2B 0%,rgba(18,13,43,0.55) 55%,transparent 100%)',
+      tag: '🎟  Tickets',
       title: 'Get tickets & check in fast',
-      body: 'Reserve your spot, store tickets with QR codes, and breeze through check-in when you arrive at the event.',
+      body: 'Reserve your spot, store tickets with QR codes, and breeze through check-in when you arrive.',
     },
     {
-      icon: 'spark',
-      grad: 'linear-gradient(160deg,#19BFFF,#0E84E0)',
-      shadow: 'rgba(2,162,240,0.40)',
+      img: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=700&q=80',
       accent: '#0E84E0',
+      grad: 'linear-gradient(to top,#071527 0%,rgba(7,21,39,0.55) 55%,transparent 100%)',
+      tag: '✨  Connect',
       title: 'Stay connected to campus life',
-      body: 'Get reminders, weekly digests, and recommendations tuned to you — so you\'re always part of what\'s going on.',
+      body: 'Get reminders, weekly digests, and recommendations tuned to you — so you\'re always in the loop.',
     },
   ];
-
-  const ICONS = {
-    discover: (color) => (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="8.5" stroke={color} strokeWidth="1.9"/>
-        <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" stroke={color} strokeWidth="1.9" strokeLinejoin="round"/>
-      </svg>
-    ),
-    groups: (color) => (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-        <circle cx="8" cy="9" r="2.6" stroke={color} strokeWidth="1.9"/>
-        <circle cx="16" cy="9" r="2.6" stroke={color} strokeWidth="1.9"/>
-        <path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2"
-              stroke={color} strokeWidth="1.9" strokeLinecap="round"/>
-      </svg>
-    ),
-    ticket: (color) => (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-        <path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4A1.8 1.8 0 0 0 20 15.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6A1.8 1.8 0 0 0 4 8.5Z"
-              stroke={color} strokeWidth="1.8" strokeLinejoin="round"/>
-        <path d="M14 6.5v11" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeDasharray="0.5 3"/>
-      </svg>
-    ),
-    spark: (color) => (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-        <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.6 2.6M15.4 15.4 18 18M18 6l-2.6 2.6M8.6 15.4 6 18"
-              stroke={color} strokeWidth="2" strokeLinecap="round"/>
-        <circle cx="12" cy="12" r="2.6" stroke={color} strokeWidth="2"/>
-      </svg>
-    ),
-  };
 
   const [slide, setSlide] = useState(0);
   const cur  = SLIDES[slide];
@@ -4036,115 +4005,94 @@ function WelcomeScreen({ navigate, setScreen }) {
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
-                  background:'#ffffff', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  background:'#0E1726', fontFamily:"'Montserrat',-apple-system,sans-serif",
                   overflow:'hidden' }}>
+      <style>{`@keyframes wFade{from{opacity:0}to{opacity:1}}`}</style>
+
+      {/* ── Full-bleed hero image ──────────────────────── */}
+      <div key={slide} style={{ position:'absolute', inset:0, animation:'wFade 0.5s ease' }}>
+        <img src={cur.img} alt="" style={{ width:'100%', height:'100%', objectFit:'cover',
+          objectPosition:'center top' }} loading="eager" />
+        {/* gradient overlay — dark at bottom for text legibility */}
+        <div style={{ position:'absolute', inset:0, background:cur.grad }}/>
+      </div>
 
       {/* ── Top bar ─────────────────────────────────────── */}
-      <div style={{ flexShrink:0, padding:'52px 22px 0', display:'flex',
-                    alignItems:'center', justifyContent:'space-between', zIndex:4 }}>
+      <div style={{ position:'relative', zIndex:4, padding:'54px 22px 0',
+                    display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:28, height:28, borderRadius:9, background:C.grad,
+          <div style={{ width:30, height:30, borderRadius:10, background:'rgba(255,255,255,0.15)',
+                        backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.25)',
                         display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <RiplyMark size={15} white />
+            <RiplyMark size={16} white />
           </div>
-          <span style={{ fontSize:17, fontWeight:800, letterSpacing:-0.4, color:C.primary }}>Riply</span>
+          <span style={{ fontSize:17, fontWeight:800, letterSpacing:-0.4, color:'#fff' }}>Riply</span>
         </div>
         {!last && (
-          <button onClick={() => setScreen('auth', { initialStep: 'signup' })} style={{ border:'none', background:'none',
-            cursor:'pointer', fontSize:13, fontWeight:700, color:C.subtle,
-            fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+          <button onClick={() => setScreen('auth', { initialStep: 'signup' })}
+            style={{ border:'1px solid rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.12)',
+              backdropFilter:'blur(8px)', borderRadius:999, padding:'6px 16px',
+              cursor:'pointer', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.85)',
+              fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
             Skip
           </button>
         )}
       </div>
 
-      {/* ── Hero ────────────────────────────────────────── */}
-      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center',
-                    padding:'20px 32px', minHeight:0 }}>
-        <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center' }}>
+      {/* ── Spacer ──────────────────────────────────────── */}
+      <div style={{ flex:1 }}/>
 
-          {/* Gradient card */}
-          <div style={{ position:'relative', width:222, height:222, borderRadius:40,
-                        background:cur.grad, display:'flex', alignItems:'center',
-                        justifyContent:'center',
-                        boxShadow:`0 20px 50px ${cur.shadow}`,
-                        overflow:'hidden',
-                        transition:'background 0.4s ease' }}>
-            {/* texture */}
-            <div style={{ position:'absolute', inset:0, background:
-              'repeating-linear-gradient(135deg,rgba(255,255,255,0.09) 0,rgba(255,255,255,0.09) 2px,transparent 2px,transparent 18px)' }}/>
-            {/* decorative circles */}
-            <div style={{ position:'absolute', width:116, height:116, borderRadius:'50%',
-                          background:'rgba(255,255,255,0.13)', top:-28, right:-24 }}/>
-            <div style={{ position:'absolute', width:76, height:76, borderRadius:'50%',
-                          background:'rgba(255,255,255,0.09)', bottom:-16, left:-12 }}/>
-            {/* icon card */}
-            <div style={{ position:'relative', display:'flex', flexDirection:'column',
-                          alignItems:'center', gap:14 }}>
-              <div style={{ width:82, height:82, borderRadius:24,
-                            background:'rgba(255,255,255,0.95)',
-                            display:'flex', alignItems:'center', justifyContent:'center',
-                            boxShadow:'0 12px 26px rgba(0,0,0,0.16)' }}>
-                {ICONS[cur.icon](cur.accent)}
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:7, alignItems:'center' }}>
-                <div style={{ height:8, width:118, borderRadius:5, background:'rgba(255,255,255,0.65)' }}/>
-                <div style={{ height:8, width:82,  borderRadius:5, background:'rgba(255,255,255,0.40)' }}/>
-              </div>
-            </div>
-          </div>
-
-          {/* Text */}
-          <div style={{ textAlign:'center', marginTop:36 }}>
-            <div style={{ fontSize:23, fontWeight:800, letterSpacing:-0.6, color:C.ink,
-                          lineHeight:1.2 }}>
-              {cur.title}
-            </div>
-            <div style={{ fontSize:13.5, lineHeight:1.65, color:'#7B8499',
-                          marginTop:12, maxWidth:294, margin:'12px auto 0' }}>
-              {cur.body}
-            </div>
-          </div>
+      {/* ── Text block ──────────────────────────────────── */}
+      <div style={{ position:'relative', zIndex:4, padding:'0 26px 28px' }}>
+        {/* Category tag */}
+        <div style={{ display:'inline-block', background:'rgba(255,255,255,0.15)',
+                      backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.2)',
+                      borderRadius:999, padding:'5px 14px', fontSize:11, fontWeight:700,
+                      color:'#fff', letterSpacing:0.4, marginBottom:14 }}>
+          {cur.tag}
         </div>
-      </div>
+        <div style={{ fontSize:26, fontWeight:800, letterSpacing:-0.7, color:'#fff',
+                      lineHeight:1.18, marginBottom:10 }}>
+          {cur.title}
+        </div>
+        <div style={{ fontSize:13.5, lineHeight:1.65, color:'rgba(255,255,255,0.72)',
+                      marginBottom:26 }}>
+          {cur.body}
+        </div>
 
-      {/* ── Footer ──────────────────────────────────────── */}
-      <div style={{ flexShrink:0, padding:'0 24px 36px', zIndex:4 }}>
-
-        {/* Dot indicator */}
-        <div style={{ display:'flex', justifyContent:'center', gap:8, marginBottom:22 }}>
+        {/* Dot indicators */}
+        <div style={{ display:'flex', gap:7, marginBottom:20 }}>
           {SLIDES.map((_, i) => (
             <button key={i} onClick={() => setSlide(i)} style={{
-              border:'none', cursor:'pointer', padding:0, height:8, borderRadius:999,
-              transition:'all .25s',
-              width: i===slide ? 26 : 8,
-              background: i===slide ? C.primary : '#D4DBE5',
+              border:'none', cursor:'pointer', padding:0, height:5, borderRadius:999,
+              transition:'all .3s',
+              width: i===slide ? 28 : 5,
+              background: i===slide ? '#fff' : 'rgba(255,255,255,0.35)',
             }}/>
           ))}
         </div>
 
         {/* Primary button */}
         <button onClick={next} style={{
-          width:'100%', height:52, border:'none', borderRadius:16,
-          background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
+          width:'100%', height:54, border:'none', borderRadius:16,
+          background: last ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : 'rgba(255,255,255,0.95)',
+          color: last ? '#fff' : '#0E1726',
           fontSize:15, fontWeight:800, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-          boxShadow:'0 10px 26px rgba(2,162,240,0.40)',
+          boxShadow: last ? '0 10px 26px rgba(2,162,240,0.50)' : '0 8px 24px rgba(0,0,0,0.25)',
         }}>
           {last ? 'Get Started' : 'Next'}
-          {!last && (
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          )}
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h13M13 6l6 6-6 6" stroke={last?'#fff':'#0E1726'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
 
-        {/* Secondary */}
-        <div style={{ textAlign:'center', marginTop:15, fontSize:13, color:'#7B8499' }}>
+        {/* Log in link */}
+        <div style={{ textAlign:'center', marginTop:16, fontSize:13, color:'rgba(255,255,255,0.6)' }}>
           Already have an account?{' '}
           <span onClick={() => setScreen('auth')}
-            style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>
+            style={{ color:'#fff', fontWeight:800, cursor:'pointer' }}>
             Log In
           </span>
         </div>
@@ -4270,11 +4218,38 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
     { id:'admin',     title:'Group Admin',      sub:'Run a campus club — post, moderate and manage members.',  color:'#15A34A', bg:'#E4F7EC' },
   ];
 
-  // ── shared styles ─────────────────────────────────────────
-  const bgWash = { position:'absolute', top:0, left:0, right:0, height:320,
-    background:'radial-gradient(circle at 50% 0%,rgba(25,191,255,0.15),transparent 62%)' };
-
   const slideStyle = { animation:`authSlide 0.26s cubic-bezier(.4,0,.2,1)` };
+
+  // Shared hero image header for login & signup
+  const AuthHero = ({ onBack }) => (
+    <div style={{ position:'relative', height:220, flexShrink:0, overflow:'hidden' }}>
+      <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=700&q=80"
+        alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 30%' }} />
+      <div style={{ position:'absolute', inset:0,
+        background:'linear-gradient(to bottom,rgba(14,23,38,0.45) 0%,rgba(14,23,38,0.1) 50%,rgba(249,250,252,1) 100%)' }}/>
+      {/* back / logo row */}
+      <div style={{ position:'absolute', top:0, left:0, right:0, padding:'52px 20px 0',
+                    display:'flex', alignItems:'center', gap:12 }}>
+        {onBack && (
+          <button onClick={onBack} style={{ width:36, height:36, border:'none', borderRadius:999,
+            background:'rgba(255,255,255,0.2)', backdropFilter:'blur(8px)',
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ width:30, height:30, borderRadius:10, background:'rgba(255,255,255,0.2)',
+            backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.3)',
+            display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <RiplyMark size={16} white />
+          </div>
+          <span style={{ fontSize:16, fontWeight:800, color:'#fff', letterSpacing:-0.3 }}>Riply</span>
+        </div>
+      </div>
+    </div>
+  );
 
   // ── LOGIN ─────────────────────────────────────────────────
   if (step === 'login') return (
@@ -4282,32 +4257,44 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
                   overflow:'hidden', ...slideStyle }}>
       <style>{`@keyframes authSlide{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div style={bgWash}/>
-      <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
-                    alignItems:'center', padding:'74px 26px 32px', overflowY:'auto' }}>
-        <AuthLogo size={106}/>
-        <div style={{ flex:1 }}/>
-        <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:13 }}>
+      <AuthHero />
+      <div style={{ flex:1, overflowY:'auto', padding:'4px 26px 36px', display:'flex',
+                    flexDirection:'column' }}>
+        <div style={{ marginBottom:22 }}>
+          <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>Welcome back</div>
+          <div style={{ fontSize:13, color:C.muted, marginTop:4 }}>Sign in to your campus account</div>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:13 }}>
           <AuthPillInput value={email} onChange={e=>setEmail(e.target.value)}
-            placeholder="student email" inputMode="email"
-            icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.subtle} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>}
+            placeholder="Student email" inputMode="email"
+            icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke={C.subtle} strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/></svg>}
           />
           <AuthPillInput value={password} onChange={e=>setPassword(e.target.value)}
-            placeholder="password" type={showPw?'text':'password'}
+            placeholder="Password" type={showPw?'text':'password'}
             right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
         </div>
-        <div style={{ height:28 }}/>
-        <AuthBigBtn onClick={withLoading(()=>login(email, password))} loading={loading}>Log In</AuthBigBtn>
-        <span onClick={()=>showToast('Password reset link sent')}
-          style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
+        <span onClick={()=>showToast('Password reset coming soon')}
+          style={{ fontSize:12.5, fontWeight:700, color:C.primary, marginTop:10,
+                   cursor:'pointer', alignSelf:'flex-end' }}>
           Forgot Password?
         </span>
-        <div style={{ width:'100%', height:1, background:'#E4E8EF', margin:'18px 0' }}/>
-        <div style={{ fontSize:13, color:'#7B8499' }}>
-          New to RIPLY?{' '}
+        <div style={{ height:22 }}/>
+        <button onClick={withLoading(()=>login(email, password))}
+          style={{ width:'100%', height:54, border:'none', borderRadius:16,
+            background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
+            fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
+            fontFamily:"'Montserrat',-apple-system,sans-serif",
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            boxShadow:'0 10px 26px rgba(2,162,240,0.40)', opacity: loading?0.75:1 }}>
+          {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
+          {loading ? 'Signing in…' : 'Log In'}
+        </button>
+        <div style={{ flex:1 }}/>
+        <div style={{ textAlign:'center', fontSize:13, color:C.muted, marginTop:24 }}>
+          New to Riply?{' '}
           <span onClick={()=>go('signup')} style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>
-            Sign Up
+            Create Account
           </span>
         </div>
       </div>
@@ -4319,17 +4306,20 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
     <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
                   overflow:'hidden', ...slideStyle }}>
-      <div style={bgWash}/>
-      <div style={{ position:'relative', flex:1, overflowY:'auto', display:'flex',
-                    flexDirection:'column', alignItems:'center', padding:'60px 26px 30px' }}>
-        <AuthLogo size={96}/>
-        <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:12, marginTop:22 }}>
+      <AuthHero onBack={()=>go('login')} />
+      <div style={{ flex:1, overflowY:'auto', padding:'4px 26px 36px', display:'flex',
+                    flexDirection:'column' }}>
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>Create account</div>
+          <div style={{ fontSize:13, color:C.muted, marginTop:4 }}>Join your campus community</div>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <AuthPillInput value={name} onChange={e=>setName(e.target.value)}
-            placeholder="username"
+            placeholder="Username"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.subtle} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>}
           />
           <AuthPillInput value={email} onChange={e=>setEmail(e.target.value)}
-            placeholder="student email" inputMode="email"
+            placeholder="Student email" inputMode="email"
             icon={<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke={C.subtle} strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/></svg>}
           />
           {/* Gender picker */}
@@ -4338,9 +4328,10 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
               gap:11, background:'#fff', border:`1.5px solid ${C.border}`, borderRadius:999,
               padding:'0 20px', height:54, cursor:'pointer',
               boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 14a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 0v6m-3-3h6" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>
               <span style={{ flex:1, fontSize:14, fontWeight:600,
                              color: gender ? C.body : C.subtle }}>
-                {gender || 'gender'}
+                {gender || 'Gender'}
               </span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="m6 9 6 6 6-6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4348,8 +4339,7 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
             </div>
             {genderOpen && (
               <div style={{ background:'#fff', border:`1.5px solid ${C.border}`, borderRadius:16,
-                            boxShadow:'0 6px 18px rgba(16,24,40,0.10)', overflow:'hidden',
-                            marginTop:6 }}>
+                            boxShadow:'0 6px 18px rgba(16,24,40,0.10)', overflow:'hidden', marginTop:6 }}>
                 {GENDERS.map(g => (
                   <div key={g} onClick={()=>{setGender(g);setGenderOpen(false);}}
                     style={{ padding:'13px 20px', fontSize:14, fontWeight:600,
@@ -4363,22 +4353,26 @@ function AuthScreen({ setScreen, showToast, initialStep }) {
             )}
           </div>
           <AuthPillInput value={password} onChange={e=>setPassword(e.target.value)}
-            placeholder="password" type={showPw?'text':'password'}
+            placeholder="Password" type={showPw?'text':'password'}
             right={<AuthEyeBtn show={showPw} onToggle={()=>setShowPw(v=>!v)}/>}
           />
           <AuthPillInput value={confirm} onChange={e=>setConfirm(e.target.value)}
-            placeholder="confirm password" type={showCf?'text':'password'}
+            placeholder="Confirm password" type={showCf?'text':'password'}
             right={<AuthEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <div style={{ height:28 }}/>
-        <AuthBigBtn onClick={withLoading(()=>signup(name, email, password, confirm))} loading={loading}>Sign Up</AuthBigBtn>
-        <span onClick={()=>showToast('Password reset link sent')}
-          style={{ fontSize:13, fontWeight:800, color:C.primary, marginTop:14, cursor:'pointer' }}>
-          Forgot Password?
-        </span>
-        <div style={{ width:'100%', height:1, background:'#E4E8EF', margin:'16px 0 14px' }}/>
-        <div style={{ fontSize:13, color:'#7B8499' }}>
+        <div style={{ height:22 }}/>
+        <button onClick={withLoading(()=>signup(name, email, password, confirm))}
+          style={{ width:'100%', height:54, border:'none', borderRadius:16,
+            background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
+            fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
+            fontFamily:"'Montserrat',-apple-system,sans-serif",
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            boxShadow:'0 10px 26px rgba(2,162,240,0.40)', opacity: loading?0.75:1 }}>
+          {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
+          {loading ? 'Creating account…' : 'Sign Up'}
+        </button>
+        <div style={{ textAlign:'center', fontSize:13, color:C.muted, marginTop:18 }}>
           Already have an account?{' '}
           <span onClick={()=>go('login')} style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>
             Log In

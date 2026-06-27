@@ -178,7 +178,7 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
       </div>
       {onFilter && (
         <button onClick={onFilter} style={{ flexShrink:0, width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M8 12h8M11 17h2" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 4.5h18l-7 8.5v6.5l-4-2V13L3 4.5Z" fill="rgba(255,255,255,0.25)" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/></svg>
         </button>
       )}
     </div>
@@ -559,18 +559,23 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
 // ─────────────────────────────────────────────────────────────
 function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast }) {
   const TABS = [{id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'}];
+  const [spaceQuery, setSpaceQuery] = useState('');
 
   const { spaces: liveSpaces } = useSpaces();
   const spaceData = liveSpaces.length > 0 ? liveSpaces : SPACES;
   let list = spaceData.slice();
   if(spaceTab==='today'||spaceTab==='tomorrow') list=list.filter(s=>s.day===spaceTab);
   else list=list.filter(s=>(s.cat||s.category)===spaceTab);
+  if(spaceQuery.trim()) {
+    const q = spaceQuery.toLowerCase();
+    list = list.filter(s => (s.title||'').toLowerCase().includes(q) || (s.location||'').toLowerCase().includes(q) || (s.desc||s.description||'').toLowerCase().includes(q));
+  }
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
       {/* Header */}
       <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 12px', boxShadow:'0 1px 0 rgba(16,24,40,0.06)', zIndex:4 }}>
-        <SearchBar placeholder="What can we help you find?" hint='Try "Study groups near me"' onFilter={()=>navigate('filters',{from:'spaces'})} />
+        <SearchBar placeholder="What can we help you find?" hint='Try "Study groups near me"' value={spaceQuery} onChange={e=>setSpaceQuery(e.target.value)} onFilter={()=>navigate('filters',{from:'spaces'})} />
       </div>
 
       {/* Tabs */}
@@ -681,17 +686,22 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoined, navigate, showToast }) {
   const { user } = useUser();
   const TABS = [{id:'popular',label:'Popular'},{id:'all',label:'All'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
+  const [discoverQuery, setDiscoverQuery] = useState('');
 
-const { groups: liveGroups } = useGroups();
+  const { groups: liveGroups } = useGroups();
   const groupData = liveGroups.length > 0 ? liveGroups : GROUPS;
   let list = groupData.slice();
   if(discoverTab!=='popular'&&discoverTab!=='all') list=list.filter(g=>((g.cat || g.category || [])||g.category||[]).includes(discoverTab));
+  if(discoverQuery.trim()) {
+    const q = discoverQuery.toLowerCase();
+    list = list.filter(g => (g.name||g.title||'').toLowerCase().includes(q) || (g.desc||g.description||'').toLowerCase().includes(q));
+  }
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
       {/* Header */}
       <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 12px', boxShadow:'0 1px 0 rgba(16,24,40,0.06)', zIndex:4 }}>
-        <SearchBar placeholder="What can we help you find?" hint='Try "Clubs to join this semester"' onFilter={()=>navigate('filters',{from:'discover'})} />
+        <SearchBar placeholder="What can we help you find?" hint='Try "Clubs to join this semester"' value={discoverQuery} onChange={e=>setDiscoverQuery(e.target.value)} onFilter={()=>navigate('filters',{from:'discover'})} />
       </div>
 
       {/* Tabs */}

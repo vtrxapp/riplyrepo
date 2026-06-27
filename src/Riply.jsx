@@ -4410,8 +4410,8 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
     <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
                   fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', ...slideStyle }}>
       <AuthBg />
-      <div style={{ position:'relative', flex:1, overflowY:'auto', display:'flex',
-                    flexDirection:'column', padding:'0 28px 40px' }}>
+      {/* Scrollable fields area */}
+      <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'0 28px 20px' }}>
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                       paddingTop:56, paddingBottom:28 }}>
@@ -4467,9 +4467,11 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
             right={<DarkEyeBtn show={showCf} onToggle={()=>setShowCf(v=>!v)}/>}
           />
         </div>
-        <div style={{ height:24 }}/>
+      </div>
+      {/* Button + footer — pinned to bottom, never scrolls */}
+      <div style={{ position:'relative', flexShrink:0, padding:'16px 28px 32px' }}>
         <button onClick={withLoading(()=>signup(name, email, password, confirm))}
-          style={{ width:'100%', height:54, minHeight:54, flexShrink:0, border:'none', borderRadius:999,
+          style={{ width:'100%', height:54, border:'none', borderRadius:999,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
             fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -4479,12 +4481,11 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
           {loading ? 'Creating account…' : 'Sign Up'}
         </button>
         <span onClick={()=>showToast('Password reset coming soon')}
-          style={{ fontSize:13, fontWeight:700, color:'#19BFFF', marginTop:14,
+          style={{ fontSize:13, fontWeight:700, color:'#19BFFF', marginTop:12,
                    cursor:'pointer', textAlign:'center', display:'block' }}>
           Forgot Password?
         </span>
-        <div style={{ flex:1, minHeight:16 }}/>
-        <div style={{ textAlign:'center', fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:16 }}>
+        <div style={{ textAlign:'center', fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:10 }}>
           Already have an account?{' '}
           <span onClick={()=>go('login')} style={{ color:'#19BFFF', fontWeight:800, cursor:'pointer' }}>
             Log In

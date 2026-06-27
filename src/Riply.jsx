@@ -3702,22 +3702,26 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     type: 'dm',
   };
 
-  const { messages: rawMessages, sendMessage, currentUserId } = useChat(chatId)
+  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId } = useChat(chatId)
   const [draft,    setDraft]    = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef  = useRef(null);
   const inputRef   = useRef(null);
+  const fileRef    = useRef(null);
 
   // Map Supabase shape → UI shape
   const messages = rawMessages.map(msg => ({
-    id:      msg.id,
-    side:    msg.sender_id === currentUserId ? 'out' : 'in',
-    text:    msg.content,
-    time:    new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
-    hasText: true,
-    sender:  msg.sender_id,
-    aInitial: msg.sender_id?.[0]?.toUpperCase() || '?',
-    aColor:  'linear-gradient(135deg,#7C5CFF,#02B6FE)',
+    id:         msg.id,
+    side:       msg.sender_id === currentUserId ? 'out' : 'in',
+    text:       msg.content,
+    time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
+    hasText:    !!msg.content,
+    hasImage:   !!(msg.attachment_url && /\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
+    hasFile:    !!(msg.attachment_url && !/\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
+    attachUrl:  msg.attachment_url || null,
+    sender:     msg.sender_id,
+    aInitial:   msg.sender_id?.[0]?.toUpperCase() || '?',
+    aColor:     'linear-gradient(135deg,#7C5CFF,#02B6FE)',
   }))
 
   const scrollToBottom = () => {
@@ -3880,20 +3884,30 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
                     ? '0 3px 10px rgba(2,162,240,0.28)'
                     : '0 2px 8px rgba(16,24,40,0.07)',
                 }}>
-                  {/* Image preview */}
+                  {/* Image attachment */}
                   {m.hasImage && (
-                    <div style={{ height:118, borderRadius:11, overflow:'hidden',
-                                  marginBottom: m.hasText ? 7 : 0,
-                                  background:'linear-gradient(135deg,#4A7C3A,#6BA84F)',
-                                  position:'relative' }}>
-                      <div style={{ position:'absolute', inset:0, background:
-                        'repeating-linear-gradient(0deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 1px,transparent 1px,transparent 20px),repeating-linear-gradient(90deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 1px,transparent 1px,transparent 20px)' }}/>
-                      <span style={{ position:'absolute', bottom:7, left:9,
-                                     fontFamily:"'JetBrains Mono',monospace",
-                                     fontSize:8, color:'rgba(255,255,255,0.85)' }}>
-                        IMAGE · placeholder
-                      </span>
+                    <div style={{ borderRadius:11, overflow:'hidden', marginBottom: m.hasText ? 7 : 0, maxWidth:220 }}>
+                      <img src={m.attachUrl} alt="attachment"
+                        style={{ width:'100%', display:'block', borderRadius:11 }}
+                        onClick={() => window.open(m.attachUrl, '_blank')}
+                      />
                     </div>
+                  )}
+                  {/* File attachment */}
+                  {m.hasFile && (
+                    <a href={m.attachUrl} target="_blank" rel="noreferrer"
+                      style={{ display:'flex', alignItems:'center', gap:8, marginBottom: m.hasText ? 7 : 0,
+                               background: isOut ? 'rgba(255,255,255,0.15)' : C.chip,
+                               borderRadius:10, padding:'8px 11px', textDecoration:'none' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke={isOut?'#fff':'#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/>
+                        <path d="M14 2v6h6" stroke={isOut?'#fff':'#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/>
+                      </svg>
+                      <span style={{ fontSize:11, fontWeight:700, color: isOut ? '#fff' : C.body,
+                                     whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:140 }}>
+                        {m.attachUrl?.split('/').pop() || 'File'}
+                      </span>
+                    </a>
                   )}
                   {/* Text */}
                   {m.hasText && (
@@ -3922,8 +3936,20 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
                     boxShadow:'0 -1px 0 rgba(16,24,40,0.07)',
                     padding:'10px 13px 26px', display:'flex',
                     alignItems:'center', gap:9, zIndex:6 }}>
+        {/* Hidden file input */}
+        <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt"
+          style={{ display:'none' }}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (!file) return;
+            showToast('Uploading…');
+            const err = await sendAttachment(file);
+            if (err) showToast('Upload failed');
+          }}
+        />
         {/* Attach */}
-        <button onClick={() => showToast('Attach a file')} style={{ width:36, height:36,
+        <button onClick={() => fileRef.current?.click()} style={{ width:36, height:36,
           border:'none', background:'none', display:'flex', alignItems:'center',
           justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

@@ -2548,11 +2548,15 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
       {/* ── Sticky collapsing bar (sits above scroll area) ── */}
       <div style={{
-        position:'relative', zIndex:20, overflow:'hidden',
+        position:'relative', zIndex:20,
         height: coverCollapsed ? 52 : 150,
         transition:'height 0.3s cubic-bezier(0.4,0,0.2,1)',
         flexShrink:0,
+        /* allow avatar to overflow downward without clipping */
+        overflow:'visible',
       }}>
+        {/* Clipping wrapper for backgrounds only */}
+        <div style={{ position:'absolute', inset:0, overflow:'hidden' }}>
         {/* Cover */}
         <div style={{
           position:'absolute', inset:0,
@@ -2576,6 +2580,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           transition:'opacity 0.3s ease',
           boxShadow:'0 2px 16px rgba(0,0,0,0.08)',
         }}/>
+        </div>{/* end clipping wrapper */}
 
         {/* Back + menu buttons — always visible */}
         <button onClick={goBack} style={{ position:'absolute', top:50, left:14, width:40,

@@ -357,10 +357,24 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                     <svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill={isSaved?'#0098F0':'rgba(0,0,0,0)'} stroke={isSaved?'#0098F0':'#9AA3B2'} strokeWidth="1.7" strokeLinejoin="round"/></svg>
                     <span style={{ fontSize:11, fontWeight:700, color:isSaved?C.primary:C.subtle }}>{fmt(ev.saves+(isSaved?1:0))}</span>
                   </button>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <button onClick={async (e) => {
+                    e.stopPropagation();
+                    const shareData = {
+                      title: ev.title,
+                      text: `${ev.title}${ev.date ? ' · ' + ev.date : ''}`,
+                      url: window.location.href,
+                    };
+                    if (navigator.share) {
+                      try { await navigator.share(shareData); } catch {}
+                    } else {
+                      try {
+                        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                      } catch {}
+                    }
+                  }} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z" stroke="#7B8499" strokeWidth="1.8" strokeLinejoin="round"/></svg>
                     <span style={{ fontSize:11, fontWeight:700, color:'#7B8499' }}>{fmt(ev.shares)}</span>
-                  </div>
+                  </button>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke="#7B8499" strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>
                     <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
@@ -4938,25 +4952,42 @@ function SavedEventsScreen({ goBack, navigate, saved }) {
             <div style={{ fontSize:13, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any event to save it here</div>
           </div>
         )}
-        {allEvents.map(ev => (
-          <div key={ev.id} onClick={() => navigate('event-details', { eventId: ev.id })}
-            style={{ background:C.card, borderRadius:16, marginBottom:12, overflow:'hidden',
-                     boxShadow:'0 2px 10px rgba(16,24,40,0.07)', cursor:'pointer' }}>
-            {(ev.image_url || ev.imageUrl) && (
-              <img src={ev.image_url || ev.imageUrl} alt={ev.title}
-                style={{ width:'100%', height:120, objectFit:'cover' }}/>
-            )}
-            <div style={{ padding:'12px 14px 14px' }}>
-              <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:4 }}>{ev.title}</div>
-              <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
-                {ev.full_date || ev.date}{ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}
+        {allEvents.map(ev => {
+          const HERO_IMGS = {
+            social:   'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=700&q=80',
+            sports:   'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=700&q=80',
+            academic: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=700&q=80',
+            arts:     'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=700&q=80',
+            wellness: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=700&q=80',
+            career:   'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=700&q=80',
+          };
+          const img = ev.image_url || ev.imageUrl || HERO_IMGS[ev.category || ev.primary] || HERO_IMGS.social;
+          return (
+            <div key={ev.id} onClick={() => navigate('event-details', { eventId: ev.id })}
+              style={{ background:C.card, borderRadius:16, marginBottom:12, overflow:'hidden',
+                       boxShadow:'0 2px 10px rgba(16,24,40,0.07)', cursor:'pointer' }}>
+              <div style={{ position:'relative', height:130 }}>
+                <img src={img} alt={ev.title}
+                  style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                <div style={{ position:'absolute', inset:0,
+                  background:'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)' }}/>
+                <div style={{ position:'absolute', bottom:10, left:12, right:12,
+                              fontSize:15, fontWeight:800, color:'#fff',
+                              textShadow:'0 1px 4px rgba(0,0,0,0.4)', lineHeight:1.3 }}>
+                  {ev.title}
+                </div>
               </div>
-              {(ev.venue || ev.location) && (
-                <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{ev.venue || ev.location}</div>
-              )}
+              <div style={{ padding:'10px 14px 14px' }}>
+                <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
+                  {ev.full_date || ev.date}{ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}
+                </div>
+                {(ev.venue || ev.location) && (
+                  <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{ev.venue || ev.location}</div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

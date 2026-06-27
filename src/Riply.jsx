@@ -591,8 +591,23 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
           const count = sp.participants + (isJoined?1:0);
           const isFull = count >= (sp.max_spots || sp.max || 10);
           const notifyOn = !!spaceNotify[sp.id];
-          const prog = sp.started ? (progress[sp.id]??0) : 0;
-          const done = prog>=100;
+          const prog = (() => {
+            const timeStr = sp.time; const dayStr = sp.day;
+            if (!timeStr || !dayStr) return 0;
+            const base = (dayStr === 'today' || dayStr === 'tomorrow') ? new Date() : new Date(dayStr + 'T00:00:00');
+            if (isNaN(base)) return 0;
+            if (dayStr === 'tomorrow') base.setDate(base.getDate() + 1);
+            const mx = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i); if (!mx) return 0;
+            let h = parseInt(mx[1]); const min = parseInt(mx[2]||'0'); const ap = (mx[3]||'').toUpperCase();
+            if (ap==='PM'&&h<12) h+=12; if (ap==='AM'&&h===12) h=0;
+            const startMs = new Date(base.getFullYear(),base.getMonth(),base.getDate(),h,min).getTime();
+            const endMs = startMs + (parseInt(sp.duration)||60)*60000;
+            const nowMs = Date.now();
+            if (nowMs < startMs) return 0;
+            return Math.min(100, Math.round(((nowMs-startMs)/(endMs-startMs))*100));
+          })();
+          const isLive = prog > 0;
+          const done = prog >= 100;
 
           return (
             <div key={sp.id} style={{ background:C.card, borderRadius:22, boxShadow:'0 8px 24px rgba(16,24,40,0.07),0 1px 2px rgba(16,24,40,0.04)', marginBottom:16, padding:'16px 16px 14px' }}>
@@ -622,7 +637,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               </div>
 
               {/* Live progress */}
-              {sp.started && (
+              {isLive && (
                 <div style={{ marginTop:14 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:7 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -632,7 +647,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                       </span>
                       <span style={{ fontSize:9.5, fontWeight:800, color:'#10B981', letterSpacing:0.2 }}>{done?'ENDED':'IN PROGRESS'}</span>
                     </div>
-                    <span style={{ fontSize:9.5, fontWeight:700, color:C.subtle }}>{done?'Completed':(sp.endTime?`Ends ${sp.endTime}`:`${Math.round(prog)}%`)}</span>
+                    <span style={{ fontSize:9.5, fontWeight:700, color:C.subtle }}>{done ? 'Completed' : `${prog}%`}</span>
                   </div>
                   <div style={{ position:'relative', height:8, borderRadius:999, background:'#EAEDF2' }}>
                     <div style={{ position:'absolute', left:0, top:0, bottom:0, borderRadius:999, background:'linear-gradient(90deg,#34D399,#10B981)', width:`${prog}%`, transition:'width .6s linear' }} />
@@ -660,8 +675,8 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                 </div>
               ) : (
                 <button onClick={()=>setSpaceJoined(j=>({...j,[sp.id]:!j[sp.id]}))} style={{ width:'100%', marginTop:15, height:50, border: isJoined?'1.6px solid #10B981':'none', borderRadius:15, background: isJoined?'#E6F8F0':C.grad, color: isJoined?'#0E9F6E':'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:isJoined?'none':'0 8px 20px rgba(2,162,240,0.4)' }}>
-                  <span>{isJoined?"You're in · Joined":'Join Space'}</span>
-                  {!isJoined && <span style={{ fontWeight:800 }}>{(sp.is_free || !sp.price || sp.price === 'Free') ? 'Free' : `$${sp.price}`}</span>}
+                  <span>{isJoined ? "You're in · Joined ✓" : 'Join Space'}</span>
+                  {!isJoined && <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </button>
               )}
 
@@ -3269,12 +3284,14 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
         <div style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink, whiteSpace:'nowrap',
                       overflow:'hidden', textOverflow:'ellipsis' }}>{sp.title}</div>
-        <HeaderBtn onClick={() => showToast('Share link copied')}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-            <circle cx="18" cy="5.5" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
-            <circle cx="6" cy="12" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
-            <circle cx="18" cy="18.5" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
-            <path d="m8.2 10.8 7.6-4.1M8.2 13.2l7.6 4.1" stroke="#39414F" strokeWidth="1.9"/>
+        <HeaderBtn onClick={async () => {
+          const shareData = { title: sp.title, text: `${sp.title} — ${spDayLabel || ''}${sp.time ? ' · ' + sp.time : ''}`, url: window.location.href };
+          if (navigator.share) { try { await navigator.share(shareData); } catch {} }
+          else { try { await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`); showToast('Space link copied to clipboard'); } catch { showToast('Could not share'); } }
+        }}>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
+              fill="none" stroke="#39414F" strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
         <HeaderBtn onClick={() => toggleSaveSpace && toggleSaveSpace(spaceId)}>

@@ -4464,7 +4464,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
         </div>
         <div style={{ height:24 }}/>
         <button onClick={withLoading(()=>signup(name, email, password, confirm))}
-          style={{ width:'100%', height:54, border:'none', borderRadius:999,
+          style={{ width:'100%', height:54, minHeight:54, flexShrink:0, border:'none', borderRadius:999,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
             fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",

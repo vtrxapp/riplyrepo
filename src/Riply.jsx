@@ -3151,12 +3151,16 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   const [progress, setProgress] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // Animate live progress bar
+  // Tick progress bar every 30s when space is live
   useEffect(() => {
-    if (!sp?.started) return;
-    const t = setInterval(() => setProgress(p => Math.min(100, p + 1)), 700);
+    const tick = () => {
+      const pct = computeSpaceProgress();
+      if (pct !== null) setProgress(pct);
+    };
+    tick();
+    const t = setInterval(tick, 30000);
     return () => clearInterval(t);
-  }, [sp?.started]);
+  }, [sp?.time, sp?.day, sp?.duration]);
 
   if (!sp) return (
     <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center',
@@ -3169,7 +3173,9 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   const maxSpots = sp.max_spots || sp.max || 10;
   const isFull = count >= maxSpots;
   const pct = Math.round((count / maxSpots) * 100);
-  const done = progress >= 100;
+  const liveProgress = computeSpaceProgress();
+  const isLive = liveProgress !== null;
+  const done = isLive && liveProgress >= 100;
 
   const PARTICIPANTS = [
     {i:'A',c:'#FF5A8A'},{i:'J',c:'#0098F0'},{i:'M',c:'#10B981'},
@@ -3194,6 +3200,49 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   const spPrice = sp.is_free || sp.price === 0 || sp.price === 'Free' ? 'Free' : (sp.price ? `$${sp.price}` : 'Free');
   const fmtDur = v => v ? (/^\d+$/.test(String(v)) ? `${v} min` : String(v)) : '';
   const hostName = (sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i, '');
+
+  // Compute date label from sp.day (could be 'today','tomorrow', or a date string like '2026-06-27')
+  const spDayLabel = (() => {
+    const raw = sp.day;
+    if (!raw) return null;
+    if (raw === 'today') return 'Today';
+    if (raw === 'tomorrow') return 'Tomorrow';
+    const spDate = new Date(raw + 'T00:00:00');
+    if (isNaN(spDate)) return raw;
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+    if (raw === todayStr) return 'Today';
+    if (raw === tomorrowStr) return 'Tomorrow';
+    return spDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  })();
+
+  // Compute live progress from start time + duration
+  const computeSpaceProgress = () => {
+    const timeStr = sp.time; // e.g. "8:00 PM" or "20:00"
+    const dayStr = sp.day;
+    if (!timeStr || !dayStr) return null;
+    const baseDate = (dayStr === 'today' || dayStr === 'tomorrow')
+      ? new Date()
+      : new Date(dayStr + 'T00:00:00');
+    if (isNaN(baseDate)) return null;
+    if (dayStr === 'tomorrow') baseDate.setDate(baseDate.getDate() + 1);
+    // Parse time string into hours/minutes
+    const m = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
+    if (!m) return null;
+    let h = parseInt(m[1]);
+    const min = parseInt(m[2] || '0');
+    const ampm = (m[3] || '').toUpperCase();
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    const startMs = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h, min).getTime();
+    const durationMins = parseInt(sp.duration) || 60;
+    const endMs = startMs + durationMins * 60000;
+    const nowMs = Date.now();
+    if (nowMs < startMs) return null; // not started yet
+    const pct = Math.min(100, Math.round(((nowMs - startMs) / (endMs - startMs)) * 100));
+    return pct;
+  };
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,
@@ -3370,8 +3419,8 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             </span>
           </div>
 
-          {/* Live progress bar (only if session started) */}
-          {sp.started && (
+          {/* Live progress bar (only if session is currently in progress) */}
+          {isLive && (
             <div style={{ marginTop:14, paddingTop:14, borderTop:`1px solid ${C.divider}` }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                             marginBottom:7 }}>
@@ -3388,15 +3437,15 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                   </span>
                 </div>
                 <span style={{ fontSize:11, fontWeight:700, color:C.subtle }}>
-                  {done ? 'Completed' : (sp.endTime ? `Ends ${sp.endTime}` : `${progress}%`)}
+                  {done ? 'Completed' : `${liveProgress}%`}
                 </span>
               </div>
               <div style={{ position:'relative', height:8, borderRadius:999, background:'#EAEDF2' }}>
                 <div style={{ position:'absolute', left:0, top:0, bottom:0, borderRadius:999,
                               background:'linear-gradient(90deg,#34D399,#10B981)',
-                              width:`${progress}%`, transition:'width .7s linear' }}/>
+                              width:`${liveProgress}%`, transition:'width .7s linear' }}/>
                 <div style={{ position:'absolute', top:'50%', transform:'translate(-50%,-50%)',
-                              left:`${progress}%`, width:14, height:14, borderRadius:'50%',
+                              left:`${liveProgress}%`, width:14, height:14, borderRadius:'50%',
                               background:'#fff', border:'3px solid #10B981',
                               boxShadow:'0 2px 5px rgba(16,185,129,0.4)',
                               transition:'left .7s linear' }}/>
@@ -3404,7 +3453,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               <div style={{ display:'flex', justifyContent:'space-between', marginTop:7 }}>
                 <span style={{ fontSize:10, fontWeight:600, color:C.subtle }}>Started {sp.time}</span>
                 <span style={{ fontSize:10, fontWeight:600, color:C.subtle }}>
-                  {sp.endTime ? `Ends ${sp.endTime}` : `${sp.duration}`}
+                  {sp.duration ? fmtDur(sp.duration) : ''}
                 </span>
               </div>
             </div>
@@ -3428,7 +3477,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Schedule</div>
               <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
-                {sp.day === 'today' ? "Today" : "Tomorrow"} · {sp.time}
+                {spDayLabel}{sp.time ? ` · ${sp.time}` : ''}
               </div>
               <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtDur(sp.duration)} session</div>
               <button onClick={() => addToCalendar({ title: sp.title, location: sp.location, description: sp.desc || sp.description, timeStr: sp.time, durationMins: sp.duration ? (parseInt(sp.duration) || 60) : 60 })} style={{
@@ -5124,7 +5173,7 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
                   </div>
                   <div style={{ padding:'10px 14px 14px' }}>
                     <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
-                      {sp.day === 'today' ? 'Today' : 'Tomorrow'}{sp.time ? ' · ' + sp.time : ''}
+                      {(() => { const raw = sp.day; if (!raw || raw === 'today') return 'Today'; if (raw === 'tomorrow') return 'Tomorrow'; const d = new Date(raw + 'T00:00:00'); if (isNaN(d)) return raw; const t = new Date(); const ts = t.toISOString().slice(0,10); const tm = new Date(t.getTime()+86400000).toISOString().slice(0,10); if (raw===ts) return 'Today'; if (raw===tm) return 'Tomorrow'; return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); })()}{sp.time ? ' · ' + sp.time : ''}
                     </div>
                     {sp.location && <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{sp.location}</div>}
                   </div>

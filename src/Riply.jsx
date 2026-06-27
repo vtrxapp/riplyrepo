@@ -1909,6 +1909,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [commentsOpen, setCommentsOpen] = useState(null);
   const [draft,      setDraft]      = useState('');
   const [comments,   setComments]   = useState({});
+  const [postText,   setPostText]   = useState('');
+  const [posting,    setPosting]    = useState(false);
 
   const isPrivate  = joinState === 'request' || joinState === 'requested';
   const isJoined   = joinState === 'joined';
@@ -2244,7 +2246,40 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
               {/* POSTS */}
               {activeTab === 'posts' && (
-                postsLoading ? (
+                <>
+                {/* Inline compose bar */}
+                {isJoined && (
+                  <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14 }}>
+                    <textarea
+                      value={postText} onChange={e => setPostText(e.target.value)}
+                      placeholder="Share something with the group…"
+                      rows={3}
+                      style={{ width:'100%', border:'none', outline:'none', resize:'none', fontSize:14,
+                               fontWeight:500, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                               background:'none', boxSizing:'border-box' }}
+                    />
+                    <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8 }}>
+                      <button
+                        disabled={!postText.trim() || posting}
+                        onClick={async () => {
+                          if (!postText.trim()) return;
+                          setPosting(true);
+                          const { error } = await createPost({ content: postText });
+                          setPosting(false);
+                          if (error) { showToast('Failed to post: ' + error.message); return; }
+                          setPostText('');
+                          showToast('Post shared!');
+                        }}
+                        style={{ height:34, padding:'0 18px', border:'none', borderRadius:999,
+                                 background: postText.trim() ? C.grad : '#D1D5DB',
+                                 color:'#fff', fontSize:12, fontWeight:700, cursor: postText.trim() ? 'pointer' : 'default',
+                                 fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                        {posting ? 'Posting…' : 'Post'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {postsLoading ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>Loading posts…</div>
                 ) : livePosts.length === 0 ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
@@ -2412,7 +2447,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                       )}
                     </div>
                   );
-                })
+                })}
+                </>
               )}
 
               {/* EVENTS */}
@@ -2504,7 +2540,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
       {/* ── FAB: Compose (joined) ────────────────────────── */}
       {isJoined && (
-        <button onClick={() => navigate('create-post')} style={{
+        <button onClick={() => navigate('create-post', { groupId })} style={{
           position:'absolute', bottom:22, right:16, width:52, height:52,
           border:'none', borderRadius:'50%', background:C.grad,
           display:'flex', alignItems:'center', justifyContent:'center',
@@ -9154,17 +9190,13 @@ export default function RiplyApp() {
   };
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#E9ECF2', padding:32, boxSizing:'border-box', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-      <div style={{ width:402, height:874, borderRadius:48, overflow:'hidden', position:'relative', background:C.pageBg, boxShadow:'0 40px 80px rgba(0,0,0,0.18),0 0 0 1px rgba(0,0,0,0.12)', flexShrink:0 }}>
-        <div style={{ height:'100%' }}>
-          {renderScreen()}
-        </div>
-        {toast && <Toast msg={toast} />}
-        {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={notifs.unreadCount} />}
-        <div style={{ position:'absolute', bottom:0, left:0, right:0, zIndex:60, height:34, display:'flex', justifyContent:'center', alignItems:'flex-end', paddingBottom:8, pointerEvents:'none' }}>
-          <div style={{ width:139, height:5, borderRadius:100, background:'rgba(0,0,0,0.25)' }} />
-        </div>
+    <div style={{ width:'100%', height:'100vh', position:'relative', background:C.pageBg,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden' }}>
+      <div style={{ height:'100%' }}>
+        {renderScreen()}
       </div>
+      {toast && <Toast msg={toast} />}
+      {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={notifs.unreadCount} />}
     </div>
   );
 }

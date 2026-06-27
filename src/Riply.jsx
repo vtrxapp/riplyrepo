@@ -2928,14 +2928,15 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
               <div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 0' }}>
                 <div style={{ width:36, height:36, borderRadius:10, flexShrink:0,
                               background: isFreeEv ? '#E6F8F0' : '#FFF6E9',
-                              display:'flex', alignItems:'center', justifyContent:'center',
-                              position:'relative' }}>
-                  <span style={{ fontSize:18, fontWeight:900,
-                                 color: isFreeEv ? '#10B981' : '#F59E0B',
-                                 fontFamily:'serif', lineHeight:1 }}>$</span>
-                  {isFreeEv && (
-                    <svg style={{ position:'absolute', inset:0 }} width="36" height="36" viewBox="0 0 36 36">
-                      <line x1="8" y1="28" x2="28" y2="8" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round"/>
+                              display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {isFreeEv ? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <line x1="4" y1="20" x2="20" y2="4" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   )}
                 </div>
@@ -3508,14 +3509,15 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
           <div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 0' }}>
             <div style={{ width:36, height:36, borderRadius:10, flexShrink:0,
                           background: spPrice === 'Free' ? '#E6F8F0' : '#FFF6E9',
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          position:'relative' }}>
-              <span style={{ fontSize:18, fontWeight:900,
-                             color: spPrice === 'Free' ? '#10B981' : '#F59E0B',
-                             fontFamily:'serif', lineHeight:1 }}>$</span>
-              {spPrice === 'Free' && (
-                <svg style={{ position:'absolute', inset:0 }} width="36" height="36" viewBox="0 0 36 36">
-                  <line x1="8" y1="28" x2="28" y2="8" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round"/>
+                          display:'flex', alignItems:'center', justifyContent:'center' }}>
+              {spPrice === 'Free' ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="4" y1="20" x2="20" y2="4" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               )}
             </div>

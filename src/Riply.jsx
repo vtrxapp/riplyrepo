@@ -6338,6 +6338,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
               date: date || null,
               full_date: date || null,
               time_range: timeRange || null,
+              image_url: coverUrl || null,
               price: isPaid ? `$${price}` : 'Free',
               capacity: unlimited ? null : capacity,
               attendee_count: 0,

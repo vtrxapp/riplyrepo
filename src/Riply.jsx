@@ -219,6 +219,54 @@ function Sheet({ onClose, title, children }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// FLOATING SCROLL PILL  (appears when user scrolls down)
+// ─────────────────────────────────────────────────────────────
+const SCREEN_LABELS = { home:'Explore', spaces:'Groups', discover:'Discover', messages:'Messages', profile:'Profile' };
+
+function FloatingScrollPill({ visible, screen }) {
+  const label = SCREEN_LABELS[screen] || '';
+  return (
+    <div style={{
+      position:'absolute', top:0, left:'50%', zIndex:50, pointerEvents:'none',
+      transform:`translateX(-50%) translateY(${visible ? '14px' : '-56px'})`,
+      transition:'transform 0.4s cubic-bezier(0.34,1.4,0.64,1), opacity 0.25s ease',
+      opacity: visible ? 1 : 0,
+    }}>
+      <div style={{
+        display:'flex', alignItems:'center', gap:10,
+        background:'linear-gradient(145deg,rgba(255,255,255,0.96),rgba(228,232,242,0.96))',
+        backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+        borderRadius:999,
+        border:'1px solid rgba(195,200,215,0.7)',
+        boxShadow:'0 6px 24px rgba(0,0,0,0.11), 0 1px 3px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+        padding:'9px 20px 9px 14px',
+        position:'relative', overflow:'hidden',
+      }}>
+        {/* shimmer sweep */}
+        <div style={{
+          position:'absolute', top:0, left:'-40%', width:'35%', height:'100%', pointerEvents:'none',
+          background:'linear-gradient(90deg,transparent,rgba(255,255,255,0.55),transparent)',
+          animation:'pill-shimmer 3s ease-in-out infinite',
+        }}/>
+        {/* brand dot cluster */}
+        <div style={{ display:'flex', gap:3, alignItems:'center' }}>
+          <div style={{ width:7, height:7, borderRadius:'50%', background:C.grad, boxShadow:`0 0 6px ${C.primary}55` }}/>
+          <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(0,152,240,0.35)' }}/>
+        </div>
+        <span style={{ fontSize:13, fontWeight:800, color:'#1A2233', letterSpacing:'-0.3px', lineHeight:1 }}>
+          {label}
+        </span>
+        {/* thin colour accent line along bottom */}
+        <div style={{
+          position:'absolute', bottom:0, left:'18%', right:'18%', height:2, borderRadius:999,
+          background:C.grad, opacity:0.55,
+        }}/>
+      </div>
+    </div>
+  );
+}
+
 function BottomNav({ screen, setScreen, unreadCount = 0 }) {
   const navColor = (id) => screen === id ? '#02A6F0' : C.subtle;
   const navWeight = (id) => screen === id ? '700' : '600';
@@ -262,7 +310,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast, onScroll }) {
   const CATS = [
     {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
@@ -294,7 +342,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
       </div>
 
       {/* Feed */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }} onScroll={e => onScroll?.(e.currentTarget.scrollTop)}>
         {list.length===0 && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No events match your search — try a different term.</div>
         )}
@@ -560,7 +608,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
 // ─────────────────────────────────────────────────────────────
 // SCREEN: SPACES (Campus Groups)
 // ─────────────────────────────────────────────────────────────
-function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast }) {
+function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast, onScroll }) {
   const TABS = [{id:'all',label:'All'},{id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'}];
   const [spaceQuery, setSpaceQuery] = useState('');
 
@@ -587,7 +635,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
       </div>
 
       {/* Spaces list */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }} onScroll={e => onScroll?.(e.currentTarget.scrollTop)}>
         {list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No spaces in this category right now.</div>}
         {list.map(sp => {
           const isJoined = !!spaceJoined[sp.id];
@@ -701,7 +749,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 // ─────────────────────────────────────────────────────────────
 // SCREEN: DISCOVER GROUPS
 // ─────────────────────────────────────────────────────────────
-function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoined, navigate, showToast }) {
+function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoined, navigate, showToast, onScroll }) {
   const { user } = useUser();
   const TABS = [{id:'all',label:'All'},{id:'popular',label:'Popular'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
   const [discoverQuery, setDiscoverQuery] = useState('');
@@ -728,7 +776,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
       </div>
 
       {/* Groups */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }} onScroll={e => onScroll?.(e.currentTarget.scrollTop)}>
         {list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
         {list.map(g => {
           const localJoined = !!groupJoined[g.id];
@@ -792,7 +840,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 // ─────────────────────────────────────────────────────────────
 // SCREEN: MESSAGES
 // ─────────────────────────────────────────────────────────────
-function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
+function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, onScroll }) {
   const isNotif = msgTab==='notifications';
   const { chats, loading: chatsLoading } = useChats();
   const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification } = notifs;
@@ -828,7 +876,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
       </div>
 
       {/* Body */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }} onScroll={e => onScroll?.(e.currentTarget.scrollTop)}>
         {isNotif ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {/* Mark all read */}
@@ -4232,7 +4280,7 @@ function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColo
 // ─────────────────────────────────────────────────────────────
 // SCREEN: PROFILE
 // ─────────────────────────────────────────────────────────────
-function ProfileScreen({ navigate, showToast, currentUser, saved }) {
+function ProfileScreen({ navigate, showToast, currentUser, saved, onScroll }) {
   const cu = currentUser || {};
   const [editOpen, setEditOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -4359,7 +4407,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }} onScroll={e => onScroll?.(e.currentTarget.scrollTop)}>
         {/* Identity */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
           <button onClick={() => {
@@ -9965,7 +10013,7 @@ export default function RiplyApp() {
   // Font injection
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = "@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');@keyframes riplyPulse{0%{transform:scale(.7);opacity:.9}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}*::-webkit-scrollbar{display:none;}";
+    style.textContent = "@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');@keyframes riplyPulse{0%{transform:scale(.7);opacity:.9}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}@keyframes pill-shimmer{0%{left:-40%}60%{left:130%}100%{left:130%}}*::-webkit-scrollbar{display:none;}";
     document.head.appendChild(style);
     return () => { if(document.head.contains(style)) document.head.removeChild(style); };
   }, []);
@@ -10001,6 +10049,7 @@ export default function RiplyApp() {
   // setScreen for bottom nav (reset to root tab)
   const setScreen = useCallback((scr, params = {}) => {
     setNavStack([{ screen: scr, ...params }]);
+    setScrolled(false);
   }, []);
 
   const [toast, setToast] = useState(null);
@@ -10010,6 +10059,12 @@ export default function RiplyApp() {
     clearTimeout(toastRef.current);
     setToast(msg);
     toastRef.current = setTimeout(() => setToast(null), 2200);
+  }, []);
+
+  // Scroll pill state
+  const [scrolled, setScrolled] = useState(false);
+  const handleFeedScroll = useCallback((top) => {
+    setScrolled(top > 60);
   }, []);
 
   // Home state
@@ -10060,11 +10115,11 @@ export default function RiplyApp() {
       case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} />;
-      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
-      case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
-      case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
-      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
-      case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} onScroll={handleFeedScroll} />;
+      case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} onScroll={handleFeedScroll} />;
+      case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} onScroll={handleFeedScroll} />;
+      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} onScroll={handleFeedScroll} />;
+      case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} onScroll={handleFeedScroll} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
@@ -10102,6 +10157,7 @@ export default function RiplyApp() {
         {renderScreen()}
       </div>
       {toast && <Toast msg={toast} />}
+      {showBottomNav && <FloatingScrollPill visible={scrolled && showBottomNav} screen={screen} />}
       {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={notifs.unreadCount} />}
     </div>
   );

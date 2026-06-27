@@ -1,6 +1,25 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
+async function attachUserProfiles(rows) {
+  if (!rows?.length) return rows || []
+  const ids = [...new Set(rows.map(r => r.user_id).filter(Boolean))]
+  if (!ids.length) return rows
+  const { data: users } = await supabase.from('users').select('id,name,avatar_url,avatar_color').in('id', ids)
+  const map = Object.fromEntries((users || []).map(u => [u.id, u]))
+  return rows.map(r => {
+    const u = map[r.user_id]
+    if (!u) return r
+    return {
+      ...r,
+      org:          u.name || r.org,
+      orgInitial:   (u.name || r.org || 'O')[0].toUpperCase(),
+      org_avatar:   u.avatar_url || null,
+      org_color:    u.avatar_color || null,
+    }
+  })
+}
+
 // Map FiltersScreen price chip labels to Supabase query ranges
 const PRICE_RANGES = {
   'Free':    [0, 0],
@@ -112,7 +131,8 @@ export function useEvents({ category, search, filters } = {}) {
       const { data, error } = await q
 
       if (error) { setError(error); setLoading(false); return }
-      setEvents(data || [])
+      const enriched = await attachUserProfiles(data || [])
+      setEvents(enriched)
       setLoading(false)
     }
 

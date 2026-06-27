@@ -760,7 +760,13 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               )}
 
               {/* Host */}
-              <div style={{ fontSize:9.5, color:C.subtle, textAlign:'center', marginTop:10 }}>Created by {(sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i,'') || 'Organizer'}</div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, marginTop:10 }}>
+                {sp.host_avatar
+                  ? <img src={sp.host_avatar} style={{ width:16, height:16, borderRadius:'50%', objectFit:'cover' }} alt="" />
+                  : <div style={{ width:16, height:16, borderRadius:'50%', background: sp.host_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:800, color:'#fff' }}>{(sp.host_name || sp.host_text || 'O')[0].toUpperCase()}</div>
+                }
+                <span style={{ fontSize:9.5, color:C.subtle }}>Created by {sp.host_name || (sp.host_text || '').replace(/^(Created by |Organized by )/i,'') || 'Organizer'}</span>
+              </div>
             </div>
           );
         })}
@@ -3215,9 +3221,12 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'12px 15px',
                       display:'flex', alignItems:'center', gap:11 }}>
           <div style={{ width:44, height:44, borderRadius:13, flexShrink:0,
-                        background:th.grad, display:'flex', alignItems:'center',
+                        background: ev.org_avatar ? 'transparent' : (ev.org_color || th.grad),
+                        display:'flex', alignItems:'center', overflow:'hidden',
                         justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800 }}>
-            {ev.orgInitial}
+            {ev.org_avatar
+              ? <img src={ev.org_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+              : (ev.orgInitial || 'O')}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:5 }}>
@@ -3745,14 +3754,16 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
         <div style={{ marginTop:13, background:C.card, borderRadius:16,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'12px 15px',
                       display:'flex', alignItems:'center', gap:11, position:'relative' }}>
-          <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
-                        background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
-                        justifyContent:'center', color:'#fff', fontSize:16, fontWeight:800 }}>
-            {sp.avatarInitial || sp.avatar_initial || "S"}
+          <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0, overflow:'hidden',
+                        background: sp.host_avatar ? 'transparent' : (sp.host_color || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)'),
+                        display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:16, fontWeight:800 }}>
+            {sp.host_avatar
+              ? <img src={sp.host_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+              : (hostName?.[0] || 'S').toUpperCase()}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{hostName || 'Organizer'}</div>
-            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Student</div>
+            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Space Host</div>
           </div>
           <div style={{ position:'relative', flexShrink:0 }}>
             <button onClick={() => setMoreOpen(v => !v)} style={{
@@ -4114,19 +4125,29 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
   const fileRef    = useRef(null);
 
   // Map Supabase shape → UI shape
-  const messages = rawMessages.map(msg => ({
-    id:         msg.id,
-    side:       msg.sender_id === currentUserId ? 'out' : 'in',
-    text:       msg.content,
-    time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
-    hasText:    !!msg.content,
-    hasImage:   !!(msg.attachment_url && /\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
-    hasFile:    !!(msg.attachment_url && !/\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
-    attachUrl:  msg.attachment_url || null,
-    sender:     msg.sender_id,
-    aInitial:   msg.sender_id?.[0]?.toUpperCase() || '?',
-    aColor:     'linear-gradient(135deg,#7C5CFF,#02B6FE)',
-  }))
+  const messages = rawMessages.map(msg => {
+    const isOut = msg.sender_id === currentUserId
+    const profile = msg._senderProfile || null
+    const senderName = isOut
+      ? (currentUser?.name || profile?.name || 'You')
+      : (profile?.name || chatName || '?')
+    const senderAvatar = isOut ? (currentUser?.avatarUrl || profile?.avatar_url || null) : (profile?.avatar_url || null)
+    const senderColor  = isOut ? (currentUser?.avatarColor || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)') : (profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)')
+    return {
+      id:         msg.id,
+      side:       isOut ? 'out' : 'in',
+      text:       msg.content,
+      time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
+      hasText:    !!msg.content,
+      hasImage:   !!(msg.attachment_url && /\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
+      hasFile:    !!(msg.attachment_url && !/\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
+      attachUrl:  msg.attachment_url || null,
+      sender:     msg.sender_id,
+      aInitial:   senderName[0]?.toUpperCase() || '?',
+      aColor:     senderColor,
+      aAvatar:    senderAvatar,
+    }
+  })
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -4259,13 +4280,16 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
               {/* Avatar — only first of incoming group */}
               {!isOut && firstOfGroup && (
                 <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
-                              background:m.aColor, display:'flex', alignItems:'center',
+                              background: m.aAvatar ? 'transparent' : m.aColor, display:'flex', alignItems:'center',
                               justifyContent:'center', color:'#fff', fontSize:10,
                               fontWeight:800, alignSelf:'flex-end', position:'relative',
                               overflow:'hidden' }}>
-                  <span>{m.aInitial}</span>
-                  <div style={{ position:'absolute', inset:0, background:
-                    'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 10px)' }}/>
+                  {m.aAvatar
+                    ? <img src={m.aAvatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+                    : <><span>{m.aInitial}</span>
+                      <div style={{ position:'absolute', inset:0, background:
+                        'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 10px)' }}/></>
+                  }
                 </div>
               )}
               {/* Spacer for subsequent messages in group */}
@@ -4276,7 +4300,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
                 {/* Sender name */}
                 {!isOut && firstOfGroup && (
                   <span style={{ fontSize:10, fontWeight:700, color:'#8A93A6',
-                                 marginBottom:3, marginLeft:4 }}>{m.sender}</span>
+                                 marginBottom:3, marginLeft:4 }}>{chatName || m.aInitial}</span>
                 )}
 
                 {/* Bubble */}

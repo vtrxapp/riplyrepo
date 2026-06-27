@@ -1,6 +1,23 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
+
+// Cache user profiles so we don't re-fetch on every message
+const profileCache = {}
+async function fetchSenderProfiles(senderIds) {
+  const missing = senderIds.filter(id => id && !profileCache[id])
+  if (missing.length) {
+    const { data } = await supabase.from('users').select('id,name,avatar_url,avatar_color').in('id', missing)
+    ;(data || []).forEach(u => { profileCache[u.id] = u })
+  }
+}
+
+function enrichMessages(msgs, currentUserId) {
+  return msgs.map(msg => ({
+    ...msg,
+    _senderProfile: profileCache[msg.sender_id] || null,
+  }))
+}
 
 // Find or create a chat row, returns the real UUID chat_id
 async function resolveChat(chatId, currentUserId) {
@@ -48,7 +65,9 @@ export function useChat(chatId) {
         .order('created_at', { ascending: true })
 
       if (!cancelled) {
-        setMessages(data || [])
+        const msgs = data || []
+        await fetchSenderProfiles([...new Set(msgs.map(m => m.sender_id).filter(Boolean))])
+        setMessages(enrichMessages(msgs))
         setLoading(false)
       }
 
@@ -59,11 +78,11 @@ export function useChat(chatId) {
           schema: 'public',
           table: 'messages',
           filter: `chat_id=eq.${resolved}`,
-        }, (payload) => {
+        }, async (payload) => {
+          await fetchSenderProfiles([payload.new.sender_id].filter(Boolean))
           setMessages(prev => {
-            // avoid duplicates from optimistic insert
             if (prev.find(m => m.id === payload.new.id)) return prev
-            return [...prev, payload.new]
+            return [...prev, ...enrichMessages([payload.new])]
           })
         })
         .subscribe()
@@ -90,7 +109,7 @@ export function useChat(chatId) {
 
     // Optimistic insert
     const tempId = `temp-${Date.now()}`
-    setMessages(prev => [...prev, { ...row, id: tempId, created_at: new Date().toISOString() }])
+    setMessages(prev => [...prev, ...enrichMessages([{ ...row, id: tempId, created_at: new Date().toISOString() }])])
 
     const { data, error } = await supabase.from('messages').insert(row).select().single()
     if (!error && data) {

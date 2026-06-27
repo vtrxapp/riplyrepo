@@ -487,53 +487,20 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
           const prog = sp.started ? (progress[sp.id]??0) : 0;
           const done = prog>=100;
 
-          const SPACE_IMGS = {
-            academic: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&q=75',
-            social:   'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=75',
-            sports:   'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=75',
-            arts:     'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=75',
-            career:   'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=75',
-            culture:  'https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=800&q=75',
-          };
-          const spaceImg = sp.image_url || SPACE_IMGS[sp.category || sp.cat] || SPACE_IMGS.social;
           return (
-            <div key={sp.id} style={{ background:C.card, borderRadius:22, boxShadow:'0 8px 24px rgba(16,24,40,0.07),0 1px 2px rgba(16,24,40,0.04)', marginBottom:16, overflow:'hidden' }}>
-              {/* Banner */}
-              <div onClick={()=>navigate('space-details',{spaceId:sp.id})}
-                style={{ position:'relative', height:140, overflow:'hidden', cursor:'pointer' }}>
-                <img src={spaceImg} alt={sp.title}
-                  style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
-                <div style={{ position:'absolute', inset:0,
-                  background:'linear-gradient(180deg,rgba(0,0,0,0.18) 0%,transparent 40%,rgba(0,0,0,0.5) 100%)' }}/>
-                {/* Category chip */}
-                <span style={{ position:'absolute', top:10, left:10, display:'inline-flex',
-                  alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
-                  background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700,
-                  letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>
-                  {(sp.category || sp.cat || 'Space').charAt(0).toUpperCase() + (sp.category || sp.cat || 'space').slice(1)}
-                </span>
-                {/* Avatar + title at bottom */}
-                <div style={{ position:'absolute', bottom:10, left:10, right:10,
-                              display:'flex', alignItems:'center', gap:9 }}>
-                  <div style={{ width:36, height:36, borderRadius:'50%', flexShrink:0,
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    color:'#fff', fontSize:13, fontWeight:800,
-                    background:sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
-                    border:'2px solid rgba(255,255,255,0.7)' }}>
-                    {sp.avatarInitial || sp.avatar_initial || 'S'}
+            <div key={sp.id} style={{ background:C.card, borderRadius:22, boxShadow:'0 8px 24px rgba(16,24,40,0.07),0 1px 2px rgba(16,24,40,0.04)', marginBottom:16, padding:'16px 16px 14px' }}>
+              {/* Title + Avatar */}
+              <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div onClick={()=>navigate('space-details',{spaceId:sp.id})} style={{ fontSize:16, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{sp.title}</div>
+                  <div style={{ fontSize:11, color:'#7B8499', marginTop:3, lineHeight:1.4 }}>{sp.desc || sp.description || ""}</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
+                    <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
                   </div>
-                  <div style={{ fontSize:15, fontWeight:800, color:'#fff', letterSpacing:-0.3,
-                                textShadow:'0 1px 4px rgba(0,0,0,0.5)', lineHeight:1.2 }}>{sp.title}</div>
                 </div>
+                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)' }}>{sp.avatarInitial || sp.avatar_initial || "S"}</div>
               </div>
-
-              {/* Content */}
-              <div style={{ padding:'14px 16px 14px' }}>
-                <div style={{ fontSize:11, color:'#7B8499', lineHeight:1.4 }}>{sp.desc || sp.description || ""}</div>
-                <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
-                  <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
-                </div>
 
               {/* Stats row */}
               <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginTop:15 }}>
@@ -591,7 +558,6 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 
               {/* Host */}
               <div style={{ fontSize:9.5, color:C.subtle, textAlign:'center', marginTop:10 }}>{sp.hostText || sp.host_text || ""}</div>
-              </div>{/* end content */}
             </div>
           );
         })}
@@ -5831,7 +5797,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             day: firstDate || null,
             avatar_color: activeCatObj.grad,
             avatar_initial: title.trim()[0]?.toUpperCase() || 'S',
-            image_url: coverUrl || null,
+            ...(coverUrl ? { image_url: coverUrl } : {}),
           }).select().single();
           setSubmitting(false);
           if (error) { showToast('Failed to create space: ' + error.message); return; }

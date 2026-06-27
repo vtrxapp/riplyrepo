@@ -4065,11 +4065,13 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
     if (typeof Notification === 'undefined') return false;
     return Notification.permission === 'granted';
   });
-  const [emailNotif, setEmailNotif] = useState(false);
-  const [reminders, setReminders] = useState(true);
-  const [location, setLocation] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [privateProfile, setPrivateProfile] = useState(false);
+  const [emailNotif, setEmailNotif] = useState(() => localStorage.getItem('pref_email_notif') === 'true');
+  const [reminders, setReminders] = useState(() => localStorage.getItem('pref_reminders') !== 'false');
+  const [location, setLocation] = useState(() => localStorage.getItem('pref_location') !== 'false');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('pref_dark_mode') === 'true');
+  const [privateProfile, setPrivateProfile] = useState(() => localStorage.getItem('pref_private') === 'true');
+  const [dataOpen, setDataOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const [lang, setLang] = useState('English');
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({ events: 0, groups: 0 });
@@ -4113,7 +4115,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name); setDraftEmail(currentUser.email); setEditOpen(true); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved', hasChevron:true, onClick:()=>navigate('saved-events') },
-        { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>showToast('Payment Methods coming soon') },
+        { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>setPayOpen(true) },
         ...(profileRole!=='student'?[{ icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M3 5h18M3 10h18M3 15h10', title:'Manage Events', hasChevron:true, onClick:()=>navigate('event-manager') }]:[]),
       ],
     },
@@ -4137,19 +4139,19 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           if (token) { setPush(true); showToast('Push notifications enabled!'); }
           else { showToast('Could not enable notifications — please try again'); }
         }},
-        { icon:'#E4F7EC', iconStroke:'#15A34A', iconPath:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z', iconPath2:'m22 6-10 7L2 6', title:'Email Notifications', isToggle:true, toggleVal:emailNotif, onToggle:()=>setEmailNotif(v=>!v) },
-        { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', title:'Reminders', isToggle:true, toggleVal:reminders, onToggle:()=>setReminders(v=>!v) },
-        { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z', iconPath2:'', title:'Location Services', isToggle:true, toggleVal:location, onToggle:()=>setLocation(v=>!v) },
+        { icon:'#E4F7EC', iconStroke:'#15A34A', iconPath:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z', iconPath2:'m22 6-10 7L2 6', title:'Email Notifications', isToggle:true, toggleVal:emailNotif, onToggle:()=>{ const v=!emailNotif; setEmailNotif(v); localStorage.setItem('pref_email_notif', v); showToast(v ? 'Email notifications enabled' : 'Email notifications disabled'); } },
+        { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', title:'Reminders', isToggle:true, toggleVal:reminders, onToggle:()=>{ const v=!reminders; setReminders(v); localStorage.setItem('pref_reminders', v); showToast(v ? 'Reminders enabled' : 'Reminders disabled'); } },
+        { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z', iconPath2:'', title:'Location Services', isToggle:true, toggleVal:location, onToggle:()=>{ const v=!location; if(v && navigator.geolocation) { navigator.geolocation.getCurrentPosition(()=>{ setLocation(true); localStorage.setItem('pref_location','true'); showToast('Location enabled'); }, ()=>showToast('Location permission denied')); } else { setLocation(false); localStorage.setItem('pref_location','false'); showToast('Location disabled'); } } },
         { icon:'#F1F3F7', iconStroke:C.muted, iconPath:'M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z', title:'Language', hasChevron:true, value:lang, onClick:()=>setLangOpen(true) },
-        { icon:'#2A3347', iconStroke:'#9AA3B2', iconPath:'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z', title:'Dark Mode', isToggle:true, toggleVal:darkMode, onToggle:()=>setDarkMode(v=>!v) },
+        { icon:'#2A3347', iconStroke:'#9AA3B2', iconPath:'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z', title:'Dark Mode', isToggle:true, toggleVal:darkMode, onToggle:()=>{ const v=!darkMode; setDarkMode(v); localStorage.setItem('pref_dark_mode', v); } },
       ],
     },
     {
       title:'Privacy & Security',
       rows: [
-        { icon:'#F1F3F7', iconStroke:C.muted, iconPath:'M12 1a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5z', title:'Private Profile', isToggle:true, toggleVal:privateProfile, onToggle:()=>setPrivateProfile(v=>!v) },
+        { icon:'#F1F3F7', iconStroke:C.muted, iconPath:'M12 1a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5z', title:'Private Profile', isToggle:true, toggleVal:privateProfile, onToggle: async ()=>{ const v=!privateProfile; setPrivateProfile(v); localStorage.setItem('pref_private',v); await currentUser.updateProfile({ private: v }); showToast(v ? 'Profile set to private' : 'Profile set to public'); } },
         { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4', title:'Change Password', hasChevron:true, onClick:()=>setPwOpen(true) },
-        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z', title:'Data & Permissions', hasChevron:true, onClick:()=>showToast('Data & Permissions coming soon') },
+        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z', title:'Data & Permissions', hasChevron:true, onClick:()=>setDataOpen(true) },
       ],
     },
     {
@@ -4312,6 +4314,48 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
 
       {/* Change Password Sheet */}
       {pwOpen && <ChangePasswordSheet onClose={()=>setPwOpen(false)} showToast={showToast} chipBg={chipBg} borderColor={borderColor} textColor={textColor} subColor={subColor} />}
+
+      {/* Payment Methods Sheet */}
+      {payOpen && (
+        <Sheet onClose={()=>setPayOpen(false)} title="Payment Methods">
+          <div style={{ padding:'4px 0 8px' }}>
+            {[{label:'Apple Pay', icon:'M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z'},{label:'Google Pay', icon:'M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z'},{label:'Credit / Debit Card', icon:'M2 7h20v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7zM2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2M6 12h4'}].map(p=>(
+              <div key={p.label} onClick={()=>showToast(`${p.label} coming soon`)} style={{ display:'flex', alignItems:'center', gap:14, padding:'15px 0', borderBottom:`1px solid ${borderColor}`, cursor:'pointer' }}>
+                <div style={{ width:40, height:40, borderRadius:12, background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d={p.icon} stroke={C.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <span style={{ flex:1, fontSize:13, fontWeight:700, color:textColor }}>{p.label}</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            ))}
+            <button onClick={()=>showToast('Add payment method coming soon')} style={{ width:'100%', height:50, marginTop:18, border:`1.5px dashed ${borderColor}`, borderRadius:14, background:'none', color:C.primary, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={C.primary} strokeWidth="2.2" strokeLinecap="round"/></svg>
+              Add Payment Method
+            </button>
+          </div>
+        </Sheet>
+      )}
+
+      {/* Data & Permissions Sheet */}
+      {dataOpen && (
+        <Sheet onClose={()=>setDataOpen(false)} title="Data & Permissions">
+          <div style={{ padding:'4px 0 8px' }}>
+            {[
+              { label:'Download My Data', desc:'Get a copy of all your Riply data', color:C.primary, onClick:()=>showToast('Your data export will be emailed to you') },
+              { label:'Manage App Permissions', desc:'Camera, microphone, location', color:'#7C5CFF', onClick:()=>showToast('Manage permissions in your device settings') },
+              { label:'Delete My Account', desc:'Permanently remove your account and data', color:C.danger, onClick:()=>showToast('Contact support to delete your account') },
+            ].map(d=>(
+              <div key={d.label} onClick={d.onClick} style={{ display:'flex', alignItems:'center', gap:14, padding:'15px 0', borderBottom:`1px solid ${borderColor}`, cursor:'pointer' }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color: d.label==='Delete My Account' ? C.danger : textColor }}>{d.label}</div>
+                  <div style={{ fontSize:11, color:subColor, marginTop:2 }}>{d.desc}</div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            ))}
+          </div>
+        </Sheet>
+      )}
     </div>
   );
 }

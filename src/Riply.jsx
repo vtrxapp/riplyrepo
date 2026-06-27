@@ -4091,6 +4091,10 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [profileRole, setProfileRole] = useState(cu.role || 'student');
   const [draftName, setDraftName] = useState('');
   const [draftEmail, setDraftEmail] = useState('');
+  const [draftBio, setDraftBio] = useState('');
+  const [draftUniversity, setDraftUniversity] = useState('');
+  const [draftYear, setDraftYear] = useState('');
+  const [draftProgram, setDraftProgram] = useState('');
 
   const pageBg = darkMode?'#0E1726':C.pageBg;
   const cardBg = darkMode?'#1A2233':C.card;
@@ -4112,7 +4116,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
     {
       title:'Account',
       rows: [
-        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name); setDraftEmail(currentUser.email); setEditOpen(true); } },
+        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftBio(currentUser.bio||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved', hasChevron:true, onClick:()=>navigate('saved-events') },
         { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>setPayOpen(true) },
@@ -4173,7 +4177,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       {/* Header */}
       <div style={{ flexShrink:0, background:cardBg, padding:'52px 16px 10px', boxShadow:'0 1px 0 rgba(16,24,40,0.04)', zIndex:4, display:'flex', alignItems:'center', justifyContent:'space-between', transition:'background .3s' }}>
         <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:textColor }}>Profile & Settings</span>
-        <button onClick={()=>{ setDraftName(currentUser.name); setDraftEmail(currentUser.email); setEditOpen(true); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+        <button onClick={()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftBio(currentUser.bio||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={iconStroke} strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke={iconStroke} strokeWidth="1.9" strokeLinecap="round"/></svg>
         </button>
       </div>
@@ -4225,6 +4229,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             </div>
           )}
           <div style={{ fontSize:10.5, color:subColor, marginTop:6 }}>{email}</div>
+          {currentUser.bio && <div style={{ fontSize:12, color:subColor, marginTop:8, maxWidth:280, lineHeight:1.5 }}>{currentUser.bio}</div>}
         </div>
 
         {/* Stats */}
@@ -4280,23 +4285,61 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       {/* Edit Profile Sheet */}
       {editOpen && (
         <Sheet onClose={()=>setEditOpen(false)} title="Edit Profile">
-          <div style={{ marginBottom:14 }}>
-            <div style={{ fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>Full Name</div>
-            <input value={draftName} onChange={e=>setDraftName(e.target.value)} style={{ width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:13, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }} />
+          {/* Avatar */}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom:20 }}>
+            <button onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file'; input.accept = 'image/*';
+              input.onchange = async (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                try {
+                  const url = await uploadImage(file, 'group avatars', `${currentUser.userId}.jpg`);
+                  await currentUser.updateProfile({ avatar_url: url });
+                  showToast('Profile photo updated');
+                } catch { showToast('Upload failed. Try again.'); }
+              };
+              input.click();
+            }} style={{ width:80, height:80, borderRadius:'50%', padding:3, background:C.grad, border:'none', cursor:'pointer', position:'relative', boxShadow:'0 6px 16px rgba(2,162,240,0.3)' }}>
+              <div style={{ width:'100%', height:'100%', borderRadius:'50%', background:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, overflow:'hidden' }}>
+                {currentUser.avatarUrl
+                  ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <span style={{ fontSize:24, fontWeight:800, color:'#fff' }}>{initials}</span>
+                }
+              </div>
+              <div style={{ position:'absolute', bottom:2, right:2, width:24, height:24, borderRadius:'50%', background:C.primary, display:'flex', alignItems:'center', justifyContent:'center', border:`2px solid ${cardBg}` }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/></svg>
+              </div>
+            </button>
+            <div style={{ fontSize:11, color:subColor, marginTop:8 }}>Tap to change photo</div>
           </div>
-          <div>
-            <div style={{ fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>Email</div>
-            <input value={draftEmail} onChange={e=>setDraftEmail(e.target.value)} inputMode="email" style={{ width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:12, fontWeight:600, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }} />
-          </div>
+
+          {/* Fields */}
+          {[
+            { label:'Full Name', val:draftName, set:setDraftName, type:'text', mode:undefined },
+            { label:'Bio', val:draftBio, set:setDraftBio, type:'textarea', mode:undefined },
+            { label:'University', val:draftUniversity, set:setDraftUniversity, type:'text', mode:undefined },
+            { label:'Year', val:draftYear, set:setDraftYear, type:'text', mode:undefined, placeholder:'e.g. Sophomore, 2nd Year' },
+            { label:'Program / Major', val:draftProgram, set:setDraftProgram, type:'text', mode:undefined, placeholder:'e.g. Computer Science' },
+            { label:'Email', val:draftEmail, set:setDraftEmail, type:'text', mode:'email' },
+          ].map(f => (
+            <div key={f.label} style={{ marginBottom:14 }}>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>{f.label}</div>
+              {f.type === 'textarea'
+                ? <textarea value={f.val} onChange={e=>f.set(e.target.value)} placeholder="Tell people about yourself…" rows={3} style={{ width:'100%', boxSizing:'border-box', border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'12px 14px', fontSize:12, fontWeight:600, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif", resize:'none', lineHeight:1.5 }} />
+                : <input value={f.val} onChange={e=>f.set(e.target.value)} inputMode={f.mode} placeholder={f.placeholder||''} style={{ width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:13, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }} />
+              }
+            </div>
+          ))}
+
           <button onClick={async ()=>{
             if(draftName.trim().length<2){showToast('Name must be at least 2 characters');return;}
             setSaving(true);
-            const { error } = await currentUser.updateProfile({ name: draftName.trim(), email: draftEmail.trim() });
+            const { error } = await currentUser.updateProfile({ name: draftName.trim(), email: draftEmail.trim(), bio: draftBio.trim(), university: draftUniversity.trim(), year: draftYear.trim(), program: draftProgram.trim() });
             setSaving(false);
             if(error){ showToast('Failed to save: ' + (error.message || 'Unknown error')); return; }
             setEditOpen(false);
             showToast('Profile updated');
-          }} style={{ width:'100%', height:52, marginTop:20, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)', opacity: saving?0.7:1 }}>{saving ? 'Saving…' : 'Save Changes'}</button>
+          }} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)', opacity: saving?0.7:1 }}>{saving ? 'Saving…' : 'Save Changes'}</button>
         </Sheet>
       )}
 

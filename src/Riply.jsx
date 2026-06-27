@@ -499,7 +499,9 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                     <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
                   </div>
                 </div>
-                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)' }}>{sp.avatarInitial || sp.avatar_initial || "S"}</div>
+                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)', overflow:'hidden' }}>
+                  {sp.image_url ? <img src={sp.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (sp.avatarInitial || sp.avatar_initial || "S")}
+                </div>
               </div>
 
               {/* Stats row */}
@@ -5410,22 +5412,23 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
     { id:'culture',  label:'Culture',  grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)' },
   ];
 
-  const [cat,        setCat]        = useState('academic');
-  const [title,      setTitle]      = useState('');
-  const [recurrence, setRecurrence] = useState('');
-  const [firstDate,  setFirstDate]  = useState('');
-  const [startTime,  setStartTime]  = useState('');
-  const [endTime,    setEndTime]    = useState('');
-  const [venue,      setVenue]      = useState('');
-  const [area,       setArea]       = useState('');
-  const [maxSpots,   setMaxSpots]   = useState(10);
-  const [notifySpot, setNotifySpot] = useState(false);
-  const [pricing,    setPricing]    = useState('free');
-  const [price,      setPrice]      = useState('');
-  const [about,      setAbout]      = useState('');
-  const [coverUrl,   setCoverUrl]   = useState(null);
-  const [uploading,  setUploading]  = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [cat,         setCat]        = useState('academic');
+  const [title,       setTitle]      = useState('');
+  const [firstDate,   setFirstDate]  = useState('');
+  const [startTime,   setStartTime]  = useState('');
+  const [duration,    setDuration]   = useState('');
+  const [repeat,      setRepeat]     = useState(false);
+  const [repeatWeeks, setRepeatWeeks]= useState('');
+  const [venue,       setVenue]      = useState('');
+  const [area,        setArea]       = useState('');
+  const [maxSpots,    setMaxSpots]   = useState(10);
+  const [notifySpot,  setNotifySpot] = useState(false);
+  const [pricing,     setPricing]    = useState('free');
+  const [price,       setPrice]      = useState('');
+  const [about,       setAbout]      = useState('');
+  const [coverUrl,    setCoverUrl]   = useState(null);
+  const [uploading,   setUploading]  = useState(false);
+  const [submitting,  setSubmitting] = useState(false);
 
   const activeCat  = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid     = pricing === 'paid';
@@ -5589,46 +5592,71 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`,
                         borderRadius:16, padding:'2px 14px' }}>
             {[
-              { label:'Recurrence', icon:'repeat', val:recurrence, set:setRecurrence, ph:'Every Tuesday'  },
-              { label:'First date',  icon:'cal',    val:firstDate,  set:setFirstDate,  ph:'Jan 15, 2026'  },
-              { label:'Start time',  icon:'clock',  val:startTime,  set:setStartTime,  ph:'8:00 PM'       },
-              { label:'End time',    icon:'clock2', val:endTime,    set:setEndTime,    ph:'9:00 PM', last:true },
+              { label:'First date',  icon:'cal',   val:firstDate,  set:setFirstDate,  ph:'Jan 15, 2026' },
+              { label:'Start time',  icon:'clock', val:startTime,  set:setStartTime,  ph:'8:00 PM'      },
+              { label:'Duration',    icon:'timer',  val:duration,   set:setDuration,   ph:'60 min', last:true },
             ].map(r => (
               <div key={r.label} style={{ display:'flex', alignItems:'center', gap:11,
                                           padding:'11px 0',
                                           borderBottom: r.last ? 'none' : `1px solid ${C.divider}` }}>
-                {/* Icon */}
-                {r.icon === 'repeat' && (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                    <path d="M4 7l3-3 3 3M7 4v8a4 4 0 0 0 8 0V8a4 4 0 0 1 8 0v3"
-                          stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
                 {r.icon === 'cal' && (
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
                     <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
                     <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
                   </svg>
                 )}
-                {(r.icon === 'clock' || r.icon === 'clock2') && (
+                {r.icon === 'clock' && (
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                    <circle cx="12" cy="12" r="8.5"
-                            stroke={r.icon === 'clock' ? C.primary : C.subtle} strokeWidth="1.9"/>
-                    <path d="M12 8v4.5l3 2"
-                          stroke={r.icon === 'clock' ? C.primary : C.subtle}
-                          strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.9"/>
+                    <path d="M12 8v4.5l3 2" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 )}
-                <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>
-                  {r.label}
-                </span>
+                {r.icon === 'timer' && (
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                    <circle cx="12" cy="13" r="7.5" stroke={C.primary} strokeWidth="1.9"/>
+                    <path d="M12 9.5v4l2.5 1.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 3h6M12 3v2.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+                  </svg>
+                )}
+                <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>{r.label}</span>
                 <input value={r.val} onChange={e => r.set(e.target.value)}
-                  placeholder={r.ph}
-                  style={{ width:130, textAlign:'right', border:'none', background:'none',
+                  placeholder={r.ph} inputMode={r.icon==='timer'?'numeric':undefined}
+                  style={{ width:110, textAlign:'right', border:'none', background:'none',
                            fontSize:13, fontWeight:700, color:C.body, outline:'none',
                            fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
               </div>
             ))}
+          </div>
+          {/* Repeats weekly + number of weeks */}
+          <div style={{ display:'flex', alignItems:'center', gap:9, marginTop:11 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M4 7l3-3 3 3M7 4v8a4 4 0 0 0 8 0V8a4 4 0 0 1 8 0v3"
+                stroke={C.muted} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Repeats weekly</span>
+            {repeat && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginRight:8 }}>
+                <input
+                  value={repeatWeeks} onChange={e => setRepeatWeeks(e.target.value.replace(/\D/g,''))}
+                  placeholder="?"
+                  inputMode="numeric"
+                  style={{ width:36, height:26, border:`1.5px solid ${C.border}`, borderRadius:8,
+                           background:C.card, textAlign:'center', fontSize:12, fontWeight:700,
+                           color:C.body, outline:'none',
+                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+                />
+                <span style={{ fontSize:11, fontWeight:600, color:C.muted }}>wks</span>
+              </div>
+            )}
+            <button onClick={() => setRepeat(v => !v)} style={{
+              width:44, height:26, border:'none', borderRadius:999, padding:0,
+              background: repeat ? C.primary : '#D1D5DB', cursor:'pointer',
+              position:'relative', transition:'background .2s', flexShrink:0,
+            }}>
+              <span style={{ position:'absolute', top:3, left: repeat ? 21 : 3, width:20, height:20,
+                             borderRadius:'50%', background:'#fff', display:'block',
+                             boxShadow:'0 1px 3px rgba(0,0,0,0.2)', transition:'left .2s' }}/>
+            </button>
           </div>
         </div>
 
@@ -5790,7 +5818,6 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           setSubmitting(true);
           const activeCatObj = CATS.find(c => c.id === cat) || CATS[0];
           const location = [venue, area].filter(Boolean).join(' · ');
-          const timeStr = [startTime, endTime].filter(Boolean).join(' – ');
           const { data: space, error } = await supabase.from('spaces').insert({
             title: title.trim(),
             description: about.trim(),
@@ -5798,8 +5825,9 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             host_text: currentUser.name || 'Host',
             category: cat,
             location: location || null,
-            time: timeStr || null,
-            duration: recurrence || null,
+            time: startTime || null,
+            duration: duration || null,
+            repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
             price: isPaid ? (parseFloat(price) || 0) : 0,
             is_free: !isPaid,
             max_spots: maxSpots,
@@ -5927,8 +5955,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
   const [title,     setTitle]     = useState('');
   const [date,      setDate]      = useState('');
   const [startTime, setStartTime] = useState('');
-  const [endTime,   setEndTime]   = useState('');
-  const [repeat,    setRepeat]    = useState(false);
+  const [duration,    setDuration]    = useState('');
+  const [repeat,      setRepeat]      = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState('');
   const [venue,     setVenue]     = useState('');
   const [coverUrl,  setCoverUrl]  = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -6074,7 +6103,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
             {[
               { label:'Date',       icon:'cal',   val:date,      set:setDate,      ph:'Jan 15, 2026' },
               { label:'Start time', icon:'clock', val:startTime, set:setStartTime, ph:'8:00 PM'      },
-              { label:'End time',   icon:'clock', val:endTime,   set:setEndTime,   ph:'1:00 AM',     last:true },
+              { label:'Duration',   icon:'clock', val:duration,  set:setDuration,  ph:'60 min',      last:true },
             ].map((r, i) => (
               <div key={r.label} style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
                                           borderBottom: r.last ? 'none' : `1px solid ${C.divider}` }}>
@@ -6105,6 +6134,16 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
                 stroke={C.muted} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Repeats weekly</span>
+            {repeat && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginRight:8 }}>
+                <input value={repeatWeeks} onChange={e => setRepeatWeeks(e.target.value.replace(/\D/g,''))}
+                  placeholder="?" inputMode="numeric"
+                  style={{ width:36, height:26, border:`1.5px solid ${C.border}`, borderRadius:8,
+                           background:C.card, textAlign:'center', fontSize:12, fontWeight:700,
+                           color:C.body, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+                <span style={{ fontSize:11, fontWeight:600, color:C.muted }}>wks</span>
+              </div>
+            )}
             <button onClick={() => setRepeat(v => !v)} style={{
               width:44, height:26, border:'none', borderRadius:999, padding:0,
               background: repeat ? C.primary : '#D1D5DB', cursor:'pointer',
@@ -6343,7 +6382,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
             if (!currentUser.userId) { showToast('You must be logged in to publish an event'); return; }
             setSubmitting(true);
             const location = [venue, room].filter(Boolean).join(' · ');
-            const timeRange = [startTime, endTime].filter(Boolean).join(' – ');
+            const timeRange = startTime || null;
             const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
             const { data: event, error } = await supabase.from('events').insert({
               title: title.trim(),
@@ -6358,7 +6397,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
               room: room.trim() || null,
               date: date || null,
               full_date: date || null,
-              time_range: timeRange || null,
+              start_time: startTime || null,
+              time_range: timeRange,
+              duration: duration || null,
+              repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
               image_url: coverUrl || null,
               price: isPaid ? `$${price}` : 'Free',
               capacity: unlimited ? null : capacity,

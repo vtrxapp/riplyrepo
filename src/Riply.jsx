@@ -261,7 +261,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast }) {
   const CATS = [
     {id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
@@ -311,6 +311,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
           const th = THEME[ev.primary] || THEME[ev.category] || THEME.social;
           const isLiked = !!liked[ev.id];
           const isSaved = !!saved[ev.id];
+          const isSharedEv = !!shared[ev.id];
           const isFollowing = !!following[ev.id];
           return (
             <div key={ev.id} style={{ background:C.card, borderRadius:24, boxShadow:'0 8px 24px rgba(16,24,40,0.07),0 1px 2px rgba(16,24,40,0.04)', marginBottom:16, overflow:'hidden' }}>
@@ -362,7 +363,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
                   <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>
-                    {ev.date || '-'}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
+                    {(() => { const raw = ev.fullDate || ev.full_date || ev.date; if (!raw) return '-'; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); })()}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
                   </span>
                 </div>
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
@@ -401,16 +402,19 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, following, toggleFol
                       text: `${ev.title}${ev.date ? ' · ' + ev.date : ''}`,
                       url: window.location.href,
                     };
+                    let didShare = false;
                     if (navigator.share) {
-                      try { await navigator.share(shareData); } catch {}
+                      try { await navigator.share(shareData); didShare = true; } catch {}
                     } else {
                       try {
                         await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                        didShare = true;
                       } catch {}
                     }
+                    if (didShare) recordShare(ev.id);
                   }} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z" stroke="#7B8499" strokeWidth="1.8" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:'#7B8499' }}>{fmt(ev.shares)}</span>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z" fill={isSharedEv ? C.primary : 'none'} stroke={isSharedEv ? C.primary : '#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                    <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? C.primary : '#7B8499' }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke="#7B8499" strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>
@@ -2635,7 +2639,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
-function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, following, toggleFollowing, navigate, goBack, showToast, role }) {
+function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, navigate, goBack, showToast, role }) {
   const [dbEvent, setDbEvent] = useState(null);
   useEffect(() => {
     if (!eventId) return;
@@ -2681,14 +2685,17 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, fol
             text: `${ev.title} — ${ev.fullDate || ev.full_date || ev.date || ''}${ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}`,
             url: window.location.href,
           };
+          let didShare = false;
           if (navigator.share) {
-            try { await navigator.share(shareData); } catch {}
+            try { await navigator.share(shareData); didShare = true; } catch {}
           } else {
             try {
               await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
               showToast('Event link copied to clipboard');
+              didShare = true;
             } catch { showToast('Could not share'); }
           }
+          if (didShare) recordShare(ev.id);
         }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <circle cx="18" cy="5.5" r="2.5" stroke="#39414F" strokeWidth="1.9"/>
@@ -9424,7 +9431,7 @@ export default function RiplyApp() {
   }, []);
 
   // Home state
-  const { liked, saved, spaceSaved, rsvpd: following, postLiked, toggleLike, toggleSave, toggleSaveSpace, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
+  const { liked, saved, spaceSaved, shared, rsvpd: following, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
   const [filters, setFilters] = useState({});
   const [activeCat, setActiveCat] = useState('trending');
   const [query, setQuery] = useState('');
@@ -9470,7 +9477,7 @@ export default function RiplyApp() {
     switch(screen) {
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} />;
-      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
@@ -9481,7 +9488,7 @@ export default function RiplyApp() {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
+      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;

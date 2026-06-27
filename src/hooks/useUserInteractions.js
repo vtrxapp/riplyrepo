@@ -7,6 +7,7 @@ export function useUserInteractions() {
   const [liked,       setLikedState]      = useState({})
   const [saved,       setSavedState]      = useState({})
   const [spaceSaved,  setSpaceSavedState] = useState({})
+  const [shared,      setSharedState]     = useState({})
   const [rsvpd,       setRsvpdState]      = useState({})
   const [postLiked,   setPostLikedState]  = useState({})
 
@@ -17,12 +18,14 @@ export function useUserInteractions() {
       supabase.from('event_likes').select('event_id').eq('user_id', uid),
       supabase.from('event_saves').select('event_id').eq('user_id', uid),
       supabase.from('space_saves').select('space_id').eq('user_id', uid),
+      supabase.from('event_shares').select('event_id').eq('user_id', uid),
       supabase.from('event_rsvps').select('event_id').eq('user_id', uid),
       supabase.from('post_likes').select('post_id').eq('user_id', uid),
-    ]).then(([likes, saves, ssaves, rsvps, plikes]) => {
+    ]).then(([likes, saves, ssaves, shares, rsvps, plikes]) => {
       if (likes.data)  setLikedState(Object.fromEntries(likes.data.map(r => [r.event_id, true])))
       if (saves.data)  setSavedState(Object.fromEntries(saves.data.map(r => [r.event_id, true])))
       if (ssaves.data) setSpaceSavedState(Object.fromEntries(ssaves.data.map(r => [r.space_id, true])))
+      if (shares.data) setSharedState(Object.fromEntries(shares.data.map(r => [r.event_id, true])))
       if (rsvps.data)  setRsvpdState(Object.fromEntries(rsvps.data.map(r => [r.event_id, true])))
       if (plikes.data) setPostLikedState(Object.fromEntries(plikes.data.map(r => [r.post_id, true])))
     })
@@ -49,6 +52,13 @@ export function useUserInteractions() {
       await supabase.from('event_saves').insert({ user_id: user.id, event_id: eventId })
     }
   }, [user?.id, saved])
+
+  // Share is one-way: once shared it stays recorded
+  const recordShare = useCallback(async (eventId) => {
+    if (!user?.id || shared[eventId]) return
+    setSharedState(p => ({ ...p, [eventId]: true }))
+    await supabase.from('event_shares').upsert({ user_id: user.id, event_id: eventId }, { onConflict: 'user_id,event_id' })
+  }, [user?.id, shared])
 
   const toggleRsvp = useCallback(async (eventId) => {
     if (!user?.id) return
@@ -83,5 +93,5 @@ export function useUserInteractions() {
     }
   }, [user?.id, postLiked])
 
-  return { liked, saved, spaceSaved, rsvpd, postLiked, toggleLike, toggleSave, toggleSaveSpace, toggleRsvp, togglePostLike }
+  return { liked, saved, spaceSaved, shared, rsvpd, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, toggleRsvp, togglePostLike }
 }

@@ -953,6 +953,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     // so missing columns don't cause failures when SQL hasn't been run yet
     const payload = {
       content:        text || '',
+      text:           text || '',
       group_id:       groupId || (matchedGroup?.id && String(matchedGroup.id).includes('-') ? matchedGroup.id : null),
       user_id:        user?.id,
       likes_count:    0,
@@ -7124,10 +7125,12 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             // If created from a group, also create a post so it appears in the Posts tab
             if (sourceGroupId && event) {
               const authorName = currentUser.name || 'Organizer';
+              const eventPostText = `📅 New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
               await supabase.from('posts').insert({
                 group_id:           sourceGroupId,
                 user_id:            currentUser.userId,
-                content:            `📅 New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`,
+                content:            eventPostText,
+                text:               eventPostText,
                 image_url:          coverUrl || null,
                 linked_event_id:    event.id,
                 linked_event_title: title.trim(),

@@ -426,7 +426,9 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 {/* Organizer row */}
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:13 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:9, minWidth:0 }}>
-                    <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color:'#fff', background:th.org }}>{ev.orgInitial}</div>
+                    <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color:'#fff', background: ev.org_avatar ? 'transparent' : (ev.org_color || th.org) }}>
+                      {ev.org_avatar ? <img src={ev.org_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : ev.orgInitial}
+                    </div>
                     <div style={{ minWidth:0 }}>
                       <div style={{ fontSize:11, fontWeight:700, color:C.body, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.org}</div>
                       <div style={{ fontSize:9, color:C.subtle }}>Organizer</div>
@@ -3099,7 +3101,19 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   useEffect(() => {
     if (!eventId) return;
     supabase.from('events').select('*').eq('id', eventId).single()
-      .then(({ data }) => { if (data) setDbEvent(data); });
+      .then(async ({ data }) => {
+        if (!data) return;
+        if (data.user_id) {
+          const { data: u } = await supabase.from('users').select('name,avatar_url,avatar_color').eq('id', data.user_id).single();
+          if (u) {
+            data.org         = u.name || data.org;
+            data.orgInitial  = (u.name || data.org || 'O')[0].toUpperCase();
+            data.org_avatar  = u.avatar_url || null;
+            data.org_color   = u.avatar_color || null;
+          }
+        }
+        setDbEvent(data);
+      });
   }, [eventId]);
   const ev = dbEvent || EVENTS.find(e => e.id === eventId) || EVENTS[0];
   const th = THEME[ev.primary || ev.category] || THEME.social;
@@ -3596,7 +3610,19 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   useEffect(() => {
     if (!spaceId) return;
     supabase.from('spaces').select('*').eq('id', spaceId).single()
-      .then(({ data }) => { if (data) setDbSpace(data); });
+      .then(async ({ data }) => {
+        if (!data) return;
+        if (data.host_id) {
+          const { data: u } = await supabase.from('users').select('name,avatar_url,avatar_color').eq('id', data.host_id).single();
+          if (u) {
+            data.host_text   = u.name || data.host_text;
+            data.host_name   = u.name || data.host_text;
+            data.host_avatar = u.avatar_url || null;
+            data.host_color  = u.avatar_color || null;
+          }
+        }
+        setDbSpace(data);
+      });
   }, [spaceId]);
   const sp = dbSpace || SPACES.find(s => s.id === spaceId) || null;
   const [joined,   setJoined]   = useState(false);

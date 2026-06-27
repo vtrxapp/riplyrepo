@@ -22,7 +22,12 @@ function enrichMessages(msgs, currentUserId) {
 // Find or create a chat row, returns the real UUID chat_id
 async function resolveChat(chatId, currentUserId) {
   // If it's already a UUID, use it directly
-  if (/^[0-9a-f-]{36}$/.test(chatId)) return chatId
+  if (/^[0-9a-f-]{36}$/.test(chatId)) {
+    // Ensure current user is a participant
+    await supabase.from('chat_participants')
+      .upsert({ chat_id: chatId, user_id: currentUserId }, { onConflict: 'chat_id,user_id' })
+    return chatId
+  }
 
   // For synthetic DM ids like "dm-John Doe", look up or create a chat
   const { data: existing } = await supabase
@@ -31,13 +36,22 @@ async function resolveChat(chatId, currentUserId) {
     .eq('synthetic_id', chatId)
     .maybeSingle()
 
-  if (existing?.id) return existing.id
+  if (existing?.id) {
+    await supabase.from('chat_participants')
+      .upsert({ chat_id: existing.id, user_id: currentUserId }, { onConflict: 'chat_id,user_id' })
+    return existing.id
+  }
 
   const { data: created } = await supabase
     .from('chats')
     .insert({ synthetic_id: chatId, created_by: currentUserId })
     .select('id')
     .single()
+
+  if (created?.id) {
+    await supabase.from('chat_participants')
+      .upsert({ chat_id: created.id, user_id: currentUserId }, { onConflict: 'chat_id,user_id' })
+  }
 
   return created?.id || null
 }
@@ -113,8 +127,12 @@ export function useChat(chatId) {
 
     const { data, error } = await supabase.from('messages').insert(row).select().single()
     if (!error && data) {
-      // Replace temp with real row
       setMessages(prev => prev.map(m => m.id === tempId ? data : m))
+      // Update chat's last message preview
+      await supabase.from('chats').update({
+        last_message: content || '📎 Attachment',
+        last_message_at: data.created_at,
+      }).eq('id', cid)
     } else if (error) {
       // Remove optimistic on failure
       setMessages(prev => prev.filter(m => m.id !== tempId))

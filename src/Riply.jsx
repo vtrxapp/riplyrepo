@@ -975,8 +975,11 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
             ) : chats.map(c => (
               <div key={c.id} onClick={()=>navigate('chat',{chatId:c.id})} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
                 <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
-                  <span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
-                  <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} />
+                  {c.avatar_url
+                    ? <img src={c.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
+                    : <><span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
+                        <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} /></>
+                  }
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>

@@ -4227,7 +4227,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
 
         {/* Stats */}
         <div style={{ display:'flex', gap:10, marginTop:20 }}>
-          {[{v:stats.events,l:'Events'},{v:stats.groups,l:'Groups'},{v:'–',l:'Friends'}].map(s=>(
+          {[{v:stats.events||'–',l:'Events'},{v:stats.groups||'–',l:'Groups'},{v:'–',l:'Friends'}].map(s=>(
             <div key={s.l} style={{ flex:1, background:cardBg, borderRadius:18, padding:'13px 8px', textAlign:'center', boxShadow:'0 4px 14px rgba(16,24,40,0.05)', transition:'background .3s' }}>
               <div style={{ fontSize:17, fontWeight:800, color:textColor }}>{s.v}</div>
               <div style={{ fontSize:9, fontWeight:600, color:subColor, marginTop:2 }}>{s.l}</div>

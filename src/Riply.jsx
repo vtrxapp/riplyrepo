@@ -336,6 +336,27 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
   if (activeCat==='new') list = [...list].reverse();
   else if (activeCat==='popular') list = [...list].sort((a,b)=>b.attendees-a.attendees);
 
+  // Multi-type search results (groups, spaces, people)
+  const [searchGroups, setSearchGroups] = useState([]);
+  const [searchSpaces, setSearchSpaces] = useState([]);
+  const [searchPeople, setSearchPeople] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  useEffect(() => {
+    const q = query?.trim();
+    if (!q) { setSearchGroups([]); setSearchSpaces([]); setSearchPeople([]); return; }
+    setSearchLoading(true);
+    Promise.all([
+      supabase.from('groups').select('id,name,description,member_count,logo_color').or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(4),
+      supabase.from('spaces').select('id,title,description,host_text,host_color').or(`title.ilike.%${q}%,description.ilike.%${q}%`).limit(4),
+      supabase.from('users').select('id,name,email,avatar_url,avatar_color,university,program').or(`name.ilike.%${q}%,email.ilike.%${q}%,university.ilike.%${q}%,program.ilike.%${q}%`).limit(4),
+    ]).then(([g, s, p]) => {
+      setSearchGroups(g.data || []);
+      setSearchSpaces(s.data || []);
+      setSearchPeople(p.data || []);
+      setSearchLoading(false);
+    });
+  }, [query]);
+
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
 
@@ -357,8 +378,78 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
       {/* Feed */}
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
         onTouchStart={handleHomeSwipeStart} onTouchEnd={handleHomeSwipeEnd}>
-        {list.length===0 && (
+
+        {/* ── Multi-type search results ── */}
+        {query?.trim() && (
+          <div>
+            {searchLoading && <div style={{ textAlign:'center', color:C.subtle, fontSize:12, padding:'12px 0 8px' }}>Searching…</div>}
+
+            {/* Groups */}
+            {searchGroups.length > 0 && (
+              <div style={{ marginBottom:18 }}>
+                <div style={{ fontSize:11, fontWeight:800, color:C.subtle, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8 }}>Groups</div>
+                {searchGroups.map(g => (
+                  <div key={g.id} onClick={() => navigate('group-profile', { groupId: g.id })}
+                    style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:16, padding:'11px 13px', marginBottom:8, cursor:'pointer', boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
+                    <div style={{ width:42, height:42, borderRadius:13, flexShrink:0, background: g.logo_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'#fff' }}>{(g.name||'G')[0].toUpperCase()}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:800, color:C.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{g.name}</div>
+                      <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{g.member_count || 0} members</div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Spaces */}
+            {searchSpaces.length > 0 && (
+              <div style={{ marginBottom:18 }}>
+                <div style={{ fontSize:11, fontWeight:800, color:C.subtle, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8 }}>Spaces</div>
+                {searchSpaces.map(sp => (
+                  <div key={sp.id} onClick={() => navigate('space-details', { spaceId: sp.id })}
+                    style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:16, padding:'11px 13px', marginBottom:8, cursor:'pointer', boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
+                    <div style={{ width:42, height:42, borderRadius:13, flexShrink:0, background: sp.host_color || 'linear-gradient(135deg,#10B981,#06B6D4)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'#fff' }}>{(sp.title||'S')[0].toUpperCase()}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:800, color:C.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{sp.title}</div>
+                      <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>by {sp.host_text || 'Host'}</div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* People */}
+            {searchPeople.length > 0 && (
+              <div style={{ marginBottom:18 }}>
+                <div style={{ fontSize:11, fontWeight:800, color:C.subtle, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8 }}>People</div>
+                {searchPeople.map(u => (
+                  <div key={u.id} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:16, padding:'11px 13px', marginBottom:8, boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
+                    <div style={{ width:42, height:42, borderRadius:'50%', flexShrink:0, background: u.avatar_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'#fff', overflow:'hidden' }}>
+                      {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : (u.name||'?')[0].toUpperCase()}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>{u.name || u.email}</div>
+                      <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{[u.program, u.university].filter(Boolean).join(' · ') || 'Student'}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Divider before events */}
+            {(searchGroups.length > 0 || searchSpaces.length > 0 || searchPeople.length > 0) && list.length > 0 && (
+              <div style={{ fontSize:11, fontWeight:800, color:C.subtle, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8 }}>Events</div>
+            )}
+          </div>
+        )}
+
+        {list.length===0 && !query?.trim() && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No events match your search — try a different term.</div>
+        )}
+        {list.length===0 && query?.trim() && !searchLoading && searchGroups.length===0 && searchSpaces.length===0 && searchPeople.length===0 && (
+          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No results found for "{query}"</div>
         )}
         {list.map(ev => {
           const th = THEME[ev.primary] || THEME[ev.category] || THEME.social;

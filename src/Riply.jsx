@@ -2205,10 +2205,10 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
                         {isMyV && <div style={{ width:7, height:7, borderRadius:'50%', background:'#fff' }}/>}
                       </div>
                       <span style={{ fontSize:13.5, fontWeight: isMyV ? 800 : 600,
-                                     color: isMyV ? '#7C5CFF' : C.ink }}>{opt}</span>
+                                     color: isMyV ? '#fff' : C.ink }}>{opt}</span>
                     </div>
                     {voted && (
-                      <span style={{ fontSize:12, fontWeight:700, color: isMyV ? '#7C5CFF' : C.subtle }}>
+                      <span style={{ fontSize:12, fontWeight:700, color: isMyV ? '#fff' : C.subtle }}>
                         {pct}%
                       </span>
                     )}

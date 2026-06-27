@@ -4359,7 +4359,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                       paddingTop:72, paddingBottom:36 }}>
-          <RiplyMark w={440} h={220} blue />
+          <RiplyMark w={660} h={330} blue />
           <div style={{ fontSize:28, fontWeight:900, letterSpacing:4, color:'#19BFFF', marginTop:10 }}>RIPLY</div>
           <div style={{ fontSize:11, fontWeight:700, letterSpacing:2.5, color:'rgba(255,255,255,0.75)',
                         marginTop:4, textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>
@@ -4415,7 +4415,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                       paddingTop:56, paddingBottom:28 }}>
-          <RiplyMark w={440} h={220} blue />
+          <RiplyMark w={660} h={330} blue />
           <div style={{ fontSize:24, fontWeight:900, letterSpacing:4, color:'#19BFFF', marginTop:8 }}>RIPLY</div>
           <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:2.5, color:'rgba(255,255,255,0.75)',
                         marginTop:3, textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>

@@ -552,7 +552,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               ) : (
                 <button onClick={()=>setSpaceJoined(j=>({...j,[sp.id]:!j[sp.id]}))} style={{ width:'100%', marginTop:15, height:50, border: isJoined?'1.6px solid #10B981':'none', borderRadius:15, background: isJoined?'#E6F8F0':C.grad, color: isJoined?'#0E9F6E':'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:isJoined?'none':'0 8px 20px rgba(2,162,240,0.4)' }}>
                   <span>{isJoined?"You're in · Joined":'Join Space'}</span>
-                  {!isJoined && <span style={{ fontWeight:800 }}>{sp.price>0?`$${sp.price}`:'Free'}</span>}
+                  {!isJoined && <span style={{ fontWeight:800 }}>{(sp.is_free || !sp.price || sp.price === 'Free') ? 'Free' : `$${sp.price}`}</span>}
                 </button>
               )}
 
@@ -2949,7 +2949,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
     supabase.from('spaces').select('*').eq('id', spaceId).single()
       .then(({ data }) => { if (data) setDbSpace(data); });
   }, [spaceId]);
-  const sp = dbSpace || SPACES.find(s => s.id === spaceId) || SPACES[0];
+  const sp = dbSpace || SPACES.find(s => s.id === spaceId) || null;
   const [joined,   setJoined]   = useState(false);
   const [saved,    setSaved]    = useState(false);
   const [liked,    setLiked]    = useState(false);
@@ -2959,14 +2959,22 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
 
   // Animate live progress bar
   useEffect(() => {
-    if (!sp.started) return;
+    if (!sp?.started) return;
     const t = setInterval(() => setProgress(p => Math.min(100, p + 1)), 700);
     return () => clearInterval(t);
-  }, [sp.started]);
+  }, [sp?.started]);
 
-  const count = sp.participants + (joined ? 1 : 0);
-  const isFull = count >= (sp.max_spots || sp.max || 10);
-  const pct = Math.round((count / sp.max_spots || sp.max || 10) * 100);
+  if (!sp) return (
+    <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center',
+                  background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ fontSize:13, color:C.subtle }}>Loading space…</div>
+    </div>
+  );
+
+  const count = (sp.participants || 0) + (joined ? 1 : 0);
+  const maxSpots = sp.max_spots || sp.max || 10;
+  const isFull = count >= maxSpots;
+  const pct = Math.round((count / maxSpots) * 100);
   const done = progress >= 100;
 
   const PARTICIPANTS = [
@@ -2984,10 +2992,12 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
     'No food or drink in the activity area',
   ];
 
-  const catColor = sp.cat === 'sports' ? 'linear-gradient(135deg,#10B981,#06B6D4)'
-                 : sp.cat === 'academic' ? 'linear-gradient(135deg,#7C5CFF,#B06BFF)'
-                 : sp.cat === 'social'   ? 'linear-gradient(135deg,#FF5A8A,#FF8A3D)'
+  const spCat = sp.cat || sp.category || 'social';
+  const catColor = spCat === 'sports' ? 'linear-gradient(135deg,#10B981,#06B6D4)'
+                 : spCat === 'academic' ? 'linear-gradient(135deg,#7C5CFF,#B06BFF)'
+                 : spCat === 'social'   ? 'linear-gradient(135deg,#FF5A8A,#FF8A3D)'
                  : 'linear-gradient(135deg,#2F6BFF,#6C4DF2)';
+  const spPrice = sp.is_free || sp.price === 0 || sp.price === 'Free' ? 'Free' : (sp.price ? `$${sp.price}` : 'Free');
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,
@@ -3049,7 +3059,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
           <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
                         alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
                         background:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:700, color:C.body }}>
-            {sp.cat.charAt(0).toUpperCase()+sp.cat.slice(1)} · Space
+            {spCat.charAt(0).toUpperCase()+spCat.slice(1)} · Space
           </div>
           <div style={{ position:'absolute', top:'50%', left:'50%',
                         transform:'translate(-50%,-50%)', textAlign:'center' }}>
@@ -3275,8 +3285,8 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Price</div>
               <div style={{ fontSize:13, fontWeight:800, color:C.ink, marginTop:3 }}>
-                {sp.price === 0 ? 'Free' : `$${sp.price}`}
-                {sp.price > 0 && <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}> per session</span>}
+                {spPrice}
+                {spPrice !== 'Free' && <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}> per session</span>}
               </div>
             </div>
           </div>
@@ -3339,7 +3349,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast }) {
         <div style={{ flexShrink:0 }}>
           <div style={{ fontSize:10, color:C.subtle, fontWeight:600 }}>Price</div>
           <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>
-            {sp.price === 0 ? 'Free' : `$${sp.price}`}
+            {spPrice}
           </div>
         </div>
         {isFull && !joined ? (
@@ -5790,7 +5800,8 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             location: location || null,
             time: timeStr || null,
             duration: recurrence || null,
-            price: isPaid ? price : 'Free',
+            price: isPaid ? (parseFloat(price) || 0) : 0,
+            is_free: !isPaid,
             max_spots: maxSpots,
             participants: 1,
             started: false,

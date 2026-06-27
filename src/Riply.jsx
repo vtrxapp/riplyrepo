@@ -4109,6 +4109,11 @@ function WelcomeScreen({ navigate, setScreen }) {
   );
 }
 
+const bgWash = {
+  position:'absolute', inset:0, pointerEvents:'none',
+  background:'radial-gradient(ellipse at 60% 0%,rgba(2,182,254,0.10) 0%,transparent 65%),radial-gradient(ellipse at 20% 100%,rgba(124,92,255,0.08) 0%,transparent 60%)',
+};
+
 function AuthPillInput({ value, onChange, placeholder, type='text', inputMode, icon, right }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:11, background:'#fff',

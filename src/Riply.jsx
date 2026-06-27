@@ -4089,7 +4089,7 @@ function WelcomeScreen({ navigate, setScreen }) {
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginTop:40 }}>
           <RiplyMark w={440} h={220} blue />
-          <div style={{ fontSize:32, fontWeight:900, letterSpacing:6, color:'#19BFFF', marginTop:10 }}>
+          <div style={{ fontSize:32, fontWeight:900, letterSpacing:6, color:'#19BFFF', marginTop:2 }}>
             RIPLY
           </div>
           <div style={{ fontSize:11, fontWeight:800, letterSpacing:3, color:'rgba(255,255,255,0.85)',

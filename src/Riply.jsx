@@ -2609,38 +2609,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               {/* POSTS */}
               {activeTab === 'posts' && (
                 <>
-                {/* Inline compose bar */}
-                {isJoined && (
-                  <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14 }}>
-                    <textarea
-                      value={postText} onChange={e => setPostText(e.target.value)}
-                      placeholder="Share something with the group…"
-                      rows={3}
-                      style={{ width:'100%', border:'none', outline:'none', resize:'none', fontSize:14,
-                               fontWeight:500, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif",
-                               background:'none', boxSizing:'border-box' }}
-                    />
-                    <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8 }}>
-                      <button
-                        disabled={!postText.trim() || posting}
-                        onClick={async () => {
-                          if (!postText.trim()) return;
-                          setPosting(true);
-                          const { error } = await createPost({ content: postText });
-                          setPosting(false);
-                          if (error) { showToast('Failed to post: ' + error.message); return; }
-                          setPostText('');
-                          showToast('Post shared!');
-                        }}
-                        style={{ height:34, padding:'0 18px', border:'none', borderRadius:999,
-                                 background: postText.trim() ? C.grad : '#D1D5DB',
-                                 color:'#fff', fontSize:12, fontWeight:700, cursor: postText.trim() ? 'pointer' : 'default',
-                                 fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-                        {posting ? 'Posting…' : 'Post'}
-                      </button>
-                    </div>
-                  </div>
-                )}
+
                 {postsLoading ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>Loading posts…</div>
                 ) : livePosts.length === 0 ? (

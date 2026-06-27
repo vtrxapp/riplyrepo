@@ -4881,28 +4881,35 @@ function makeQR(seed) {
 // SCREEN: SAVED EVENTS
 // ─────────────────────────────────────────────────────────────
 function SavedEventsScreen({ goBack, navigate, saved }) {
-  const { user } = useUser();
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [dbEvents, setDbEvents] = useState({});
+  const [loading, setLoading] = useState(false);
 
+  // IDs currently saved (live from toggleSave)
+  const savedIds = Object.keys(saved || {}).filter(id => saved[id]);
+
+  // Fetch Supabase event details for any saved ID we don't have yet
   useEffect(() => {
-    if (!user?.id) { setLoading(false); return; }
-    supabase
-      .from('event_saves')
-      .select('event_id, events(*)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    const missing = savedIds.filter(id => !dbEvents[id] && !EVENTS.find(e => String(e.id) === id));
+    if (missing.length === 0) return;
+    setLoading(true);
+    supabase.from('events').select('*').in('id', missing)
       .then(({ data }) => {
-        setEvents((data || []).map(r => r.events).filter(Boolean));
+        if (data?.length) {
+          setDbEvents(prev => {
+            const next = { ...prev };
+            data.forEach(ev => { next[String(ev.id)] = ev; });
+            return next;
+          });
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [user?.id]);
+  }, [savedIds.join(',')]);
 
-  // also include locally-saved mock events
-  const allSavedIds = Object.keys(saved || {}).filter(id => saved[id]);
-  const mockSaved = EVENTS.filter(e => allSavedIds.includes(String(e.id)) && !events.find(ev => String(ev.id) === String(e.id)));
-  const allEvents = [...events, ...mockSaved];
+  // Build the ordered list from saved IDs
+  const allEvents = savedIds.map(id => {
+    return dbEvents[id] || EVENTS.find(e => String(e.id) === id);
+  }).filter(Boolean);
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,

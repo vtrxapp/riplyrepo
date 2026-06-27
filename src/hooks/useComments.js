@@ -23,11 +23,14 @@ export function useComments(postId) {
 
   const normalize = (c) => ({
     ...c,
-    time:     formatTime(c.created_at),
-    author:   c.author_name || 'Member',
-    aInitial: c.author_initial || (c.author_name?.[0] || 'M').toUpperCase(),
-    aColor:   c.author_color  || 'linear-gradient(135deg,#7C5CFF,#B06BFF)',
-    text:     c.content,
+    time:        formatTime(c.created_at),
+    author:      c.author_name || 'Member',
+    aInitial:    c.author_initial || (c.author_name?.[0] || 'M').toUpperCase(),
+    aColor:      c.author_color  || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+    text:        c.content,
+    likes:       c.likes_count || 0,
+    replyToId:   c.reply_to_id   || null,
+    replyToName: c.reply_to_name || null,
   })
 
   useEffect(() => {
@@ -58,7 +61,7 @@ export function useComments(postId) {
     return () => { supabase.removeChannel(channel) }
   }, [postId])
 
-  const addComment = useCallback(async (content, currentUserProfile) => {
+  const addComment = useCallback(async (content, currentUserProfile, replyTo = null) => {
     if (!user?.id || !postId || !content?.trim()) return
     const authorName = currentUserProfile?.name || user?.username || 'Member'
     const { data, error } = await supabase.from('post_comments').insert({
@@ -67,14 +70,20 @@ export function useComments(postId) {
       content:        content.trim(),
       author_name:    authorName,
       author_initial: authorName[0]?.toUpperCase() || 'M',
-      author_color:   currentUserProfile?.avatarColor || 'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+      author_color:   currentUserProfile?.avatarColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+      reply_to_id:    replyTo?.id   || null,
+      reply_to_name:  replyTo?.author || null,
     }).select().single()
     if (!error && data) {
-      // Update comment_count on the post
       await supabase.rpc('increment_comment_count', { post_id_arg: postId }).catch(() => {})
     }
     return { data, error }
   }, [user?.id, postId])
 
-  return { comments, loading, addComment }
+  const likeComment = useCallback(async (commentId) => {
+    setComments(prev => prev.map(c => c.id === commentId ? { ...c, likes: (c.likes || 0) + 1 } : c))
+    await supabase.rpc('increment_comment_likes', { comment_id_arg: commentId }).catch(() => {})
+  }, [])
+
+  return { comments, loading, addComment, likeComment }
 }

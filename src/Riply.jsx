@@ -2171,10 +2171,25 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
   const pid = p.id;
   const liked = !!postLiked[pid];
-  const { comments, addComment } = useComments(pid);
+  const { comments, addComment, likeComment } = useComments(pid);
   const [cOpen, setCOpen] = useState(false);
   const [draft, setDraft] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [likedComments, setLikedComments] = useState({});
   const inputRef = useRef(null);
+
+  const startReply = (c) => {
+    setReplyTo({ id: c.id, author: c.author });
+    setDraft(`@${c.author} `);
+    setCOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const handleLikeComment = (cid) => {
+    if (likedComments[cid]) return;
+    setLikedComments(prev => ({ ...prev, [cid]: true }));
+    likeComment(cid);
+  };
 
   // Poll state
   const pollOptions = p.poll_options || null;
@@ -2204,8 +2219,10 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
   const submitComment = async () => {
     const t = draft.trim();
     if (!t) return;
+    const rt = replyTo;
     setDraft('');
-    await addComment(t, currentUser);
+    setReplyTo(null);
+    await addComment(t, currentUser, rt);
   };
 
   return (
@@ -2385,20 +2402,55 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
           {comments.length === 0 && (
             <div style={{ fontSize:12, color:C.subtle, textAlign:'center', paddingBottom:8 }}>No comments yet. Be the first!</div>
           )}
-          {comments.map((c, ci) => (
-            <div key={ci} style={{ display:'flex', gap:8, marginBottom:10 }}>
-              <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, background:c.aColor,
-                            display:'flex', alignItems:'center', justifyContent:'center',
-                            color:'#fff', fontSize:11, fontWeight:800 }}>{c.aInitial}</div>
-              <div style={{ flex:1 }}>
-                <div style={{ background:C.chip, borderRadius:12, padding:'8px 11px' }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:C.ink }}>{c.author}</div>
-                  <div style={{ fontSize:13, color:C.body, marginTop:2 }}>{c.text}</div>
+          {comments.map((c) => {
+            const isLiked = !!likedComments[c.id];
+            const likeCount = (c.likes || 0) + (isLiked ? 1 : 0);
+            const isReply = !!c.replyToId;
+            return (
+              <div key={c.id} style={{ display:'flex', gap:8, marginBottom:12, marginLeft: isReply ? 38 : 0 }}>
+                <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, background:c.aColor,
+                              display:'flex', alignItems:'center', justifyContent:'center',
+                              color:'#fff', fontSize:11, fontWeight:800 }}>{c.aInitial}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ background:C.chip, borderRadius:12, padding:'8px 11px' }}>
+                    {c.replyToName && (
+                      <div style={{ fontSize:10.5, color:C.primary, fontWeight:700, marginBottom:2 }}>↩ {c.replyToName}</div>
+                    )}
+                    <div style={{ fontSize:12, fontWeight:700, color:C.ink }}>{c.author}</div>
+                    <div style={{ fontSize:13, color:C.body, marginTop:2 }}>{c.text}</div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:4, paddingLeft:4 }}>
+                    <span style={{ fontSize:10, color:C.subtle }}>{c.time}</span>
+                    <button onClick={() => handleLikeComment(c.id)}
+                      style={{ display:'flex', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', padding:0 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24">
+                        <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
+                              fill={isLiked?'#FF3B6B':'none'} stroke={isLiked?'#FF3B6B':C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+                      </svg>
+                      {likeCount > 0 && <span style={{ fontSize:10, fontWeight:700, color: isLiked?'#FF3B6B':C.subtle }}>{likeCount}</span>}
+                    </button>
+                    <button onClick={() => startReply(c)}
+                      style={{ fontSize:10, fontWeight:700, color:C.subtle, border:'none', background:'none', cursor:'pointer', padding:0 }}>
+                      Reply
+                    </button>
+                  </div>
                 </div>
-                <div style={{ fontSize:10, color:C.subtle, marginTop:3, paddingLeft:4 }}>{c.time}</div>
               </div>
+            );
+          })}
+
+          {/* Reply indicator */}
+          {replyTo && (
+            <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(0,152,240,0.07)',
+                          borderRadius:8, padding:'5px 10px', marginBottom:6 }}>
+              <span style={{ fontSize:11, color:C.primary, fontWeight:600 }}>↩ Replying to {replyTo.author}</span>
+              <button onClick={() => { setReplyTo(null); setDraft(''); }}
+                style={{ border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto',
+                         fontSize:12, color:C.subtle, lineHeight:1 }}>✕</button>
             </div>
-          ))}
+          )}
+
+          {/* Input */}
           <div style={{ display:'flex', gap:8, marginTop:4, alignItems:'center' }}>
             <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0,
                           background:currentUser?.avatarUrl ? 'none' : C.grad,
@@ -2413,7 +2465,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
               value={draft}
               onChange={e => setDraft(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitComment(); } }}
-              placeholder="Write a comment…"
+              placeholder={replyTo ? `Reply to ${replyTo.author}…` : 'Write a comment…'}
               style={{ flex:1, height:36, border:`1.5px solid ${C.border}`, borderRadius:999,
                        background:'#fff', padding:'0 13px', fontSize:12, outline:'none',
                        fontFamily:"'Montserrat',-apple-system,sans-serif" }}

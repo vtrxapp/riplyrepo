@@ -41,9 +41,33 @@ create table if not exists post_comments (
   author_name     text,
   author_initial  text,
   author_color    text,
+  reply_to_id     uuid references post_comments(id) on delete set null,
+  reply_to_name   text,
+  likes_count     int default 0,
   created_at      timestamptz default now()
 );
 create index if not exists post_comments_post_id_idx on post_comments(post_id);
+
+-- Enable RLS on post_comments and allow all authenticated users to read/insert
+alter table post_comments enable row level security;
+drop policy if exists "Allow public read comments"  on post_comments;
+drop policy if exists "Allow authenticated insert comments" on post_comments;
+create policy "Allow public read comments"
+  on post_comments for select using (true);
+create policy "Allow authenticated insert comments"
+  on post_comments for insert to authenticated with check (true);
+
+-- RPC to increment comment count
+create or replace function increment_comment_count(post_id_arg uuid)
+returns void language sql as $$
+  update posts set comment_count = coalesce(comment_count,0) + 1 where id = post_id_arg;
+$$;
+
+-- RPC to increment comment likes
+create or replace function increment_comment_likes(comment_id_arg uuid)
+returns void language sql as $$
+  update post_comments set likes_count = coalesce(likes_count,0) + 1 where id = comment_id_arg;
+$$;
 
 -- Add profile fields to users table
 alter table users add column if not exists university text;

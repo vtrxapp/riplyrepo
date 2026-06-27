@@ -263,12 +263,12 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast }) {
   const CATS = [
-    {id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
+    {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
   ];
 
   const [fabOpen, setFabOpen] = useState(false);
-  const { events: liveEvents, loading: eventsLoading } = useEvents({ category: activeCat, search: query, filters });
+  const { events: liveEvents, loading: eventsLoading } = useEvents({ category: (activeCat === 'all' || activeCat === 'trending') ? null : activeCat, search: query, filters });
   const eventData = liveEvents.length > 0 ? liveEvents : EVENTS;
   let list = eventData.slice();
   if (activeCat==='new') list = [...list].reverse();
@@ -9635,7 +9635,7 @@ export default function RiplyApp() {
   // Home state
   const { liked, saved, spaceSaved, shared, rsvpd: following, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
   const [filters, setFilters] = useState({});
-  const [activeCat, setActiveCat] = useState('trending');
+  const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [role, setRole] = useState('student');

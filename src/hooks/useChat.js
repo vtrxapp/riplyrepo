@@ -81,7 +81,7 @@ export function useChat(chatId) {
       if (!cancelled) {
         const msgs = data || []
         await fetchSenderProfiles([...new Set(msgs.map(m => m.sender_id).filter(Boolean))])
-        setMessages(enrichMessages(msgs))
+        setMessages(enrichMessages(msgs, user.id))
         setLoading(false)
       }
 
@@ -96,7 +96,7 @@ export function useChat(chatId) {
           await fetchSenderProfiles([payload.new.sender_id].filter(Boolean))
           setMessages(prev => {
             if (prev.find(m => m.id === payload.new.id)) return prev
-            return [...prev, ...enrichMessages([payload.new])]
+            return [...prev, ...enrichMessages([payload.new], user.id)]
           })
         })
         .subscribe()
@@ -123,7 +123,7 @@ export function useChat(chatId) {
 
     // Optimistic insert
     const tempId = `temp-${Date.now()}`
-    setMessages(prev => [...prev, ...enrichMessages([{ ...row, id: tempId, created_at: new Date().toISOString() }])])
+    setMessages(prev => [...prev, ...enrichMessages([{ ...row, id: tempId, created_at: new Date().toISOString() }], user.id)])
 
     const { data, error } = await supabase.from('messages').insert(row).select().single()
     if (!error && data) {

@@ -715,7 +715,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
 // ─────────────────────────────────────────────────────────────
 // SCREEN: SPACES (Campus Groups)
 // ─────────────────────────────────────────────────────────────
-function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast }) {
+function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast, currentUser }) {
   const TABS = [{id:'all',label:'All'},{id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'}];
   const [spaceQuery, setSpaceQuery] = useState('');
   const spacesSwipeRef = useRef(null);
@@ -10492,7 +10492,7 @@ export default function RiplyApp() {
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} />;
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
-      case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} />;
+      case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;

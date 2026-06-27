@@ -5591,41 +5591,48 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           </div>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`,
                         borderRadius:16, padding:'2px 14px' }}>
-            {[
-              { label:'First date',  icon:'cal',   val:firstDate,  set:setFirstDate,  ph:'Jan 15, 2026' },
-              { label:'Start time',  icon:'clock', val:startTime,  set:setStartTime,  ph:'8:00 PM'      },
-              { label:'Duration',    icon:'timer',  val:duration,   set:setDuration,   ph:'60 min', last:true },
-            ].map(r => (
-              <div key={r.label} style={{ display:'flex', alignItems:'center', gap:11,
-                                          padding:'11px 0',
-                                          borderBottom: r.last ? 'none' : `1px solid ${C.divider}` }}>
-                {r.icon === 'cal' && (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                    <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
-                    <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
-                  </svg>
-                )}
-                {r.icon === 'clock' && (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                    <circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.9"/>
-                    <path d="M12 8v4.5l3 2" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-                {r.icon === 'timer' && (
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                    <circle cx="12" cy="13" r="7.5" stroke={C.primary} strokeWidth="1.9"/>
-                    <path d="M12 9.5v4l2.5 1.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M9 3h6M12 3v2.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
-                  </svg>
-                )}
-                <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>{r.label}</span>
-                <input value={r.val} onChange={e => r.set(e.target.value)}
-                  placeholder={r.ph} inputMode={r.icon==='timer'?'numeric':undefined}
-                  style={{ width:110, textAlign:'right', border:'none', background:'none',
-                           fontSize:13, fontWeight:700, color:C.body, outline:'none',
-                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
-              </div>
-            ))}
+            {/* First date */}
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0', borderBottom:`1px solid ${C.divider}` }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
+                <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>First date</span>
+              <input type="date" value={firstDate} onChange={e => setFirstDate(e.target.value)}
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
+                         color: firstDate ? C.body : C.muted, outline:'none', textAlign:'right',
+                         fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}/>
+            </div>
+            {/* Start time */}
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0', borderBottom:`1px solid ${C.divider}` }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.9"/>
+                <path d="M12 8v4.5l3 2" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Start time</span>
+              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
+                         color: startTime ? C.body : C.muted, outline:'none', textAlign:'right',
+                         fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}/>
+            </div>
+            {/* Duration */}
+            <div style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <circle cx="12" cy="13" r="7.5" stroke={C.primary} strokeWidth="1.9"/>
+                <path d="M12 9.5v4l2.5 1.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 3h6M12 3v2.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Duration</span>
+              <select value={duration} onChange={e => setDuration(e.target.value)}
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
+                         color: duration ? C.body : C.muted, outline:'none', textAlign:'right',
+                         fontFamily:"'Montserrat',-apple-system,sans-serif", cursor:'pointer' }}>
+                <option value="">Select</option>
+                {[30,45,60,75,90,120,150,180].map(m => (
+                  <option key={m} value={`${m}`}>{m < 60 ? `${m} min` : `${m/60}h${m%60 ? ' '+m%60+'min' : ''}`}</option>
+                ))}
+              </select>
+            </div>
           </div>
           {/* Repeats weekly + number of weeks */}
           <div style={{ display:'flex', alignItems:'center', gap:9, marginTop:11 }}>
@@ -5953,9 +5960,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
 
   const [cat,       setCat]       = useState('social');
   const [title,     setTitle]     = useState('');
-  const [date,      setDate]      = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [duration,    setDuration]    = useState('');
+  const [date,        setDate]        = useState('');
+  const [startTime,   setStartTime]   = useState('');
+  const [endTime,     setEndTime]     = useState('');
   const [repeat,      setRepeat]      = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState('');
   const [venue,     setVenue]     = useState('');
@@ -6101,10 +6108,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
           <EventLabel>Date &amp; Time</EventLabel>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'2px 14px' }}>
             {[
-              { label:'Date',       icon:'cal',   val:date,      set:setDate,      ph:'Jan 15, 2026' },
-              { label:'Start time', icon:'clock', val:startTime, set:setStartTime, ph:'8:00 PM'      },
-              { label:'Duration',   icon:'clock', val:duration,  set:setDuration,  ph:'60 min',      last:true },
-            ].map((r, i) => (
+              { label:'Date',       icon:'cal',   val:date,      set:setDate,      type:'date' },
+              { label:'Start time', icon:'clock', val:startTime, set:setStartTime, type:'time' },
+              { label:'End time',   icon:'clock', val:endTime,   set:setEndTime,   type:'time', last:true },
+            ].map((r) => (
               <div key={r.label} style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 0',
                                           borderBottom: r.last ? 'none' : `1px solid ${C.divider}` }}>
                 {r.icon === 'cal'
@@ -6119,10 +6126,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
                 }
                 <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>{r.label}</span>
                 <input
-                  value={r.val} onChange={e => r.set(e.target.value)} placeholder={r.ph}
-                  style={{ width:120, textAlign:'right', border:'none', background:'none',
-                           fontSize:13, fontWeight:700, color:C.body, outline:'none',
-                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+                  type={r.type} value={r.val} onChange={e => r.set(e.target.value)}
+                  style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
+                           color: r.val ? C.body : C.muted, outline:'none', textAlign:'right',
+                           fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}
                 />
               </div>
             ))}
@@ -6382,7 +6389,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
             if (!currentUser.userId) { showToast('You must be logged in to publish an event'); return; }
             setSubmitting(true);
             const location = [venue, room].filter(Boolean).join(' · ');
-            const timeRange = startTime || null;
+            const timeRange = [startTime, endTime].filter(Boolean).join(' – ');
             const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
             const { data: event, error } = await supabase.from('events').insert({
               title: title.trim(),
@@ -6398,8 +6405,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser }) {
               date: date || null,
               full_date: date || null,
               start_time: startTime || null,
-              time_range: timeRange,
-              duration: duration || null,
+              time_range: timeRange || null,
               repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
               image_url: coverUrl || null,
               price: isPaid ? `$${price}` : 'Free',

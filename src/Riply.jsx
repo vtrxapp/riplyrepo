@@ -915,24 +915,34 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const currentUser = useCurrentUser();
   const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => (g.state || "join") === 'joined') || GROUPS[0];
 
-  const [text,       setText]       = useState('');
-  const [hasPhoto,   setHasPhoto]   = useState(false);
-  const [imageUrl,   setImageUrl]   = useState(null);
-  const [hasPoll,    setHasPoll]    = useState(false);
-  const [pollOpts,   setPollOpts]   = useState(['', '']);
-  const [group,      setGroup]      = useState(defaultGroup?.name || '');
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [posting,    setPosting]    = useState(false);
+  const [text,        setText]        = useState('');
+  const [imageUrl,    setImageUrl]    = useState(null);
+  const [imagePreview,setImagePreview]= useState(null);
+  const [fileUrl,     setFileUrl]     = useState(null);
+  const [fileName,    setFileName]    = useState(null);
+  const [hasPoll,     setHasPoll]     = useState(false);
+  const [pollOpts,    setPollOpts]    = useState(['', '']);
+  const [linkedEvent, setLinkedEvent] = useState(null);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
+  const [group,       setGroup]       = useState(defaultGroup?.name || '');
+  const [pickerOpen,  setPickerOpen]  = useState(false);
+  const [posting,     setPosting]     = useState(false);
+  const [uploading,   setUploading]   = useState(false);
+  const photoInputRef = useRef(null);
+  const fileInputRef  = useRef(null);
 
   const joinedGroups = GROUPS.filter(g => (g.state || "join") === 'joined');
 
+  const hasPhoto = !!imageUrl;
+  const hasFile  = !!fileUrl;
+
   const canPost = hasPoll
     ? text.trim().length > 0 && pollOpts.filter(o => o.trim()).length >= 2
-    : !!(text.trim() || hasPhoto);
+    : !!(text.trim() || hasPhoto || hasFile || linkedEvent);
 
   const handlePost = async () => {
     if (!canPost) {
-      showToast(hasPoll ? 'Write a question and add at least 2 options' : 'Write something or add a photo');
+      showToast(hasPoll ? 'Write a question and add at least 2 options' : 'Write something or add a photo, file, or event');
       return;
     }
     setPosting(true);
@@ -942,7 +952,12 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       content:        text,
       group_id:       matchedGroup?.id || groupId || null,
       user_id:        user?.id,
-      image_url:      imageUrl,
+      image_url:      imageUrl || null,
+      file_url:       fileUrl || null,
+      file_name:      fileName || null,
+      poll_options:   hasPoll ? pollOpts.filter(o => o.trim()) : null,
+      linked_event_id: linkedEvent?.id || null,
+      linked_event_title: linkedEvent?.title || null,
       likes_count:    0,
       comment_count:  0,
       author_name:    authorName,
@@ -966,7 +981,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       key: 'photo', label: 'Photo', sub: 'Add an image',
       iconBg: '#E4F7EC', iconColor: '#15A34A',
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="14" rx="3" stroke="#15A34A" strokeWidth="2"/><circle cx="9" cy="10" r="1.9" stroke="#15A34A" strokeWidth="2"/><path d="m5 17 4.5-4 3 2.5L16 12l3 3.5" stroke="#15A34A" strokeWidth="2" strokeLinejoin="round"/></svg>,
-      onClick: () => setHasPhoto(true),
+      onClick: () => photoInputRef.current?.click(),
     },
     {
       key: 'poll', label: 'Poll', sub: 'Ask a question',
@@ -978,13 +993,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       key: 'event', label: 'Event', sub: 'Link an event',
       iconBg: '#E9F6FF', iconColor: C.primary,
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/></svg>,
-      onClick: () => showToast('Link a group event'),
+      onClick: () => setEventPickerOpen(true),
     },
     {
       key: 'file', label: 'File', sub: 'Attach a doc',
       iconBg: '#FFF6EC', iconColor: '#F59E0B',
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9.5L13 3.5Z" stroke="#F59E0B" strokeWidth="2" strokeLinejoin="round"/><path d="M13 3.5V9.5h6" stroke="#F59E0B" strokeWidth="2" strokeLinejoin="round"/></svg>,
-      onClick: () => showToast('Attach a file'),
+      onClick: () => fileInputRef.current?.click(),
     },
   ];
 
@@ -1108,25 +1123,66 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}
         />
 
-        {/* Photo attachment */}
-        {hasPhoto && (
-          <div style={{ position:'relative', height:190, borderRadius:16, overflow:'hidden',
-                        marginTop:4, background:'linear-gradient(135deg,#5B6473,#8A93A6)' }}>
-            <div style={{ position:'absolute', inset:0, background:
-              'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 16px)'}}/>
-            <span style={{ position:'absolute', bottom:10, left:12,
-                           fontFamily:"'JetBrains Mono',monospace",
-                           fontSize:10, color:'rgba(255,255,255,0.85)' }}>
-              PHOTO · drag an image here
-            </span>
-            <button onClick={() => setHasPhoto(false)} style={{
+        {/* Hidden inputs */}
+        <input ref={photoInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={async e => {
+          const file = e.target.files?.[0]; if (!file) return;
+          setImagePreview(URL.createObjectURL(file));
+          setUploading(true);
+          try {
+            const url = await uploadImage(file, 'post-images', `${user?.id}-${Date.now()}.jpg`);
+            setImageUrl(url);
+          } catch { showToast('Image upload failed'); setImagePreview(null); }
+          setUploading(false);
+          e.target.value = '';
+        }} />
+        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style={{ display:'none' }} onChange={async e => {
+          const file = e.target.files?.[0]; if (!file) return;
+          setFileName(file.name);
+          setUploading(true);
+          try {
+            const path = `files/${user?.id}-${Date.now()}-${file.name}`;
+            const { data, error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true });
+            if (error) throw error;
+            const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(path);
+            setFileUrl(publicUrl);
+          } catch { showToast('File upload failed'); setFileName(null); }
+          setUploading(false);
+          e.target.value = '';
+        }} />
+
+        {/* Photo preview */}
+        {imagePreview && (
+          <div style={{ position:'relative', borderRadius:16, overflow:'hidden', marginTop:8 }}>
+            <img src={imagePreview} alt="" style={{ width:'100%', maxHeight:240, objectFit:'cover', display:'block' }} />
+            {uploading && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:700 }}>Uploading…</div>}
+            <button onClick={() => { setImageUrl(null); setImagePreview(null); }} style={{
               position:'absolute', top:10, right:10, width:30, height:30, border:'none',
               borderRadius:'50%', background:'rgba(14,23,38,0.6)',
-              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-            }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                <path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
-              </svg>
+              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        )}
+
+        {/* File preview */}
+        {fileName && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, background:'#FFF6EC', borderRadius:13, padding:'11px 14px', marginTop:8 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9.5L13 3.5Z" stroke="#F59E0B" strokeWidth="2" strokeLinejoin="round"/><path d="M13 3.5V9.5h6" stroke="#F59E0B" strokeWidth="2" strokeLinejoin="round"/></svg>
+            <span style={{ flex:1, fontSize:13, fontWeight:700, color:C.ink, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{fileName}</span>
+            {uploading && <span style={{ fontSize:11, color:C.subtle }}>Uploading…</span>}
+            <button onClick={() => { setFileUrl(null); setFileName(null); }} style={{ border:'none', background:'none', cursor:'pointer', padding:0, flexShrink:0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke={C.subtle} strokeWidth="2.2" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        )}
+
+        {/* Linked event preview */}
+        {linkedEvent && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, background:'#E9F6FF', borderRadius:13, padding:'11px 14px', marginTop:8 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/></svg>
+            <span style={{ flex:1, fontSize:13, fontWeight:700, color:C.ink }}>{linkedEvent.title}</span>
+            <button onClick={() => setLinkedEvent(null)} style={{ border:'none', background:'none', cursor:'pointer', padding:0, flexShrink:0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke={C.subtle} strokeWidth="2.2" strokeLinecap="round"/></svg>
             </button>
           </div>
         )}
@@ -1196,7 +1252,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
               border:`1.5px solid ${C.border}`, borderRadius:15, background:'#fff',
               padding:13, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
               boxShadow:'0 3px 10px rgba(16,24,40,0.04)',
-              opacity: (a.key==='photo'&&hasPhoto)||(a.key==='poll'&&hasPoll) ? 0.5 : 1,
+              opacity: (a.key==='photo'&&hasPhoto)||(a.key==='poll'&&hasPoll)||(a.key==='file'&&hasFile)||(a.key==='event'&&!!linkedEvent) ? 0.5 : 1,
             }}>
               <div style={{ width:38, height:38, borderRadius:12, flexShrink:0,
                             display:'flex', alignItems:'center', justifyContent:'center',
@@ -1216,6 +1272,32 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       {pickerOpen && (
         <div onClick={() => setPickerOpen(false)}
           style={{ position:'absolute', inset:0, zIndex:10 }}/>
+      )}
+
+      {/* Event picker sheet */}
+      {eventPickerOpen && (
+        <div style={{ position:'absolute', inset:0, zIndex:30, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'flex-end' }}
+          onClick={() => setEventPickerOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ width:'100%', background:'#fff', borderRadius:'22px 22px 0 0', padding:'20px 16px 40px', maxHeight:'60vh', overflowY:'auto' }}>
+            <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:14 }}>Link an Event</div>
+            {EVENTS.length === 0
+              ? <div style={{ color:C.subtle, fontSize:13, textAlign:'center', padding:24 }}>No events available</div>
+              : EVENTS.map(ev => (
+                <div key={ev.id} onClick={() => { setLinkedEvent(ev); setEventPickerOpen(false); }}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 0', borderBottom:`1px solid ${C.divider}`, cursor:'pointer' }}>
+                  <div style={{ width:42, height:42, borderRadius:12, background:'linear-gradient(135deg,#19BFFF,#0098F0)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:C.ink }}>{ev.title}</div>
+                    <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{ev.date}</div>
+                  </div>
+                  {linkedEvent?.id === ev.id && <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4 4L19 7" stroke={C.primary} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </div>
+              ))
+            }
+          </div>
+        </div>
       )}
 
     </div>

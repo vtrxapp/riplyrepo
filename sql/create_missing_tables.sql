@@ -10,6 +10,13 @@ create table if not exists feedback (
   created_at  timestamptz default now()
 );
 
+-- Add extra columns to posts table
+alter table posts add column if not exists file_url            text;
+alter table posts add column if not exists file_name           text;
+alter table posts add column if not exists poll_options        jsonb;
+alter table posts add column if not exists linked_event_id     uuid;
+alter table posts add column if not exists linked_event_title  text;
+
 -- post_comments table
 create table if not exists post_comments (
   id              uuid primary key default gen_random_uuid(),

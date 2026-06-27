@@ -279,15 +279,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
 
       {/* Header */}
       <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 12px', boxShadow:'0 1px 0 rgba(16,24,40,0.06)', position:'relative', zIndex:4 }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9 }}>
-            <div style={{ width:34, height:34, borderRadius:10, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-              <RiplyMark size={18} white />
-            </div>
-            <span style={{ fontSize:19, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>Riply</span>
-          </div>
-          <div style={{ width:40, height:40 }} />
-        </div>
         <SearchBar
           placeholder={query || 'What can we help you find?'}
           hint={query ? undefined : 'Try "Social events this weekend"'}

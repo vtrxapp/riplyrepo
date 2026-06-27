@@ -755,7 +755,18 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                   </div>}
                 </div>
               ) : (
-                <button onClick={()=>setSpaceJoined(j=>({...j,[sp.id]:!j[sp.id]}))} style={{ width:'100%', marginTop:15, height:50, border: isJoined?'1.6px solid #10B981':'none', borderRadius:15, background: isJoined?'#E6F8F0':C.grad, color: isJoined?'#0E9F6E':'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:isJoined?'none':'0 8px 20px rgba(2,162,240,0.4)' }}>
+                <button onClick={async()=>{
+                  const uid = currentUser?.userId;
+                  const newJoined = !isJoined;
+                  setSpaceJoined(j=>({...j,[sp.id]:newJoined}));
+                  if (uid) {
+                    if (newJoined) {
+                      await supabase.from('space_participants').upsert({ space_id: sp.id, user_id: uid }, { onConflict: 'space_id,user_id' });
+                    } else {
+                      await supabase.from('space_participants').delete().eq('space_id', sp.id).eq('user_id', uid);
+                    }
+                  }
+                }} style={{ width:'100%', marginTop:15, height:50, border: isJoined?'1.6px solid #10B981':'none', borderRadius:15, background: isJoined?'#E6F8F0':C.grad, color: isJoined?'#0E9F6E':'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:isJoined?'none':'0 8px 20px rgba(2,162,240,0.4)' }}>
                   <span>{isJoined ? "You're in · Joined ✓" : 'Join Space'}</span>
                   {!isJoined && <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </button>
@@ -10324,6 +10335,19 @@ export default function RiplyApp() {
   // Discover state
   const [discoverTab, setDiscoverTab] = useState('all');
   const [groupJoined, setGroupJoined] = useState({});
+
+  // Load persisted group + space joins from Supabase on login
+  useEffect(() => {
+    const uid = currentUser?.userId;
+    if (!uid) return;
+    Promise.all([
+      supabase.from('group_members').select('group_id').eq('user_id', uid),
+      supabase.from('space_participants').select('space_id').eq('user_id', uid),
+    ]).then(([groups, spaces]) => {
+      if (groups.data) setGroupJoined(Object.fromEntries(groups.data.map(r => [r.group_id, true])));
+      if (spaces.data) setSpaceJoined(Object.fromEntries(spaces.data.map(r => [r.space_id, true])));
+    });
+  }, [currentUser?.userId]);
 
   // Messages state
   const [msgTab, setMsgTab] = useState('notifications');

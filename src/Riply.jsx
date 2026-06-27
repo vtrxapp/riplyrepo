@@ -5826,15 +5826,33 @@ function MyTicketsScreen({ goBack, navigate, showToast }) {
   useEffect(() => {
     if (!user?.id) { setLoading(false); return; }
     supabase
-      .from('tickets')
-      .select('*')
+      .from('event_rsvps')
+      .select('id, event_id, created_at, events(id, title, date, location, price, category)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .then(({ data }) => { setTickets(data || []); setLoading(false); })
+      .then(({ data }) => {
+        const mapped = (data || []).map(r => {
+          const ev = r.events || {};
+          const evDate = ev.date ? new Date(ev.date) : null;
+          const isPast = evDate ? evDate < new Date() : false;
+          return {
+            id: r.id,
+            title: ev.title || 'Event',
+            access: ev.price === 0 || !ev.price ? 'Free Admission' : `$${ev.price} Ticket`,
+            status: isPast ? 'USED' : 'ACTIVE',
+            date: evDate ? evDate.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : '–',
+            time: evDate ? evDate.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '–',
+            location: ev.location || '–',
+            isPast,
+          };
+        });
+        setTickets(mapped);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [user?.id]);
 
-  const allTickets = tickets.length > 0 ? tickets : TICKETS_DATA;
+  const allTickets = tickets;
   const list = tab === 'all'    ? allTickets
              : tab === 'active' ? allTickets.filter(t => t.status === 'ACTIVE')
              :                    allTickets.filter(t => t.status === 'USED');

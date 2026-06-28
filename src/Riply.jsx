@@ -8987,14 +8987,6 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {VIS.map(v => {
                 const on  = visibility === v.id;
-                const col = on ? C.primary : C.subtle;
-                const iconWithColor = React.cloneElement(
-                  v.icon,
-                  {},
-                  ...React.Children.map(v.icon.props.children, child =>
-                    child ? React.cloneElement(child, { stroke: col }) : child
-                  )
-                );
                 return (
                   <button key={v.id} onClick={() => setVisibility(v.id)} style={{
                     display:'flex', alignItems:'center', gap:13, width:'100%',

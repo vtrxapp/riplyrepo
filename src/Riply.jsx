@@ -2629,15 +2629,30 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [groupEvents, setGroupEvents] = useState([]);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showOptionsSheet, setShowOptionsSheet] = useState(false);
+  // Live counts from DB (source of truth, not static fallback)
+  const [liveMembers, setLiveMembers] = useState(null);
+  const [livePosts2,  setLivePosts2]  = useState(null);
+  const [liveEvents2, setLiveEvents2] = useState(null);
 
   const refreshGroup = () => {
     supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
       .then(({ data }) => { if (data) setDbGroup(data); });
   };
 
+  const refreshCounts = () => {
+    supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId)
+      .then(({ count }) => setLiveMembers(count ?? 0));
+    supabase.from('posts').select('*', { count:'exact', head:true }).eq('group_id', groupId)
+      .then(({ count }) => setLivePosts2(count ?? 0));
+    supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId)
+      .then(({ count }) => setLiveEvents2(count ?? 0));
+  };
+
   useEffect(() => {
     if (!groupId) return;
     refreshGroup();
+    refreshCounts();
     supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
       .then(({ data }) => { if (data?.length) setGroupEvents(data); });
     if (user?.id) {
@@ -2697,13 +2712,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     if (joinState === 'join') {
       setJoinState('joined');
       await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
-      await supabase.from('groups').update({ member_count: (g.member_count || g.count || 0) + 1 }).eq('id', groupId);
-      refreshGroup();
+      refreshCounts();
     } else if (joinState === 'joined') {
       setJoinState('join');
       await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-      await supabase.from('groups').update({ member_count: Math.max(0, (g.member_count || g.count || 1) - 1) }).eq('id', groupId);
-      refreshGroup();
+      refreshCounts();
     } else if (joinState === 'request') {
       setJoinState('requested');
       await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
@@ -2819,7 +2832,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <button onClick={() => showToast('Mute, report, or leave this group')} style={{
+        <button onClick={() => setShowOptionsSheet(true)} style={{
           position:'absolute', top:50, right:14, width:40, height:40,
           border:'none', borderRadius:'50%',
           background: coverCollapsed ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
@@ -2862,7 +2875,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
 
         {/* ── Avatar ──────────────────────────────────────── */}
-        <div style={{ display:'flex', justifyContent:'center', marginTop:-42, position:'relative', zIndex:2 }}>
+        <div style={{ display:'flex', justifyContent:'center', marginTop:-42, position:'relative', zIndex:25 }}>
           <div style={{ position:'relative', display:'inline-block' }}>
             <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
                           background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
@@ -2912,7 +2925,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
         {/* ── Stats ───────────────────────────────────────── */}
         <div style={{ display:'flex', justifyContent:'center', gap:34, marginTop:16 }}>
-          {[{v:g.count || g.member_count || 0,l:'Members'},{v:g.posts || g.post_count || 0,l:'Posts'},{v:g.events || g.event_count || 0,l:'Events'}].map(s => (
+          {[{v: liveMembers ?? '—', l:'Members'},{v: livePosts2 ?? '—', l:'Posts'},{v: liveEvents2 !== null ? (liveEvents2 === 0 ? '—' : liveEvents2) : '—', l:'Events'}].map(s => (
             <div key={s.l} style={{ textAlign:'center' }}>
               <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>{s.v}</div>
               <div style={{ fontSize:12, color:C.subtle, fontWeight:600, marginTop:1 }}>{s.l}</div>
@@ -3003,33 +3016,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           )}
         </div>
 
-        {/* ── Pinned event (joined groups only) ───────────── */}
-        {isJoined && (
-          <div onClick={() => navigate('event-details',{eventId:1})}
-            style={{ margin:'14px 16px 0', background:'#fff', borderRadius:18,
-                     boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px',
-                     display:'flex', alignItems:'center', gap:13, cursor:'pointer' }}>
-            <div style={{ width:48, height:48, borderRadius:14, flexShrink:0,
-                          background:'linear-gradient(135deg,#19BFFF,#0078E0)',
-                          display:'flex', flexDirection:'column', alignItems:'center',
-                          justifyContent:'center', color:'#fff' }}>
-              <span style={{ fontSize:16, fontWeight:800, lineHeight:1 }}>5</span>
-              <span style={{ fontSize:9, fontWeight:700, letterSpacing:0.5, marginTop:1 }}>MAY</span>
-            </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>Annual History Event</div>
-              <div style={{ fontSize:12, color:'#7B8499', marginTop:2 }}>3rd Tier · 12:00 PM</div>
-              <div style={{ fontSize:12, marginTop:3 }}>
-                <span style={{ color:C.primary, fontWeight:700 }}>56 going</span>
-                <span style={{ color:C.subtle }}> · 24 interested</span>
-              </div>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-              <path d="M12 3v12M12 3l-4 2M12 3l4 2M7 16h10l-1.5 5h-7L7 16Z"
-                    stroke={C.subtle} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        )}
+        {/* Pinned event removed — no static content */}
 
         {/* ══ PRIVATE VIEW ════════════════════════════════════ */}
         {isPrivate && (
@@ -3268,6 +3255,58 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             <path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
         </button>
+      )}
+
+      {/* ── Options bottom sheet ────────────────────────── */}
+      {showOptionsSheet && (
+        <div onClick={() => setShowOptionsSheet(false)} style={{
+          position:'absolute', inset:0, zIndex:50,
+          background:'rgba(14,23,38,0.45)', display:'flex', alignItems:'flex-end',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width:'100%', background:'#fff', borderRadius:'22px 22px 0 0',
+            padding:'10px 0 40px', fontFamily:"'Montserrat',-apple-system,sans-serif",
+          }}>
+            <div style={{ width:38, height:4, borderRadius:99, background:'#D1D8E4',
+                          margin:'0 auto 18px' }}/>
+            <div style={{ fontSize:16, fontWeight:800, color:C.ink,
+                          padding:'0 20px 14px', borderBottom:`1px solid ${C.divider}` }}>
+              {g.name || 'Group'}
+            </div>
+            {[
+              { label: notifyOn ? 'Turn off notifications' : 'Turn on notifications',
+                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z" stroke={C.body} strokeWidth="1.9" strokeLinejoin="round"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/></svg>,
+                action: () => { setNotifyOn(v => !v); showToast(notifyOn ? 'Notifications off' : 'Notifications on'); setShowOptionsSheet(false); } },
+              { label:'Share Group',
+                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/><path d="M16 6l-4-4-4 4M12 2v13" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                action: () => { if (navigator.share) { navigator.share({ title: g.name, text: g.description || '' }); } else { showToast('Link copied!'); } setShowOptionsSheet(false); } },
+              ...(isJoined ? [{ label:'Leave Group', danger:true,
+                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                action: async () => {
+                  setShowOptionsSheet(false);
+                  setJoinState('join');
+                  await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+                  refreshCounts();
+                  showToast('You left the group');
+                }}] : []),
+              { label:'Report Group', danger:true,
+                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="#C2493D" strokeWidth="2" strokeLinecap="round"/><path d="M10.3 3.5 2 20h20L13.7 3.5a2 2 0 0 0-3.4 0Z" stroke="#C2493D" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
+                action: () => { showToast('Report submitted'); setShowOptionsSheet(false); } },
+            ].map((opt, i) => (
+              <button key={i} onClick={opt.action} style={{
+                width:'100%', display:'flex', alignItems:'center', gap:15,
+                padding:'15px 20px', border:'none', background:'none', cursor:'pointer',
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                borderTop: i > 0 ? `1px solid ${C.divider}` : 'none',
+              }}>
+                {opt.icon}
+                <span style={{ fontSize:15, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>
+                  {opt.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -8413,40 +8452,63 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
 // ─────────────────────────────────────────────────────────────
 function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
   const PERIODS = ['7 Days', '30 Days', '90 Days'];
-  const DATA = {
-    0: { bars:[58,72,90,76,100,40,34], labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] },
-    1: { bars:[44,60,72,55,80,90,68],  labels:['W1','W2','W3','W4','W5','W6','W7'] },
-    2: { bars:[30,52,48,70,62,85,100], labels:['Jan','Feb','Mar','Apr','May','Jun','Jul'] },
-  };
-  const KPIS = [
-    { value:'2,847', label:'Active Users',     delta:'+12% this week', iconBg:'#E9F6FF', iconColor:C.primary,
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.primary} strokeWidth="2"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/></svg> },
-    { value:'$18,420', label:'Revenue',        delta:'+8% this month',  iconBg:'#E4F7EC', iconColor:'#15A34A',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3v18M16 7.5C16 5.6 14.2 4 12 4S8 5.6 8 7.5 9.8 11 12 11s4 1.6 4 3.5S14.2 18 12 18s-4-1.6-4-3.5" stroke="#15A34A" strokeWidth="2.2" strokeLinecap="round"/></svg> },
-    { value:'15.2K',  label:'Total Likes',     delta:'+24% this week',  iconBg:'#FFF0F4', iconColor:'#FF5A8A',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 20S4 15 4 9.5A3.8 3.8 0 0 1 12 7a3.8 3.8 0 0 1 8 2.5C20 15 12 20 12 20Z" stroke="#FF5A8A" strokeWidth="2" strokeLinejoin="round"/></svg> },
-    { value:'3,891',  label:'Comments',        delta:'+18% this week',  iconBg:'#E9F6FF', iconColor:'#19BFFF',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z" stroke="#19BFFF" strokeWidth="2" strokeLinejoin="round"/></svg> },
-    { value:'56',     label:'New Posts',        delta:'+24% this week',  iconBg:'#F1ECFF', iconColor:'#7C5CFF',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="3" stroke="#7C5CFF" strokeWidth="2"/><path d="M8 9h8M8 13h8M8 17h5" stroke="#7C5CFF" strokeWidth="2" strokeLinecap="round"/></svg> },
-    { value:'12',     label:'New Members',      delta:'+24% this week',  iconBg:'#E4F7EC', iconColor:'#10B981',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="10" cy="8" r="3.2" stroke="#10B981" strokeWidth="2"/><path d="M4 20c0-3.4 2.7-5.3 6-5.3" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/><path d="M18 13v6M15 16h6" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/></svg> },
-  ];
-  const CONTRIBUTORS = [
-    { name:'Alex Thompson', stats:'247 posts · 1.2K likes', initial:'A',
-      color:'linear-gradient(135deg,#0E1726,#3A4252)', badge:'MVP',
-      badgeBg:'#FFCF4D', badgeColor:'#7A5B00' },
-    { name:'Maria Garcia', stats:'189 posts · 956 likes', initial:'M',
-      color:'linear-gradient(135deg,#FF8A3D,#FF5A8A)', badge:'Star',
-      badgeBg:'#E4E8EF', badgeColor:'#5B6473' },
-    { name:'David Chen', stats:'156 posts · 743 likes', initial:'D',
-      color:'linear-gradient(135deg,#19BFFF,#0078E0)', badge:'Rising',
-      badgeBg:'#FAD9C2', badgeColor:'#B45309' },
-  ];
 
   const [periodIdx, setPeriodIdx] = useState(0);
-  const d   = DATA[periodIdx];
-  const max = Math.max(...d.bars);
+  const [stats, setStats] = useState(null);
+  const [contributors, setContributors] = useState([]);
+  const [barData, setBarData] = useState({ bars: [0,0,0,0,0,0,0], labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] });
+
+  useEffect(() => {
+    if (!groupId) return;
+
+    // Real stats
+    Promise.all([
+      supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId),
+      supabase.from('posts').select('likes_count, comment_count, created_at').eq('group_id', groupId),
+      supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId),
+    ]).then(([members, posts, events]) => {
+      const ps = posts.data || [];
+      const totalLikes = ps.reduce((s, p) => s + (p.likes_count || 0), 0);
+      const totalComments = ps.reduce((s, p) => s + (p.comment_count || 0), 0);
+      const now = new Date();
+      const weekAgo = new Date(now - 7 * 86400000);
+      const newPosts = ps.filter(p => new Date(p.created_at) > weekAgo).length;
+      setStats({
+        members: members.count ?? 0,
+        posts: ps.length,
+        events: events.count ?? 0,
+        totalLikes,
+        totalComments,
+        newPosts,
+      });
+
+      // Bar chart: posts per weekday for last 7 days
+      const dayBuckets = [0,0,0,0,0,0,0];
+      ps.filter(p => new Date(p.created_at) > weekAgo).forEach(p => {
+        const day = new Date(p.created_at).getDay(); // 0=Sun
+        dayBuckets[day === 0 ? 6 : day - 1]++;
+      });
+      setBarData({ bars: dayBuckets, labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] });
+    });
+
+    // Top contributors
+    supabase.from('posts').select('user_id, author_name, author_initial, author_color, likes_count')
+      .eq('group_id', groupId).then(({ data }) => {
+        if (!data?.length) return;
+        const byUser = {};
+        data.forEach(p => {
+          const uid = p.user_id || 'unknown';
+          if (!byUser[uid]) byUser[uid] = { name: p.author_name || 'Member', initial: p.author_initial || '?', color: p.author_color || C.grad, posts: 0, likes: 0 };
+          byUser[uid].posts++;
+          byUser[uid].likes += (p.likes_count || 0);
+        });
+        const sorted = Object.values(byUser).sort((a,b) => b.posts - a.posts).slice(0, 3);
+        setContributors(sorted);
+      });
+  }, [groupId, periodIdx]);
+
+  const d   = barData;
+  const max = Math.max(...d.bars, 1);
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column',
@@ -8519,7 +8581,20 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
 
         {/* KPI Grid */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:14 }}>
-          {KPIS.map(k => (
+          {[
+            { value: stats ? stats.members.toLocaleString() : '—', label:'Members',     iconBg:'#E9F6FF',
+              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.primary} strokeWidth="2"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/></svg> },
+            { value: stats ? stats.posts.toLocaleString() : '—',   label:'Total Posts', iconBg:'#F1ECFF',
+              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="3" stroke="#7C5CFF" strokeWidth="2"/><path d="M8 9h8M8 13h8M8 17h5" stroke="#7C5CFF" strokeWidth="2" strokeLinecap="round"/></svg> },
+            { value: stats ? stats.totalLikes.toLocaleString() : '—', label:'Total Likes', iconBg:'#FFF0F4',
+              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 20S4 15 4 9.5A3.8 3.8 0 0 1 12 7a3.8 3.8 0 0 1 8 2.5C20 15 12 20 12 20Z" stroke="#FF5A8A" strokeWidth="2" strokeLinejoin="round"/></svg> },
+            { value: stats ? stats.totalComments.toLocaleString() : '—', label:'Comments', iconBg:'#E9F6FF',
+              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z" stroke="#19BFFF" strokeWidth="2" strokeLinejoin="round"/></svg> },
+            { value: stats ? stats.newPosts.toLocaleString() : '—', label:'Posts This Week', iconBg:'#E4F7EC',
+              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="3" stroke="#10B981" strokeWidth="2"/><path d="M12 9v6M9 12h6" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/></svg> },
+            { value: stats ? stats.events.toLocaleString() : '—', label:'Events', iconBg:'#FFF6EC',
+              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="#F59E0B" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/></svg> },
+          ].map(k => (
             <div key={k.label} style={{ background:'#fff', borderRadius:18,
                                          boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
                                          padding:'18px 16px', display:'flex',
@@ -8532,8 +8607,6 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
                             color:C.ink, marginTop:12 }}>{k.value}</div>
               <div style={{ fontSize:12, fontWeight:600, color:C.subtle,
                             marginTop:2 }}>{k.label}</div>
-              <div style={{ fontSize:11.5, fontWeight:700, color:'#15A34A',
-                            marginTop:6 }}>{k.delta}</div>
             </div>
           ))}
         </div>
@@ -8545,54 +8618,38 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
           <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:16 }}>
             Top Contributors
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-            {CONTRIBUTORS.map((c, i) => (
-              <div key={i} style={{ display:'flex', alignItems:'center', gap:12 }}>
-                <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
-                              background:c.color, display:'flex', alignItems:'center',
-                              justifyContent:'center', color:'#fff', fontSize:13,
-                              fontWeight:800, position:'relative', overflow:'hidden' }}>
-                  <span>{c.initial}</span>
-                  <div style={{ position:'absolute', inset:0, background:
-                    'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 9px)'}}/>
-                </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>{c.name}</div>
-                  <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{c.stats}</div>
-                </div>
-                <span style={{ flexShrink:0, height:26, padding:'0 10px', borderRadius:999,
-                               fontSize:11, fontWeight:800, display:'flex',
-                               alignItems:'center', justifyContent:'center',
-                               background:c.badgeBg, color:c.badgeColor }}>{c.badge}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Retention + Session */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:14 }}>
-          {[
-            { value:'94.2%', label:'Retention Rate',
-              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 16l5-5 3 3 6-7" stroke={C.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M15 7h4v4" stroke={C.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-              iconBg:'#E9F6FF' },
-            { value:'4.7h',  label:'Avg. Session',
-              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#F59E0B" strokeWidth="2"/><path d="M12 8v4.5l3 2" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-              iconBg:'#FFF6EC' },
-          ].map(s => (
-            <div key={s.label} style={{ background:'#fff', borderRadius:18,
-                                         boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
-                                         padding:'18px 16px', display:'flex',
-                                         flexDirection:'column', alignItems:'center',
-                                         textAlign:'center' }}>
-              <div style={{ width:46, height:46, borderRadius:'50%', background:s.iconBg,
-                            display:'flex', alignItems:'center',
-                            justifyContent:'center' }}>{s.icon}</div>
-              <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.8,
-                            color:C.ink, marginTop:12 }}>{s.value}</div>
-              <div style={{ fontSize:12, fontWeight:600, color:C.subtle,
-                            marginTop:2 }}>{s.label}</div>
+          {contributors.length === 0
+            ? <div style={{ textAlign:'center', padding:'20px 0', color:C.subtle, fontSize:13 }}>No posts yet</div>
+            : <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {contributors.map((c, i) => {
+                const badges = ['MVP','Star','Rising'];
+                const badgeBgs = ['#FFCF4D','#E4E8EF','#FAD9C2'];
+                const badgeColors = ['#7A5B00','#5B6473','#B45309'];
+                return (
+                  <div key={i} style={{ display:'flex', alignItems:'center', gap:12 }}>
+                    <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
+                                  background:c.color, display:'flex', alignItems:'center',
+                                  justifyContent:'center', color:'#fff', fontSize:13,
+                                  fontWeight:800, position:'relative', overflow:'hidden' }}>
+                      <span style={{ position:'relative', zIndex:1 }}>{c.initial}</span>
+                      <div style={{ position:'absolute', inset:0, background:
+                        'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 9px)'}}/>
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>{c.name}</div>
+                      <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
+                        {c.posts} post{c.posts !== 1 ? 's' : ''} · {c.likes} like{c.likes !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <span style={{ flexShrink:0, height:26, padding:'0 10px', borderRadius:999,
+                                   fontSize:11, fontWeight:800, display:'flex',
+                                   alignItems:'center', justifyContent:'center',
+                                   background:badgeBgs[i], color:badgeColors[i] }}>{badges[i]}</span>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          }
         </div>
 
       </div>

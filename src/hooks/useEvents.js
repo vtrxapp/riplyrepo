@@ -65,9 +65,14 @@ export function useEvents({ category, search, filters } = {}) {
     const fetch = async () => {
       setLoading(true)
 
-      const now = new Date().toISOString()
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
+      const todayIso = todayStart.toISOString()
+
+      // Delete past events from DB
+      await supabase.from('events').delete().lt('date', todayIso)
+
       let q = supabase.from('events').select('*')
-        .gte('date', new Date(Date.now() - 86400000).toISOString()) // exclude events older than yesterday
+        .gte('date', todayIso)
         .order('date', { ascending: true })
 
       // Category filter

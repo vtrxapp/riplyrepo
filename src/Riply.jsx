@@ -7880,7 +7880,14 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
 // SCREEN: GROUP MANAGE
 // ─────────────────────────────────────────────────────────────
 function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
-  const g = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const [dbGroup, setDbGroup] = useState(null);
+  useEffect(() => {
+    if (!groupId) return;
+    supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
+      .then(({ data }) => { if (data) setDbGroup(data); });
+  }, [groupId]);
+  const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
+  const g = dbGroup || staticG;
 
   const SETTINGS = [
     { key:'info',    label:'Edit Group Info',    iconBg:'#E9F6FF', iconColor:C.primary,

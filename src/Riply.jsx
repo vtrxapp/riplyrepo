@@ -2782,31 +2782,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             : <div style={{ position:'absolute', inset:0, background:
                 'repeating-linear-gradient(135deg,rgba(255,255,255,0.06) 0,rgba(255,255,255,0.06) 2px,transparent 2px,transparent 18px)' }}/>
           }
-          {/* Cover upload button */}
-          {!coverCollapsed && isJoined && (
-            <label style={{ position:'absolute', bottom:8, right:8, width:32, height:32, borderRadius:'50%',
-                            background:'rgba(14,23,38,0.6)', backdropFilter:'blur(8px)',
-                            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', zIndex:3 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 16V8M12 8l-3 3M12 8l3 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <rect x="3" y="3" width="18" height="18" rx="4" stroke="#fff" strokeWidth="1.6"/>
-              </svg>
-              <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
-                const file = e.target.files?.[0]; if (!file) return;
-                setUploadingCover(true);
-                const ext = file.name.split('.').pop();
-                const path = `groups/cover-${groupId}.${ext}`;
-                const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
-                if (!upErr) {
-                  const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
-                  await supabase.from('groups').update({ cover_url: publicUrl }).eq('id', groupId);
-                  refreshGroup();
-                  showToast('Cover updated');
-                } else { showToast('Upload failed'); }
-                setUploadingCover(false);
-              }}/>
-            </label>
-          )}
         </div>
 
         {/* Silver bar that fades in as cover fades out */}
@@ -2820,6 +2795,37 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           boxShadow:'0 2px 16px rgba(0,0,0,0.08)',
         }}/>
         </div>{/* end clipping wrapper */}
+
+        {/* Cover photo upload button — outside overflow:hidden, always tappable */}
+        {!coverCollapsed && isJoined && (
+          <label style={{ position:'absolute', bottom:10, right:60, zIndex:5,
+                          display:'flex', alignItems:'center', gap:6,
+                          background:'rgba(14,23,38,0.55)', backdropFilter:'blur(8px)',
+                          borderRadius:20, padding:'6px 12px', cursor:'pointer', border:'none' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <rect x="3.5" y="6" width="17" height="13" rx="3" stroke="#fff" strokeWidth="1.9"/>
+              <circle cx="12" cy="12.5" r="3" stroke="#fff" strokeWidth="1.9"/>
+              <path d="M8.5 6l1-2h5l1 2" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ color:'#fff', fontSize:12, fontWeight:700, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+              {uploadingCover ? 'Uploading…' : 'Edit Cover'}
+            </span>
+            <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+              const file = e.target.files?.[0]; if (!file) return;
+              setUploadingCover(true);
+              const ext = file.name.split('.').pop();
+              const path = `groups/cover-${groupId}.${ext}`;
+              const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
+              if (!upErr) {
+                const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
+                await supabase.from('groups').update({ cover_url: publicUrl }).eq('id', groupId);
+                refreshGroup();
+                showToast('Cover updated ✓');
+              } else { showToast('Upload failed: ' + upErr.message); }
+              setUploadingCover(false);
+            }}/>
+          </label>
+        )}
 
         {/* Back + menu buttons — always visible */}
         <button onClick={goBack} style={{ position:'absolute', top:50, left:14, width:40,
@@ -3283,6 +3289,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                           padding:'0 20px 14px', borderBottom:`1px solid ${C.divider}` }}>
               {g.name || 'Group'}
             </div>
+            {/* Notification toggle */}
             {[
               { label: notifyOn ? 'Turn off notifications' : 'Turn on notifications',
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z" stroke={C.body} strokeWidth="1.9" strokeLinejoin="round"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/></svg>,
@@ -3293,11 +3300,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               ...(isJoined ? [{ label:'Leave Group', danger:true,
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
                 action: async () => {
-                  setShowOptionsSheet(false);
-                  setJoinState('join');
+                  setShowOptionsSheet(false); setJoinState('join');
                   await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-                  refreshCounts();
-                  showToast('You left the group');
+                  refreshCounts(); showToast('You left the group');
                 }}] : []),
               { label:'Report Group', danger:true,
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="#C2493D" strokeWidth="2" strokeLinecap="round"/><path d="M10.3 3.5 2 20h20L13.7 3.5a2 2 0 0 0-3.4 0Z" stroke="#C2493D" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
@@ -3307,14 +3312,53 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 width:'100%', display:'flex', alignItems:'center', gap:15,
                 padding:'15px 20px', border:'none', background:'none', cursor:'pointer',
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
-                borderTop: i > 0 ? `1px solid ${C.divider}` : 'none',
+                borderTop:`1px solid ${C.divider}`,
               }}>
                 {opt.icon}
-                <span style={{ fontSize:15, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>
-                  {opt.label}
-                </span>
+                <span style={{ fontSize:15, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
               </button>
             ))}
+            {/* Upload options — file inputs need their own labels */}
+            {isJoined && (<>
+              <label style={{ width:'100%', display:'flex', alignItems:'center', gap:15,
+                padding:'15px 20px', borderTop:`1px solid ${C.divider}`, cursor:'pointer',
+                fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6" width="17" height="13" rx="3" stroke={C.body} strokeWidth="1.9"/><circle cx="12" cy="12.5" r="3" stroke={C.body} strokeWidth="1.9"/><path d="M8.5 6l1-2h5l1 2" stroke={C.body} strokeWidth="1.9" strokeLinejoin="round"/></svg>
+                <span style={{ fontSize:15, fontWeight:700, color:C.ink }}>{uploadingCover ? 'Uploading…' : 'Change Cover Photo'}</span>
+                <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setShowOptionsSheet(false); setUploadingCover(true);
+                  const ext = file.name.split('.').pop();
+                  const path = `groups/cover-${groupId}.${ext}`;
+                  const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
+                  if (!upErr) {
+                    const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
+                    await supabase.from('groups').update({ cover_url: publicUrl }).eq('id', groupId);
+                    refreshGroup(); showToast('Cover updated ✓');
+                  } else { showToast('Upload failed: ' + upErr.message); }
+                  setUploadingCover(false);
+                }}/>
+              </label>
+              <label style={{ width:'100%', display:'flex', alignItems:'center', gap:15,
+                padding:'15px 20px', borderTop:`1px solid ${C.divider}`, cursor:'pointer',
+                fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.body} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/></svg>
+                <span style={{ fontSize:15, fontWeight:700, color:C.ink }}>{uploadingAvatar ? 'Uploading…' : 'Change Group Photo'}</span>
+                <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setShowOptionsSheet(false); setUploadingAvatar(true);
+                  const ext = file.name.split('.').pop();
+                  const path = `groups/avatar-${groupId}.${ext}`;
+                  const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
+                  if (!upErr) {
+                    const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
+                    await supabase.from('groups').update({ avatar_url: publicUrl }).eq('id', groupId);
+                    refreshGroup(); showToast('Group photo updated ✓');
+                  } else { showToast('Upload failed: ' + upErr.message); }
+                  setUploadingAvatar(false);
+                }}/>
+              </label>
+            </>)}
           </div>
         </div>
       )}

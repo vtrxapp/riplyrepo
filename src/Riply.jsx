@@ -3902,7 +3902,7 @@ function calcSpaceProgress(timeStr, dayStr, duration) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: SPACE DETAILS
 // ─────────────────────────────────────────────────────────────
-function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, toggleSaveSpace }) {
+function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, toggleSaveSpace, currentUser }) {
   const { user } = useUser();
   const [dbSpace, setDbSpace] = useState(null);
   useEffect(() => {
@@ -3929,6 +3929,23 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   const [expanded, setExpanded] = useState(false);
   const [progress, setProgress] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [realParticipants, setRealParticipants] = useState([]);
+
+  useEffect(() => {
+    if (!spaceId) return;
+    supabase.from('space_participants')
+      .select('user_id, users(name, avatar_url, avatar_color)')
+      .eq('space_id', spaceId)
+      .then(({ data }) => {
+        setRealParticipants((data || []).map(p => ({
+          avatar_url: p.users?.avatar_url || null,
+          color: p.users?.avatar_color || '#7C5CFF',
+          initial: (p.users?.name || 'U')[0].toUpperCase(),
+          user_id: p.user_id,
+        })));
+        if (user?.id) setJoined((data || []).some(p => p.user_id === user.id));
+      });
+  }, [spaceId, user?.id]);
 
   // Tick progress bar every 30s when space is live
   useEffect(() => {
@@ -3956,10 +3973,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   const isLive = liveProgress !== null;
   const done = isLive && liveProgress >= 100;
 
-  const PARTICIPANTS = [
-    {i:'A',c:'#FF5A8A'},{i:'J',c:'#0098F0'},{i:'M',c:'#10B981'},
-    {i:'R',c:'#7C5CFF'},{i:'K',c:'#FF8A3D'},{i:'T',c:'#06B6D4'},
-  ];
+  // Build participant list from DB, optionally prepend current user if joined but not yet in list
+  const PARTICIPANTS = (() => {
+    const list = [...realParticipants];
+    return list;
+  })();
 
   const ABOUT_SHORT = `${sp.desc || sp.description || ""}. A recurring space open to all skill levels — come alone or bring friends.`;
   const ABOUT_FULL  = `${sp.desc || sp.description || ""}. A recurring space open to all skill levels — come alone or bring friends. Hosted by ${sp.hostText || sp.host_text || "".replace('Created by ','').replace('Organized by ','')}, this space runs ${sp.time} for ${sp.duration} at ${sp.location}. All equipment is provided on site. Whether you're a beginner or experienced, everyone is welcome.`;
@@ -4155,12 +4173,17 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
           </div>
           {/* Avatar stack */}
           <div style={{ display:'flex', alignItems:'center', marginTop:12 }}>
-            {PARTICIPANTS.slice(0, count > 6 ? 6 : count).map((p, i) => (
+            {PARTICIPANTS.slice(0, 6).map((p, i) => (
               <div key={i} style={{ width:30, height:30, borderRadius:'50%',
                                     marginLeft: i > 0 ? -8 : 0, border:'2.5px solid #fff',
                                     flexShrink:0, display:'flex', alignItems:'center',
                                     justifyContent:'center', color:'#fff', fontSize:10,
-                                    fontWeight:800, background:p.c }}>{p.i}</div>
+                                    fontWeight:800, background: p.avatar_url ? 'transparent' : p.color,
+                                    overflow:'hidden' }}>
+                {p.avatar_url
+                  ? <img src={p.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                  : p.initial}
+              </div>
             ))}
             {count > 6 && (
               <div style={{ width:30, height:30, borderRadius:'50%', marginLeft:-8,
@@ -4404,6 +4427,13 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
           <button onClick={async () => {
             const next = !joined;
             setJoined(next);
+            // Optimistically update avatar stack
+            if (next) {
+              const me = { avatar_url: currentUser?.avatarUrl || null, color: currentUser?.avatarColor || '#7C5CFF', initial: (currentUser?.name || user?.firstName || 'U')[0]?.toUpperCase() || 'U', user_id: user?.id };
+              setRealParticipants(prev => prev.some(p => p.user_id === user?.id) ? prev : [me, ...prev]);
+            } else {
+              setRealParticipants(prev => prev.filter(p => p.user_id !== user?.id));
+            }
             const isUuid = typeof sp.id === 'string' && sp.id.includes('-');
             if (user?.id && isUuid) {
               if (next) await supabase.from('space_participants').upsert({ space_id: sp.id, user_id: user.id });
@@ -10833,7 +10863,7 @@ export default function RiplyApp() {
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
-      case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} />;
+      case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;

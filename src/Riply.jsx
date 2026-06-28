@@ -332,7 +332,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
     setActiveCat(ids[next]);
   };
   const { events: liveEvents, loading: eventsLoading } = useEvents({ category: (activeCat === 'all' || activeCat === 'trending') ? null : activeCat, search: query, filters });
-  const eventData = liveEvents.length > 0 ? liveEvents : EVENTS;
+  const eventData = eventsLoading ? [] : liveEvents;
   let list = eventData.slice();
   if (activeCat==='new') list = [...list].reverse();
   else if (activeCat==='popular') list = [...list].sort((a,b)=>b.attendees-a.attendees);
@@ -733,8 +733,8 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
     setSpaceTab(ids[next]);
   };
 
-  const { spaces: liveSpaces } = useSpaces();
-  const spaceData = liveSpaces.length > 0 ? liveSpaces : SPACES;
+  const { spaces: liveSpaces, loading: spacesLoading } = useSpaces();
+  const spaceData = spacesLoading ? [] : liveSpaces;
   let list = spaceData.slice();
   if(spaceTab==='today'||spaceTab==='tomorrow') list=list.filter(s=>s.day===spaceTab);
   else if(spaceTab!=='all') list=list.filter(s=>(s.cat||s.category)===spaceTab);
@@ -897,8 +897,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   const TABS = [{id:'all',label:'All'},{id:'popular',label:'Popular'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
   const [discoverQuery, setDiscoverQuery] = useState('');
 
-  const { groups: liveGroups } = useGroups();
-  const groupData = liveGroups.length > 0 ? liveGroups : GROUPS;
+  const { groups: liveGroups, loading: groupsLoading } = useGroups();
+  const groupData = groupsLoading ? [] : liveGroups;
   let list = groupData.slice();
   if(discoverTab!=='popular'&&discoverTab!=='all') list=list.filter(g=>((g.cat || g.category || [])||g.category||[]).includes(discoverTab));
   if(discoverQuery.trim()) {

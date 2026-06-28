@@ -2872,51 +2872,60 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         </div>
       </div>
 
+      {/* ── Avatar — outside scroll so it sits above the sticky header ── */}
+      <div style={{
+        position:'absolute',
+        top: coverCollapsed ? 10 : 58,
+        left:0, right:0,
+        display:'flex', justifyContent:'center',
+        zIndex:30, pointerEvents:'auto',
+        transition:'top 0.3s cubic-bezier(0.4,0,0.2,1)',
+      }}>
+        <div style={{ position:'relative', display:'inline-block' }}>
+          <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
+                        background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
+                        justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,
+                        position:'relative', overflow:'hidden',
+                        boxShadow:'0 6px 16px rgba(16,24,40,0.18)' }}>
+            {g.avatar_url
+              ? <img src={g.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+              : <>
+                  <span style={{ position:'relative', zIndex:1 }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
+                  <div style={{ position:'absolute', inset:0, background:
+                    'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 13px)' }}/>
+                </>
+            }
+          </div>
+          {isJoined && (
+            <label style={{ position:'absolute', bottom:0, right:0, width:26, height:26, borderRadius:'50%',
+                            background:C.ink, display:'flex', alignItems:'center', justifyContent:'center',
+                            cursor:'pointer', border:'2.5px solid #F4F6FA', zIndex:3 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
+              </svg>
+              <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+                const file = e.target.files?.[0]; if (!file) return;
+                setUploadingAvatar(true);
+                const ext = file.name.split('.').pop();
+                const path = `groups/avatar-${groupId}.${ext}`;
+                const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
+                if (!upErr) {
+                  const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
+                  await supabase.from('groups').update({ avatar_url: publicUrl }).eq('id', groupId);
+                  refreshGroup();
+                  showToast('Group photo updated');
+                } else { showToast('Upload failed'); }
+                setUploadingAvatar(false);
+              }}/>
+            </label>
+          )}
+        </div>
+      </div>
+
       <div style={{ flex:1, overflowY:'auto' }} onScroll={handleGroupScroll}>
 
-
-        {/* ── Avatar ──────────────────────────────────────── */}
-        <div style={{ display:'flex', justifyContent:'center', marginTop:-42, position:'relative', zIndex:25 }}>
-          <div style={{ position:'relative', display:'inline-block' }}>
-            <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
-                          background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
-                          justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,
-                          position:'relative', overflow:'hidden',
-                          boxShadow:'0 6px 16px rgba(16,24,40,0.18)' }}>
-              {g.avatar_url
-                ? <img src={g.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
-                : <>
-                    <span style={{ position:'relative', zIndex:1 }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
-                    <div style={{ position:'absolute', inset:0, background:
-                      'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 13px)' }}/>
-                  </>
-              }
-            </div>
-            {isJoined && (
-              <label style={{ position:'absolute', bottom:0, right:0, width:26, height:26, borderRadius:'50%',
-                              background:C.ink, display:'flex', alignItems:'center', justifyContent:'center',
-                              cursor:'pointer', border:'2.5px solid #F4F6FA', zIndex:3 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
-                </svg>
-                <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  setUploadingAvatar(true);
-                  const ext = file.name.split('.').pop();
-                  const path = `groups/avatar-${groupId}.${ext}`;
-                  const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
-                  if (!upErr) {
-                    const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
-                    await supabase.from('groups').update({ avatar_url: publicUrl }).eq('id', groupId);
-                    refreshGroup();
-                    showToast('Group photo updated');
-                  } else { showToast('Upload failed'); }
-                  setUploadingAvatar(false);
-                }}/>
-              </label>
-            )}
-          </div>
-        </div>
+        {/* Spacer so content starts below the floating avatar */}
+        <div style={{ height:50 }}/>
 
         {/* ── Name + desc ─────────────────────────────────── */}
         <div style={{ padding:'11px 24px 0', textAlign:'center' }}>

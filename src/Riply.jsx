@@ -1522,25 +1522,52 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
 // ─────────────────────────────────────────────────────────────
 function HelpCenterScreen({ goBack, navigate, showToast }) {
   const FAQS = [
-    { q:'How do I buy a ticket for an event?', a:"Open any event, tap \"Buy Tickets\", choose your ticket type and quantity, then complete checkout. Your ticket and QR code appear instantly in My Tickets." },
-    { q:'Can I get a refund?', a:"Refunds are available up to 24 hours before an event starts, as long as the organizer allows them. Go to My Tickets → select the ticket → Request Refund." },
-    { q:'Who can create events?', a:"Only verified event organizers and group admins can publish events. Students can create student spaces and post in groups they belong to." },
-    { q:'How do I join a private group?', a:"Open the group and tap \"Request to Join\". The group admins will review your request — you'll get a notification once it's approved." },
-    { q:'How do I change my password?', a:"Go to Profile & Settings → Privacy & Security → Change Password. Enter your current password and your new one twice to confirm." },
-    { q:'How does event check-in work?', a:"Organizers open the Check-In screen and scan each attendee's QR code from My Tickets. Valid tickets are marked checked-in in real time." },
+    // Events & Tickets
+    { topic:'Events & Tickets', q:'How do I find events near me?', a:"Tap the Events tab at the bottom of the screen. Browse by category using the chips at the top, or use the search bar to find events by name, organiser, or location." },
+    { topic:'Events & Tickets', q:'How do I RSVP or buy a ticket?', a:"Open any event and tap \"Get Tickets\" or \"RSVP\". Choose your ticket type and quantity, complete checkout, and your ticket with QR code will appear instantly in My Tickets on your profile." },
+    { topic:'Events & Tickets', q:'Where do I find my tickets?', a:"Go to your Profile tab → My Tickets. All purchased and RSVP'd tickets are listed there with their QR codes ready for check-in." },
+    { topic:'Events & Tickets', q:'Can I get a refund on a ticket?', a:"Refunds depend on the event organiser's policy. If refunds are allowed, go to My Tickets → tap the ticket → Request Refund. Requests must usually be made at least 24 hours before the event." },
+    { topic:'Events & Tickets', q:'How does check-in work at the door?', a:"Show your QR code from My Tickets to the event organiser at the door. They'll scan it to verify and check you in instantly." },
+    { topic:'Events & Tickets', q:'Can I transfer my ticket to someone else?', a:"Ticket transfers are not supported yet. If you can't attend, check the event's refund policy or contact the organiser directly." },
+    { topic:'Events & Tickets', q:'Who can create events on Riply?', a:"Verified organisers and group admins can publish events. If you'd like to host an event, reach out to us via the Send Feedback option in your profile settings." },
+    // Groups & Spaces
+    { topic:'Groups & Spaces', q:'How do I join a group?', a:"Go to the Discover tab and browse or search for groups. Tap a group to open it, then tap \"Join\". Private groups require admin approval — you'll get a notification once accepted." },
+    { topic:'Groups & Spaces', q:'How do I leave a group?', a:"Open the group page, tap the three-dot menu in the top right, and select \"Leave Group\". You can rejoin at any time unless the group is private." },
+    { topic:'Groups & Spaces', q:'What are Spaces?', a:"Spaces are live audio or video rooms hosted by students or organisers. You can join an active Space from the Spaces tab, listen in, or participate. Spaces end automatically when the host leaves." },
+    { topic:'Groups & Spaces', q:'How do I join a Space?', a:"Go to the Spaces tab, find a Space that's currently live or scheduled, and tap \"Join Space\". You'll be added to the participant list in real time." },
+    { topic:'Groups & Spaces', q:'Can I post in any group?', a:"You can post in groups you've joined. Some groups may have posting restrictions set by the admin — for example, only admins can post in announcement-only groups." },
+    { topic:'Groups & Spaces', q:'How do I create a group?', a:"Group creation is currently available to verified accounts. Tap the \"+\" icon on the Discover tab or contact us via Send Feedback if you'd like to set up a group for your club or society." },
+    // Account
+    { topic:'Account', q:'How do I update my profile?', a:"Go to the Profile tab → tap your name or avatar at the top → Edit Profile. You can update your name, university, year, programme, bio, and profile photo." },
+    { topic:'Account', q:'How do I change my password?', a:"Go to Profile & Settings → Privacy & Security → Change Password. Enter your current password and your new one twice, then tap Save." },
+    { topic:'Account', q:'How do I make my profile private?', a:"Go to Profile & Settings → Privacy & Security → toggle on Private Profile. When private, only people you approve can see your activity and details." },
+    { topic:'Account', q:'How do I delete my account?', a:"Account deletion is handled by our support team to ensure your data is fully removed. Email us at support@riply.app with the subject \"Delete My Account\" and we'll process it within 7 days." },
+    { topic:'Account', q:'I forgot my password — what do I do?', a:"On the login screen tap \"Forgot Password\". Enter your email and we'll send a reset link. If you signed up with Google or Apple, use that login method instead." },
+    { topic:'Account', q:'Can I change my university after signing up?', a:"Yes — go to Edit Profile and update the University field. This helps us show you relevant events and groups for your campus." },
+    // Payments
+    { topic:'Payments', q:'What payment methods are accepted?', a:"Riply accepts major credit and debit cards. Apple Pay and Google Pay support is coming soon. All payments are processed securely." },
+    { topic:'Payments', q:'Is it safe to pay through Riply?', a:"Yes. All payments are encrypted and processed through a secure payment provider. Riply never stores your full card details." },
+    { topic:'Payments', q:'Where can I see my payment history?', a:"Go to Profile & Settings → Payment Methods → Payment History to see all past transactions and receipts." },
+    { topic:'Payments', q:'I was charged but didn\'t receive my ticket — what do I do?', a:"This can happen if your connection dropped during checkout. Check My Tickets first — your ticket may already be there. If not, email support@riply.app with your order details and we'll resolve it quickly." },
+    { topic:'Payments', q:'Are there booking fees on top of the ticket price?', a:"Any fees are shown clearly during checkout before you confirm payment. The price you see on the event page is the base ticket price." },
   ];
   const TOPICS = [
-    { title:'Events & Tickets', sub:'Buying, refunds, check-in',  iconBg:'#E9F6FF', iconColor:C.primary,   icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 9a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4A1.8 1.8 0 0 0 20 16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6A1.8 1.8 0 0 0 4 9Z" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/></svg> },
-    { title:'Groups & Spaces',  sub:'Joining, posting, roles',    iconBg:'#E4F7EC', iconColor:'#15A34A',   icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="#15A34A" strokeWidth="1.9"/><circle cx="16" cy="9" r="2.6" stroke="#15A34A" strokeWidth="1.9"/><path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2" stroke="#15A34A" strokeWidth="1.9" strokeLinecap="round"/></svg> },
-    { title:'Account',          sub:'Profile, password, privacy', iconBg:'#F1ECFF', iconColor:'#7C5CFF',  icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#7C5CFF" strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke="#7C5CFF" strokeWidth="1.9" strokeLinecap="round"/></svg> },
-    { title:'Payments',         sub:'Methods, receipts, billing', iconBg:'#FFF6EC', iconColor:'#F59E0B',  icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6" width="17" height="12" rx="3" stroke="#F59E0B" strokeWidth="1.9"/><path d="M3.5 10h17" stroke="#F59E0B" strokeWidth="1.9"/></svg> },
+    { title:'Events & Tickets', sub:'Finding, RSVP, check-in',    iconBg:'#E9F6FF', iconColor:C.primary,   icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 9a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4A1.8 1.8 0 0 0 20 16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6A1.8 1.8 0 0 0 4 9Z" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/></svg> },
+    { title:'Groups & Spaces',  sub:'Joining, posting, live rooms', iconBg:'#E4F7EC', iconColor:'#15A34A',  icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="#15A34A" strokeWidth="1.9"/><circle cx="16" cy="9" r="2.6" stroke="#15A34A" strokeWidth="1.9"/><path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2" stroke="#15A34A" strokeWidth="1.9" strokeLinecap="round"/></svg> },
+    { title:'Account',          sub:'Profile, password, privacy',  iconBg:'#F1ECFF', iconColor:'#7C5CFF',  icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#7C5CFF" strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke="#7C5CFF" strokeWidth="1.9" strokeLinecap="round"/></svg> },
+    { title:'Payments',         sub:'Cards, receipts, refunds',    iconBg:'#FFF6EC', iconColor:'#F59E0B',  icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6" width="17" height="12" rx="3" stroke="#F59E0B" strokeWidth="1.9"/><path d="M3.5 10h17" stroke="#F59E0B" strokeWidth="1.9"/></svg> },
   ];
 
-  const [query,   setQuery]   = useState('');
-  const [openIdx, setOpenIdx] = useState(-1);
+  const [query,     setQuery]     = useState('');
+  const [openIdx,   setOpenIdx]   = useState(-1);
+  const [activeTopic, setActiveTopic] = useState(null);
 
   const q = query.trim().toLowerCase();
-  const filtered = FAQS.filter(f => !q || (f.q + ' ' + f.a).toLowerCase().includes(q));
+  const filtered = FAQS.filter(f => {
+    const matchesTopic = !activeTopic || f.topic === activeTopic;
+    const matchesQuery = !q || (f.q + ' ' + f.a).toLowerCase().includes(q);
+    return matchesTopic && matchesQuery;
+  });
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -1588,29 +1615,33 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
         {/* Quick topics grid */}
         {!query && (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:11, marginTop:16 }}>
-            {TOPICS.map((t,i) => (
-              <button key={i} onClick={() => showToast(t.title + ' articles')} style={{
-                display:'flex', flexDirection:'column', gap:9, background:'#fff', border:'none',
-                borderRadius:16, padding:15, cursor:'pointer', textAlign:'left',
-                fontFamily:"'Montserrat',-apple-system,sans-serif",
-                boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
-              }}>
-                <div style={{ width:40, height:40, borderRadius:12, display:'flex',
-                              alignItems:'center', justifyContent:'center',
-                              background:t.iconBg }}>
-                  {t.icon}
-                </div>
-                <div style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>{t.title}</div>
-                <div style={{ fontSize:11, color:C.subtle, lineHeight:1.3 }}>{t.sub}</div>
-              </button>
-            ))}
+            {TOPICS.map((t,i) => {
+              const active = activeTopic === t.title;
+              return (
+                <button key={i} onClick={() => { setActiveTopic(active ? null : t.title); setOpenIdx(-1); }} style={{
+                  display:'flex', flexDirection:'column', gap:9, border: active ? `2px solid ${t.iconColor}` : '2px solid transparent',
+                  borderRadius:16, padding:15, cursor:'pointer', textAlign:'left',
+                  fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  background: active ? t.iconBg : '#fff',
+                  boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
+                }}>
+                  <div style={{ width:40, height:40, borderRadius:12, display:'flex',
+                                alignItems:'center', justifyContent:'center',
+                                background: active ? '#fff' : t.iconBg }}>
+                    {t.icon}
+                  </div>
+                  <div style={{ fontSize:13.5, fontWeight:800, color: active ? t.iconColor : C.ink }}>{t.title}</div>
+                  <div style={{ fontSize:11, color:C.subtle, lineHeight:1.3 }}>{t.sub}</div>
+                </button>
+              );
+            })}
           </div>
         )}
 
         {/* FAQ */}
         <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.6, textTransform:'uppercase',
                       color:C.subtle, margin:'24px 4px 10px' }}>
-          {query ? `Results for "${query}"` : 'Frequently Asked'}
+          {query ? `Results for "${query}"` : activeTopic ? activeTopic : 'Frequently Asked'}
         </div>
 
         {filtered.length === 0 ? (

@@ -27,26 +27,12 @@ function SplashScreen({ onDone }) {
 
 export default function App() {
   const { isLoaded } = useAuth()
-  const [splash, setSplash] = useState(true)
+  const [splashDone, setSplashDone] = useState(false)
 
-  if (splash) return <SplashScreen onDone={() => setSplash(false)} />
+  // Show splash until both the timer AND Clerk are ready
+  const ready = splashDone && isLoaded
 
-  if (!isLoaded) return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#fff',
-    }}>
-      <div style={{
-        width: 40, height: 40, borderRadius: '50%',
-        border: '4px solid #E1E6EE', borderTopColor: '#0098F0',
-        animation: 'spin .8s linear infinite',
-      }}/>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  )
+  if (!ready) return <SplashScreen onDone={() => setSplashDone(true)} />
 
   return <RiplyApp />
 }

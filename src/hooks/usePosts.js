@@ -76,6 +76,12 @@ export function usePosts(groupId) {
       author_initial: authorName[0]?.toUpperCase() || 'M',
       author_color:   currentUser?.avatarColor || deriveAvatarColor(user.id),
     }).select().single()
+    if (!error) {
+      await supabase.rpc('increment_group_post_count', { gid: groupId }).catch(() =>
+        supabase.from('groups').select('post_count').eq('id', groupId).single()
+          .then(({ data: gr }) => supabase.from('groups').update({ post_count: (gr?.post_count || 0) + 1 }).eq('id', groupId))
+      )
+    }
     return { data, error }
   }, [user?.id, groupId])
 

@@ -2627,14 +2627,21 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup,     setDbGroup]     = useState(null);
   const [groupEvents, setGroupEvents] = useState([]);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const refreshGroup = () => {
+    supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
+      .then(({ data }) => { if (data) setDbGroup(data); });
+  };
+
   useEffect(() => {
     if (!groupId) return;
-    supabase.from('groups').select('*').eq('id', groupId).single()
-      .then(({ data }) => { if (data) setDbGroup(data); });
+    refreshGroup();
     supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
       .then(({ data }) => { if (data?.length) setGroupEvents(data); });
     if (user?.id) {
-      supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).single()
+      supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).maybeSingle()
         .then(({ data }) => {
           if (data) setJoinState(data.role === 'pending' ? 'requested' : 'joined');
         });
@@ -2690,9 +2697,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     if (joinState === 'join') {
       setJoinState('joined');
       await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
+      await supabase.from('groups').update({ member_count: (g.member_count || g.count || 0) + 1 }).eq('id', groupId);
+      refreshGroup();
     } else if (joinState === 'joined') {
       setJoinState('join');
       await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+      await supabase.from('groups').update({ member_count: Math.max(0, (g.member_count || g.count || 1) - 1) }).eq('id', groupId);
+      refreshGroup();
     } else if (joinState === 'request') {
       setJoinState('requested');
       await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
@@ -2735,7 +2746,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       {/* ── Sticky collapsing bar (sits above scroll area) ── */}
       <div style={{
         position:'relative', zIndex:20,
-        height: coverCollapsed ? 52 : 150,
+        height: coverCollapsed ? 52 : 100,
         transition:'height 0.3s cubic-bezier(0.4,0,0.2,1)',
         flexShrink:0,
         /* allow avatar to overflow downward without clipping */
@@ -2752,8 +2763,36 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           transformOrigin:'center top',
           transition:'opacity 0.3s ease, transform 0.3s ease',
         }}>
-          <div style={{ position:'absolute', inset:0, background:
-            'repeating-linear-gradient(135deg,rgba(255,255,255,0.06) 0,rgba(255,255,255,0.06) 2px,transparent 2px,transparent 18px)' }}/>
+          {g.cover_url
+            ? <img src={g.cover_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+            : <div style={{ position:'absolute', inset:0, background:
+                'repeating-linear-gradient(135deg,rgba(255,255,255,0.06) 0,rgba(255,255,255,0.06) 2px,transparent 2px,transparent 18px)' }}/>
+          }
+          {/* Cover upload button */}
+          {!coverCollapsed && isJoined && (
+            <label style={{ position:'absolute', bottom:8, right:8, width:32, height:32, borderRadius:'50%',
+                            background:'rgba(14,23,38,0.6)', backdropFilter:'blur(8px)',
+                            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', zIndex:3 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 16V8M12 8l-3 3M12 8l3 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <rect x="3" y="3" width="18" height="18" rx="4" stroke="#fff" strokeWidth="1.6"/>
+              </svg>
+              <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+                const file = e.target.files?.[0]; if (!file) return;
+                setUploadingCover(true);
+                const ext = file.name.split('.').pop();
+                const path = `groups/cover-${groupId}.${ext}`;
+                const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
+                if (!upErr) {
+                  const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
+                  await supabase.from('groups').update({ cover_url: publicUrl }).eq('id', groupId);
+                  refreshGroup();
+                  showToast('Cover updated');
+                } else { showToast('Upload failed'); }
+                setUploadingCover(false);
+              }}/>
+            </label>
+          )}
         </div>
 
         {/* Silver bar that fades in as cover fades out */}
@@ -2824,14 +2863,44 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
         {/* ── Avatar ──────────────────────────────────────── */}
         <div style={{ display:'flex', justifyContent:'center', marginTop:-42, position:'relative', zIndex:2 }}>
-          <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
-                        background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
-                        justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,
-                        position:'relative', overflow:'hidden',
-                        boxShadow:'0 6px 16px rgba(16,24,40,0.18)' }}>
-            <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
-            <div style={{ position:'absolute', inset:0, background:
-              'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 13px)' }}/>
+          <div style={{ position:'relative', display:'inline-block' }}>
+            <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
+                          background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
+                          justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,
+                          position:'relative', overflow:'hidden',
+                          boxShadow:'0 6px 16px rgba(16,24,40,0.18)' }}>
+              {g.avatar_url
+                ? <img src={g.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+                : <>
+                    <span style={{ position:'relative', zIndex:1 }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
+                    <div style={{ position:'absolute', inset:0, background:
+                      'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 13px)' }}/>
+                  </>
+              }
+            </div>
+            {isJoined && (
+              <label style={{ position:'absolute', bottom:0, right:0, width:26, height:26, borderRadius:'50%',
+                              background:C.ink, display:'flex', alignItems:'center', justifyContent:'center',
+                              cursor:'pointer', border:'2.5px solid #F4F6FA', zIndex:3 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
+                </svg>
+                <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setUploadingAvatar(true);
+                  const ext = file.name.split('.').pop();
+                  const path = `groups/avatar-${groupId}.${ext}`;
+                  const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
+                  if (!upErr) {
+                    const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
+                    await supabase.from('groups').update({ avatar_url: publicUrl }).eq('id', groupId);
+                    refreshGroup();
+                    showToast('Group photo updated');
+                  } else { showToast('Upload failed'); }
+                  setUploadingAvatar(false);
+                }}/>
+              </label>
+            )}
           </div>
         </div>
 
@@ -3029,23 +3098,29 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {canSee && (
           <>
             {/* Social links row */}
-            <div style={{ display:'flex', justifyContent:'center', gap:20,
-                          padding:'16px 0 4px' }}>
-              {[
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#39414F" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#39414F" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#39414F"/></svg>,
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke="#39414F" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#39414F" strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#39414F" strokeWidth="1.7"/></svg>,
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="#39414F" strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke="#39414F" strokeWidth="1.7" strokeLinejoin="round"/></svg>,
-              ].map((icon, i) => (
-                <button key={i} onClick={() => showToast(['Instagram','TikTok','Website','Email'][i])}
-                  style={{ width:38, height:38, borderRadius:11, background:'#fff',
-                           display:'flex', alignItems:'center', justifyContent:'center',
-                           border:'none', cursor:'pointer',
-                           boxShadow:'0 3px 8px rgba(16,24,40,0.06)' }}>
-                  {icon}
-                </button>
-              ))}
-            </div>
+            {(() => {
+              const sl = g.social_links || {};
+              const links = [
+                { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#39414F" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#39414F" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#39414F"/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
+                { key:'tiktok',    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke="#39414F" strokeWidth="1.6" strokeLinejoin="round"/></svg>, getUrl: v => `https://tiktok.com/@${v.replace(/^@/,'')}` },
+                { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#39414F" strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#39414F" strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
+                { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="#39414F" strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke="#39414F" strokeWidth="1.7" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
+              ].filter(l => sl[l.key]);
+              if (links.length === 0) return null;
+              return (
+                <div style={{ display:'flex', justifyContent:'center', gap:20, padding:'16px 0 4px' }}>
+                  {links.map(l => (
+                    <a key={l.key} href={l.getUrl(sl[l.key])} target="_blank" rel="noopener noreferrer"
+                      style={{ width:38, height:38, borderRadius:11, background:'#fff',
+                               display:'flex', alignItems:'center', justifyContent:'center',
+                               textDecoration:'none',
+                               boxShadow:'0 3px 8px rgba(16,24,40,0.06)' }}>
+                      {l.icon}
+                    </a>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Tabs */}
             <div style={{ display:'flex', gap:24, padding:'8px 18px 0',
@@ -7650,6 +7725,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                 author_initial:     authorName[0]?.toUpperCase() || 'O',
                 author_color:       currentUser?.avatarColor || deriveAvatarColor(currentUser?.userId || ''),
               });
+              // increment event_count on the group
+              const { data: gr } = await supabase.from('groups').select('event_count').eq('id', sourceGroupId).single();
+              await supabase.from('groups').update({ event_count: (gr?.event_count || 0) + 1 }).eq('id', sourceGroupId);
             }
             setSubmitting(false);
             showToast('Event published! 🎉');

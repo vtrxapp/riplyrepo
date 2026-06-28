@@ -4863,7 +4863,6 @@ function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColo
 function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const cu = currentUser || {};
   const [editOpen, setEditOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
   const [push, setPush] = useState(() => {
@@ -4877,7 +4876,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [privateProfile, setPrivateProfile] = useState(() => localStorage.getItem('pref_private') === 'true');
   const [dataOpen, setDataOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
-  const [lang, setLang] = useState('English');
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({ events: 0, groups: 0, spaces: 0 });
 
@@ -4952,7 +4950,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         { icon:'#E4F7EC', iconStroke:'#15A34A', iconPath:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z', iconPath2:'m22 6-10 7L2 6', title:'Email Notifications', isToggle:true, toggleVal:emailNotif, onToggle:()=>{ const v=!emailNotif; setEmailNotif(v); localStorage.setItem('pref_email_notif', v); showToast(v ? 'Email notifications enabled' : 'Email notifications disabled'); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', title:'Reminders', isToggle:true, toggleVal:reminders, onToggle:()=>{ const v=!reminders; setReminders(v); localStorage.setItem('pref_reminders', v); showToast(v ? 'Reminders enabled' : 'Reminders disabled'); } },
         { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z', iconPath2:'', title:'Location Services', isToggle:true, toggleVal:location, onToggle:()=>{ const v=!location; if(v && navigator.geolocation) { navigator.geolocation.getCurrentPosition(()=>{ setLocation(true); localStorage.setItem('pref_location','true'); showToast('Location enabled'); }, ()=>showToast('Location permission denied')); } else { setLocation(false); localStorage.setItem('pref_location','false'); showToast('Location disabled'); } } },
-        { icon:'#F1F3F7', iconStroke:C.muted, iconPath:'M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z', title:'Language', hasChevron:true, value:lang, onClick:()=>setLangOpen(true) },
         { icon:'#2A3347', iconStroke:'#9AA3B2', iconPath:'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z', title:'Dark Mode', isToggle:true, toggleVal:darkMode, onToggle:()=>{ const v=!darkMode; setDarkMode(v); localStorage.setItem('pref_dark_mode', v); } },
       ],
     },
@@ -4975,8 +4972,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       ],
     },
   ];
-
-  const LANGUAGES = ['English','Français','Español','Deutsch','中文','العربية','Português'];
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'background .3s' }}>
@@ -5154,17 +5149,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         </Sheet>
       )}
 
-      {/* Language Sheet */}
-      {langOpen && (
-        <Sheet onClose={()=>setLangOpen(false)} title="Language">
-          {LANGUAGES.map(l => (
-            <button key={l} onClick={()=>{setLang(l);setLangOpen(false);showToast(`Language set to ${l}`);}} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', padding:'14px 0', border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", borderBottom:`1px solid ${borderColor}` }}>
-              <span style={{ fontSize:13, fontWeight: l===lang?800:600, color: l===lang?C.primary:textColor }}>{l}</span>
-              {l===lang && <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4 4L19 7" stroke={C.primary} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-            </button>
-          ))}
-        </Sheet>
-      )}
 
       {/* Change Password Sheet */}
       {pwOpen && <ChangePasswordSheet onClose={()=>setPwOpen(false)} showToast={showToast} chipBg={chipBg} borderColor={borderColor} textColor={textColor} subColor={subColor} />}

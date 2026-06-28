@@ -1653,9 +1653,6 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
                       color:C.subtle, margin:'24px 4px 10px' }}>Still need help?</div>
         <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
           {[
-            { title:'Live Chat', sub:'Typically replies in a few minutes', iconBg:'#E9F6FF',
-              icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/></svg>,
-              onClick:() => showToast('Opening live chat…') },
             { title:'Email Support', sub:'support@riply.app', iconBg:'#F1ECFF',
               icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke="#7C5CFF" strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke="#7C5CFF" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
               onClick:() => navigate('feedback') },

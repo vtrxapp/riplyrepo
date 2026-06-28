@@ -4872,7 +4872,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [emailNotif, setEmailNotif] = useState(() => localStorage.getItem('pref_email_notif') === 'true');
   const [reminders, setReminders] = useState(() => localStorage.getItem('pref_reminders') !== 'false');
   const [location, setLocation] = useState(() => localStorage.getItem('pref_location') !== 'false');
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('pref_dark_mode') === 'true');
   const [privateProfile, setPrivateProfile] = useState(() => localStorage.getItem('pref_private') === 'true');
   const [dataOpen, setDataOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
@@ -4900,13 +4899,13 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [draftProgram, setDraftProgram] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  const pageBg = darkMode?'#0E1726':C.pageBg;
-  const cardBg = darkMode?'#1A2233':C.card;
-  const textColor = darkMode?'#F4F6FA':C.ink;
-  const subColor = darkMode?'#9AA3B2':C.muted;
-  const chipBg = darkMode?'#2A3347':C.chip;
-  const borderColor = darkMode?'#2A3347':C.border;
-  const iconStroke = darkMode?'#9AA3B2':'#39414F';
+  const pageBg = C.pageBg;
+  const cardBg = C.card;
+  const textColor = C.ink;
+  const subColor = C.muted;
+  const chipBg = C.chip;
+  const borderColor = C.border;
+  const iconStroke = '#39414F';
 
   const roleConfig = {
     student: { color:'#0098F0', bg:'#E9F6FF', label:'Student' },
@@ -4950,7 +4949,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         { icon:'#E4F7EC', iconStroke:'#15A34A', iconPath:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z', iconPath2:'m22 6-10 7L2 6', title:'Email Notifications', isToggle:true, toggleVal:emailNotif, onToggle:()=>{ const v=!emailNotif; setEmailNotif(v); localStorage.setItem('pref_email_notif', v); showToast(v ? 'Email notifications enabled' : 'Email notifications disabled'); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', title:'Reminders', isToggle:true, toggleVal:reminders, onToggle:()=>{ const v=!reminders; setReminders(v); localStorage.setItem('pref_reminders', v); showToast(v ? 'Reminders enabled' : 'Reminders disabled'); } },
         { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z', iconPath2:'', title:'Location Services', isToggle:true, toggleVal:location, onToggle:()=>{ const v=!location; if(v && navigator.geolocation) { navigator.geolocation.getCurrentPosition(()=>{ setLocation(true); localStorage.setItem('pref_location','true'); showToast('Location enabled'); }, ()=>showToast('Location permission denied')); } else { setLocation(false); localStorage.setItem('pref_location','false'); showToast('Location disabled'); } } },
-        { icon:'#2A3347', iconStroke:'#9AA3B2', iconPath:'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z', title:'Dark Mode', isToggle:true, toggleVal:darkMode, onToggle:()=>{ const v=!darkMode; setDarkMode(v); localStorage.setItem('pref_dark_mode', v); } },
       ],
     },
     {

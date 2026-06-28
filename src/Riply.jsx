@@ -4873,7 +4873,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [reminders, setReminders] = useState(() => localStorage.getItem('pref_reminders') !== 'false');
   const [location, setLocation] = useState(() => localStorage.getItem('pref_location') !== 'false');
   const [privateProfile, setPrivateProfile] = useState(() => localStorage.getItem('pref_private') === 'true');
-  const [dataOpen, setDataOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({ events: 0, groups: 0, spaces: 0 });
@@ -4956,7 +4955,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       rows: [
         { icon:'#F1F3F7', iconStroke:C.muted, iconPath:'M12 1a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5z', title:'Private Profile', isToggle:true, toggleVal:privateProfile, onToggle: async ()=>{ const v=!privateProfile; setPrivateProfile(v); localStorage.setItem('pref_private',v); await currentUser.updateProfile({ private: v }); showToast(v ? 'Profile set to private' : 'Profile set to public'); } },
         { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4', title:'Change Password', hasChevron:true, onClick:()=>setPwOpen(true) },
-        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z', title:'Data & Permissions', hasChevron:true, onClick:()=>setDataOpen(true) },
       ],
     },
     {
@@ -5172,26 +5170,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         </Sheet>
       )}
 
-      {/* Data & Permissions Sheet */}
-      {dataOpen && (
-        <Sheet onClose={()=>setDataOpen(false)} title="Data & Permissions">
-          <div style={{ padding:'4px 0 8px' }}>
-            {[
-              { label:'Download My Data', desc:'Get a copy of all your Riply data', color:C.primary, onClick:()=>showToast('Your data export will be emailed to you') },
-              { label:'Manage App Permissions', desc:'Camera, microphone, location', color:'#7C5CFF', onClick:()=>showToast('Manage permissions in your device settings') },
-              { label:'Delete My Account', desc:'Permanently remove your account and data', color:C.danger, onClick:()=>showToast('Contact support to delete your account') },
-            ].map(d=>(
-              <div key={d.label} onClick={d.onClick} style={{ display:'flex', alignItems:'center', gap:14, padding:'15px 0', borderBottom:`1px solid ${borderColor}`, cursor:'pointer' }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:700, color: d.label==='Delete My Account' ? C.danger : textColor }}>{d.label}</div>
-                  <div style={{ fontSize:11, color:subColor, marginTop:2 }}>{d.desc}</div>
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            ))}
-          </div>
-        </Sheet>
-      )}
     </div>
   );
 }

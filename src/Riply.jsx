@@ -3088,6 +3088,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           <>
             {/* Tabs */}
             <div style={{ display:'flex', gap:24, padding:'8px 18px 0',
+                          marginTop:14,
                           borderBottom:`1px solid ${C.divider}` }}>
               {['posts','events','media','rules'].map(t => (
                 <button key={t} onClick={() => setActiveTab(t)} style={{

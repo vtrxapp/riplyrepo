@@ -392,7 +392,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 {searchGroups.map(g => (
                   <div key={g.id} onClick={() => navigate('group-profile', { groupId: g.id })}
                     style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:16, padding:'11px 13px', marginBottom:8, cursor:'pointer', boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
-                    <div style={{ width:42, height:42, borderRadius:13, flexShrink:0, background: g.logo_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'#fff' }}>{(g.name||'G')[0].toUpperCase()}</div>
+                    <div style={{ width:42, height:42, borderRadius:'50%', flexShrink:0, background: g.logo_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'#fff', overflow:'hidden' }}>{(g.name||'G')[0].toUpperCase()}</div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:13, fontWeight:800, color:C.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{g.name}</div>
                       <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{g.member_count || 0} members</div>
@@ -931,7 +931,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
           return (
             <div key={g.id} style={{ background:C.card, borderRadius:20, boxShadow:'0 6px 20px rgba(16,24,40,0.06)', marginBottom:14, padding:15 }}>
               <div onClick={()=>navigate('group-profile',{groupId:g.id})} style={{ display:'flex', gap:13, cursor:'pointer' }}>
-                <div style={{ width:58, height:58, borderRadius:16, flexShrink:0, background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(16,24,40,0.1)' }}>
+                <div style={{ width:58, height:58, borderRadius:'50%', flexShrink:0, background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(16,24,40,0.1)' }}>
                   {g.avatar_url
                     ? <img src={g.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
                     : <><span style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
@@ -1287,7 +1287,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                       style={{ display:'flex', alignItems:'center', gap:10, padding:'11px 14px',
                                cursor:'pointer', background: group===g.name ? '#EAF6FF' : '#fff',
                                borderBottom:`1px solid ${C.divider}` }}>
-                      <div style={{ width:28, height:28, borderRadius:8, flexShrink:0,
+                      <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
                                     background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                                     justifyContent:'center', color:'#fff',
                                     fontSize:11, fontWeight:800, position:'relative',
@@ -8867,7 +8867,7 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
                 position:'relative', border:'none', background:'none',
                 cursor:'pointer', padding:0, opacity: uploadingIcon ? 0.6 : 1,
               }}>
-                <div style={{ width:84, height:84, borderRadius:22,
+                <div style={{ width:84, height:84, borderRadius:'50%',
                               background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                               justifyContent:'center', color:'#fff', fontSize:26,
                               fontWeight:800, position:'relative', overflow:'hidden' }}>

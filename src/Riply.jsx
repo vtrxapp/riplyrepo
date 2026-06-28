@@ -446,8 +446,11 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
           </div>
         )}
 
-        {list.length===0 && !query?.trim() && (
-          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No events match your search — try a different term.</div>
+        {list.length===0 && !query?.trim() && !eventsLoading && (
+          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No upcoming events right now.</div>
+        )}
+        {eventsLoading && list.length===0 && (
+          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>
         )}
         {list.length===0 && query?.trim() && !searchLoading && searchGroups.length===0 && searchSpaces.length===0 && searchPeople.length===0 && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No results found for "{query}"</div>
@@ -758,7 +761,8 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
       {/* Spaces list */}
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
         onTouchStart={handleSpacesSwipeStart} onTouchEnd={handleSpacesSwipeEnd}>
-        {list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No spaces in this category right now.</div>}
+        {list.length===0 && !spacesLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No spaces in this category right now.</div>}
+        {spacesLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>}
         {list.map(sp => {
           const isJoined = !!spaceJoined[sp.id];
           const count = sp.participants + (isJoined?1:0);
@@ -920,7 +924,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 
       {/* Groups */}
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
-        {list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
+        {list.length===0 && !groupsLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
+        {groupsLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>}
         {list.map(g => {
           const localJoined = !!groupJoined[g.id];
           const isJoined = (g.state || "join") === 'joined' || localJoined;

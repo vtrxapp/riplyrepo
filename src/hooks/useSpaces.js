@@ -27,6 +27,10 @@ export function useSpaces() {
   useEffect(() => {
     const fetch = async () => {
       const today = new Date().toISOString().slice(0, 10)
+
+      // Delete past spaces from DB
+      await supabase.from('spaces').delete().lt('day', today)
+
       const { data } = await supabase
         .from('spaces')
         .select('*')

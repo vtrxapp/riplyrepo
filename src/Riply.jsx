@@ -4962,7 +4962,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       rows: [
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M12 22C17.523 22 22 17.523 22 12S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z', iconPath2:'M12 8v4m0 4h.01', title:'Help Center', hasChevron:true, onClick:()=>navigate('help-center') },
         { icon:'#E4F7EC', iconStroke:'#15A34A', iconPath:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', title:'Send Feedback', hasChevron:true, onClick:()=>navigate('feedback') },
-        { icon:'#FFF6EC', iconStroke:'#F59E0B', iconPath:'M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z', title:'Weekly Digest', hasChevron:true, onClick:()=>navigate('weekly-digest') },
         { icon:'#F1F3F7', iconStroke:C.muted, iconPath:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', iconPath2:'M14 2v6h6', title:'Terms & Privacy', hasChevron:true, onClick:()=>navigate('legal') },
         { icon:'#F1F3F7', iconStroke:C.muted, iconPath:'M12 22C17.523 22 22 17.523 22 12S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z', title:'About Riply', hasChevron:true, onClick:()=>navigate('about') },
       ],

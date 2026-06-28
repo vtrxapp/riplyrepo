@@ -3087,12 +3087,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {canSee && (
           <>
             {/* Tabs */}
-            <div style={{ display:'flex', gap:24, padding:'8px 18px 0',
+            <div style={{ display:'flex', padding:'8px 0 0',
                           marginTop:14,
                           borderBottom:`1px solid ${C.divider}` }}>
               {['posts','events','media','rules'].map(t => (
                 <button key={t} onClick={() => setActiveTab(t)} style={{
-                  border:'none', background:'none', cursor:'pointer',
+                  flex:1, border:'none', background:'none', cursor:'pointer',
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
                   fontSize:14, padding:'0 0 11px', position:'relative',
                   fontWeight: t===activeTab ? 800 : 700,

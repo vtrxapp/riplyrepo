@@ -7978,83 +7978,6 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
 
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 30px' }}>
 
-        {/* Group header card */}
-        <div style={{ background:'#fff', borderRadius:20,
-                      boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
-                      padding:16, display:'flex', alignItems:'center', gap:14 }}>
-          <div style={{ width:62, height:62, borderRadius:'50%', flexShrink:0,
-                        background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
-                        justifyContent:'center', color:'#fff', fontSize:20,
-                        fontWeight:800, position:'relative', overflow:'hidden',
-                        boxShadow:`0 0 0 2.5px #fff, 0 0 0 4px ${C.primary}` }}>
-            <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
-            <div style={{ position:'absolute', inset:0, background:
-              'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 9px)'}}/>
-          </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.3,
-                          color:C.ink }}>{g.name}</div>
-            <div style={{ fontSize:12.5, color:C.subtle, marginTop:2 }}>
-              {g.count || g.member_count || 0} members · 156 active today
-            </div>
-            <div style={{ display:'flex', gap:7, marginTop:8 }}>
-              <span style={{ display:'inline-flex', alignItems:'center', height:22,
-                             padding:'0 10px', borderRadius:999, background:'#EDE7FF',
-                             fontSize:11, fontWeight:700, color:'#7C5CFF' }}>Public</span>
-              <span style={{ display:'inline-flex', alignItems:'center', gap:4,
-                             height:22, padding:'0 10px', borderRadius:999,
-                             background:'#E4F7EC', fontSize:11, fontWeight:700,
-                             color:'#15A34A' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2.5l2.2 1.6 2.7-.2 1 2.5 2.3 1.4-.6 2.6.6 2.6-2.3 1.4-1 2.5-2.7-.2L12 21.5 9.8 19.9l-2.7.2-1-2.5-2.3-1.4.6-2.6L3.8 11l2.3-1.4 1-2.5 2.7.2L12 2.5Z"
-                        fill="#15A34A"/>
-                  <path d="m9 12 2 2 4-4.5" stroke="#fff" strokeWidth="1.8"
-                        strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Verified
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Change photo */}
-        <button onClick={() => {
-          const input = document.createElement('input');
-          input.type = 'file'; input.accept = 'image/*';
-          input.onchange = async (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            showToast('Uploading photo…');
-            try {
-              const url = await uploadImage(file, 'post-media', `${groupId}-${Date.now()}.jpg`);
-              await supabase.from('groups').update({ avatar_url: url }).eq('id', g.id);
-              showToast('Group photo updated ✓');
-            } catch { showToast('Upload failed. Try again.'); }
-          };
-          input.click();
-        }} style={{
-          width:'100%', display:'flex', alignItems:'center', gap:11,
-          background:'#fff', border:'none', borderRadius:16,
-          boxShadow:'0 4px 14px rgba(16,24,40,0.05)', padding:'13px 15px',
-          marginTop:12, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-        }}>
-          <div style={{ width:38, height:38, borderRadius:11, flexShrink:0,
-                        background:'#E9F6FF', display:'flex', alignItems:'center',
-                        justifyContent:'center' }}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-              <rect x="3.5" y="6" width="17" height="13" rx="3" stroke={C.primary} strokeWidth="1.9"/>
-              <circle cx="12" cy="12.5" r="3" stroke={C.primary} strokeWidth="1.9"/>
-              <path d="M8.5 6l1-2h5l1 2" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div style={{ flex:1, textAlign:'left' }}>
-            <div style={{ fontSize:14.5, fontWeight:700, color:C.ink }}>Change group photo</div>
-            <div style={{ fontSize:12, color:C.subtle, marginTop:1 }}>Update cover &amp; avatar</div>
-          </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-
         {/* Analytics banner */}
         <button onClick={() => navigate('group-analytics', {groupId: g.id})} style={{
           width:'100%', display:'flex', alignItems:'center', gap:13,
@@ -8667,17 +8590,17 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
         {/* KPI Grid */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:14 }}>
           {[
-            { value: stats ? stats.members.toLocaleString() : '—', label:'Members',     iconBg:'#E9F6FF',
+            { value: stats ? (stats.members || '—') : '—', label:'Members',     iconBg:'#E9F6FF',
               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.primary} strokeWidth="2"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/></svg> },
-            { value: stats ? stats.posts.toLocaleString() : '—',   label:'Total Posts', iconBg:'#F1ECFF',
+            { value: stats ? (stats.posts || '—') : '—',   label:'Total Posts', iconBg:'#F1ECFF',
               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="3" stroke="#7C5CFF" strokeWidth="2"/><path d="M8 9h8M8 13h8M8 17h5" stroke="#7C5CFF" strokeWidth="2" strokeLinecap="round"/></svg> },
-            { value: stats ? stats.totalLikes.toLocaleString() : '—', label:'Total Likes', iconBg:'#FFF0F4',
+            { value: stats ? (stats.totalLikes || '—') : '—', label:'Total Likes', iconBg:'#FFF0F4',
               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 20S4 15 4 9.5A3.8 3.8 0 0 1 12 7a3.8 3.8 0 0 1 8 2.5C20 15 12 20 12 20Z" stroke="#FF5A8A" strokeWidth="2" strokeLinejoin="round"/></svg> },
-            { value: stats ? stats.totalComments.toLocaleString() : '—', label:'Comments', iconBg:'#E9F6FF',
+            { value: stats ? (stats.totalComments || '—') : '—', label:'Comments', iconBg:'#E9F6FF',
               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z" stroke="#19BFFF" strokeWidth="2" strokeLinejoin="round"/></svg> },
-            { value: stats ? stats.newPosts.toLocaleString() : '—', label:'Posts This Week', iconBg:'#E4F7EC',
+            { value: stats ? (stats.newPosts || '—') : '—', label:'Posts This Week', iconBg:'#E4F7EC',
               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="3" stroke="#10B981" strokeWidth="2"/><path d="M12 9v6M9 12h6" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/></svg> },
-            { value: stats ? stats.events.toLocaleString() : '—', label:'Events', iconBg:'#FFF6EC',
+            { value: stats ? (stats.events || '—') : '—', label:'Events', iconBg:'#FFF6EC',
               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="#F59E0B" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/></svg> },
           ].map(k => (
             <div key={k.label} style={{ background:'#fff', borderRadius:18,
@@ -9250,10 +9173,10 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
             {/* Stat cards */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:18 }}>
               {[
-                { label:'Total Members', value: analytics.memberCount, icon:'👥', color:'#E9F6FF', text:C.primary },
-                { label:'Total Posts',   value: analytics.postCount,   icon:'📝', color:'#F0FDF4', text:'#10B981' },
-                { label:'New This Week', value: analytics.newMembersWeek, icon:'📈', color:'#FFF7ED', text:'#F59E0B' },
-                { label:'Engagement',    value: analytics.postCount > 0 ? Math.round((analytics.memberCount / Math.max(analytics.postCount,1)) * 10) / 10 + 'x' : '–', icon:'⚡', color:'#F5F3FF', text:'#7C5CFF' },
+                { label:'Total Members', value: analytics.memberCount || '—', icon:'👥', color:'#E9F6FF', text:C.primary },
+                { label:'Total Posts',   value: analytics.postCount || '—',   icon:'📝', color:'#F0FDF4', text:'#10B981' },
+                { label:'New This Week', value: analytics.newMembersWeek || '—', icon:'📈', color:'#FFF7ED', text:'#F59E0B' },
+                { label:'Engagement',    value: analytics.postCount > 0 ? Math.round((analytics.memberCount / Math.max(analytics.postCount,1)) * 10) / 10 + 'x' : '—', icon:'⚡', color:'#F5F3FF', text:'#7C5CFF' },
               ].map(stat => (
                 <div key={stat.label} style={{ background:stat.color, borderRadius:18, padding:'16px 14px' }}>
                   <div style={{ fontSize:22, marginBottom:6 }}>{stat.icon}</div>

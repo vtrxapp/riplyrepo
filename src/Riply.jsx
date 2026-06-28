@@ -7009,6 +7009,13 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           setSubmitting(true);
           const activeCatObj = CATS.find(c => c.id === cat) || CATS[0];
           const location = [venue, area].filter(Boolean).join(' · ');
+          // Compute ends_at from date + start time + duration (in hours)
+          let endsAt = null;
+          if (firstDate && startTime) {
+            const start = new Date(`${firstDate}T${startTime}`);
+            const hrs = parseFloat(duration) || 1;
+            endsAt = new Date(start.getTime() + hrs * 3600000).toISOString();
+          }
           const { data: space, error } = await supabase.from('spaces').insert({
             title: title.trim(),
             description: about.trim(),
@@ -7028,6 +7035,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             avatar_color: activeCatObj.grad,
             avatar_initial: title.trim()[0]?.toUpperCase() || 'S',
             ...(coverUrl ? { image_url: coverUrl } : {}),
+            ...(endsAt ? { ends_at: endsAt } : {}),
           }).select().single();
           setSubmitting(false);
           if (error) { showToast('Failed to create space: ' + error.message); return; }

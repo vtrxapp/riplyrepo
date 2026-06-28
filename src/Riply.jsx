@@ -3058,34 +3058,34 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           </>
         )}
 
+        {/* Social links — visible to all */}
+        {(() => {
+          const sl = g.social_links || {};
+          const links = [
+            { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#39414F" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#39414F" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#39414F"/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
+            { key:'tiktok',    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke="#39414F" strokeWidth="1.6" strokeLinejoin="round"/></svg>, getUrl: v => `https://tiktok.com/@${v.replace(/^@/,'')}` },
+            { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#39414F" strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#39414F" strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
+            { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="#39414F" strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke="#39414F" strokeWidth="1.7" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
+          ].filter(l => sl[l.key]);
+          if (links.length === 0) return null;
+          return (
+            <div style={{ display:'flex', justifyContent:'center', gap:20, padding:'16px 0 4px' }}>
+              {links.map(l => (
+                <a key={l.key} href={l.getUrl(sl[l.key])} target="_blank" rel="noopener noreferrer"
+                  style={{ width:38, height:38, borderRadius:11, background:'#fff',
+                           display:'flex', alignItems:'center', justifyContent:'center',
+                           textDecoration:'none',
+                           boxShadow:'0 3px 8px rgba(16,24,40,0.06)' }}>
+                  {l.icon}
+                </a>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* ══ PUBLIC VIEW ═════════════════════════════════════ */}
         {canSee && (
           <>
-            {/* Social links row */}
-            {(() => {
-              const sl = g.social_links || {};
-              const links = [
-                { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#39414F" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#39414F" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#39414F"/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
-                { key:'tiktok',    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke="#39414F" strokeWidth="1.6" strokeLinejoin="round"/></svg>, getUrl: v => `https://tiktok.com/@${v.replace(/^@/,'')}` },
-                { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#39414F" strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#39414F" strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
-                { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="#39414F" strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke="#39414F" strokeWidth="1.7" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
-              ].filter(l => sl[l.key]);
-              if (links.length === 0) return null;
-              return (
-                <div style={{ display:'flex', justifyContent:'center', gap:20, padding:'16px 0 4px' }}>
-                  {links.map(l => (
-                    <a key={l.key} href={l.getUrl(sl[l.key])} target="_blank" rel="noopener noreferrer"
-                      style={{ width:38, height:38, borderRadius:11, background:'#fff',
-                               display:'flex', alignItems:'center', justifyContent:'center',
-                               textDecoration:'none',
-                               boxShadow:'0 3px 8px rgba(16,24,40,0.06)' }}>
-                      {l.icon}
-                    </a>
-                  ))}
-                </div>
-              );
-            })()}
-
             {/* Tabs */}
             <div style={{ display:'flex', gap:24, padding:'8px 18px 0',
                           borderBottom:`1px solid ${C.divider}` }}>

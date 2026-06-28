@@ -932,8 +932,10 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
             <div key={g.id} style={{ background:C.card, borderRadius:20, boxShadow:'0 6px 20px rgba(16,24,40,0.06)', marginBottom:14, padding:15 }}>
               <div onClick={()=>navigate('group-profile',{groupId:g.id})} style={{ display:'flex', gap:13, cursor:'pointer' }}>
                 <div style={{ width:58, height:58, borderRadius:16, flexShrink:0, background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(16,24,40,0.1)' }}>
-                  <span style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
-                  <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 13px)' }} />
+                  {g.avatar_url
+                    ? <img src={g.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+                    : <><span style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
+                        <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 13px)' }} /></>}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -948,7 +950,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                  {['S','M','J','A','R'].slice(0, 5).map((initial,i)=>(
                     <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:9, fontWeight:800, background:['#FF5A8A','#0098F0','#10B981','#7C5CFF','#FF8A3D'][i] }}>{initial}</div>
                   ))}
-                  <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.count || g.member_count || 0}</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.member_count || 0}</span>
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
                 </div>
                 <button onClick={async ()=>{
@@ -8748,7 +8750,9 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup, setDbGroup] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [coverUrl, setCoverUrl] = useState(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [uploadingCoverEdit, setUploadingCoverEdit] = useState(false);
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [analytics, setAnalytics] = useState({ memberCount:0, postCount:0, newMembersWeek:0, topMembers:[] });
@@ -8756,7 +8760,7 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
   useEffect(() => {
     if (!groupId) return;
     supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
-      .then(({ data }) => { if (data) { setDbGroup(data); setAvatarUrl(data.avatar_url || null); } });
+      .then(({ data }) => { if (data) { setDbGroup(data); setAvatarUrl(data.avatar_url || null); setCoverUrl(data.cover_url || null); } });
   }, [groupId]);
 
   // Load members when tab is active
@@ -8963,6 +8967,39 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
               <div style={{ fontSize:12, fontWeight:700, color: uploadingIcon ? C.subtle : C.primary, marginTop:9 }}>
                 {uploadingIcon ? 'Uploading…' : 'Change icon'}
               </div>
+            </div>
+
+            {/* Cover photo upload */}
+            <div style={{ marginTop:16 }}>
+              <label style={{ display:'block', fontSize:11, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:C.subtle, marginBottom:8 }}>Cover Photo</label>
+              <label style={{ display:'block', cursor:'pointer' }}>
+                <div style={{ height:80, borderRadius:16, overflow:'hidden', position:'relative',
+                  background: coverUrl ? 'transparent' : 'linear-gradient(135deg,#1A1F2E,#465067)',
+                  border:`1.5px dashed ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  {coverUrl
+                    ? <img src={coverUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                    : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6" width="17" height="13" rx="3" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="12.5" r="3" stroke={C.subtle} strokeWidth="1.9"/><path d="M8.5 6l1-2h5l1 2" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/></svg>
+                        <span style={{ fontSize:11, color:C.subtle, fontWeight:600 }}>Tap to upload cover</span>
+                      </div>}
+                  {uploadingCoverEdit && (
+                    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <span style={{ color:'#fff', fontSize:12, fontWeight:700 }}>Uploading…</span>
+                    </div>
+                  )}
+                </div>
+                <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setUploadingCoverEdit(true);
+                  try {
+                    const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${file.name.split('.').pop()}`);
+                    await supabase.from('groups').update({ cover_url: url }).eq('id', groupId);
+                    setCoverUrl(url);
+                    showToast('Cover photo updated ✓');
+                  } catch(err) { showToast('Upload failed: ' + err.message); }
+                  setUploadingCoverEdit(false);
+                }}/>
+              </label>
             </div>
 
             <Field label="Group Name">

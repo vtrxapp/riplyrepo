@@ -26,10 +26,12 @@ export function useSpaces() {
 
   useEffect(() => {
     const fetch = async () => {
+      const today = new Date().toISOString().slice(0, 10)
       const { data } = await supabase
         .from('spaces')
         .select('*')
-        .order('created_at', { ascending: false })
+        .gte('day', today)
+        .order('day', { ascending: true })
 
       const enriched = await attachUserProfiles(data || [], 'host_id')
       setSpaces(enriched)

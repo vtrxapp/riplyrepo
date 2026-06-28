@@ -65,7 +65,10 @@ export function useEvents({ category, search, filters } = {}) {
     const fetch = async () => {
       setLoading(true)
 
-      let q = supabase.from('events').select('*').order('created_at', { ascending: false })
+      const now = new Date().toISOString()
+      let q = supabase.from('events').select('*')
+        .gte('date', new Date(Date.now() - 86400000).toISOString()) // exclude events older than yesterday
+        .order('date', { ascending: true })
 
       // Category filter
       if (category && !['trending', 'popular', 'new'].includes(category)) {

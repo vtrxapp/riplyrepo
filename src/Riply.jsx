@@ -8526,20 +8526,58 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP EDIT
 // ─────────────────────────────────────────────────────────────
-function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
+function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup, setDbGroup] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [analytics, setAnalytics] = useState({ memberCount:0, postCount:0, newMembersWeek:0, topMembers:[] });
+
   useEffect(() => {
     if (!groupId) return;
-    supabase.from('groups').select('*').eq('id', groupId).single()
-      .then(({ data }) => { if (data) setDbGroup(data); });
+    supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
+      .then(({ data }) => { if (data) { setDbGroup(data); setAvatarUrl(data.avatar_url || null); } });
   }, [groupId]);
-  const g = dbGroup || staticG;
 
-  const TABS = ['Info','Privacy','Rules','Social'];
+  // Load members when tab is active
+  const loadMembers = async () => {
+    setMembersLoading(true);
+    const { data } = await supabase
+      .from('group_members')
+      .select('user_id, role, joined_at, users(id,name,avatar_url,avatar_color)')
+      .eq('group_id', groupId)
+      .order('joined_at', { ascending: false });
+    setMembers(data || []);
+    setMembersLoading(false);
+  };
+
+  // Load analytics
+  const loadAnalytics = async () => {
+    const weekAgo = new Date(Date.now() - 7*24*3600000).toISOString();
+    const [{ count: memberCount }, { count: postCount }, { count: newMembersWeek }] = await Promise.all([
+      supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId),
+      supabase.from('posts').select('*', { count:'exact', head:true }).eq('group_id', groupId),
+      supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId).gte('joined_at', weekAgo),
+    ]);
+    // Top members by join date (first 3)
+    const { data: top } = await supabase
+      .from('group_members')
+      .select('user_id, role, users(name,avatar_url,avatar_color)')
+      .eq('group_id', groupId)
+      .order('joined_at', { ascending: true })
+      .limit(3);
+    setAnalytics({ memberCount: memberCount || 0, postCount: postCount || 0, newMembersWeek: newMembersWeek || 0, topMembers: top || [] });
+  };
+
+  const g = dbGroup || staticG;
+  const TABS = ['Info','Privacy','Rules','Social','Members','Analytics'];
   const tabId = (t) => t.toLowerCase();
 
   const [tab,        setTab]        = useState(editTab || 'info');
+  useEffect(() => { if (tab === 'members') loadMembers(); }, [tab]);
+  useEffect(() => { if (tab === 'analytics') loadAnalytics(); }, [tab]);
   const [name,       setName]       = useState(staticG.name);
   const [desc,       setDesc]       = useState(staticG.desc || staticG.description || '');
   const [category,   setCategory]   = useState((staticG.cat || staticG.category || [])?.[0] || 'academic');
@@ -8643,16 +8681,16 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
             opacity: saving ? 0.7 : 1,
           }}>{saving ? 'Saving…' : 'Save'}</button>
         </div>
-        {/* Tabs */}
-        <div style={{ display:'flex', borderBottom:`1px solid ${C.divider}` }}>
+        {/* Tabs — horizontally scrollable */}
+        <div style={{ overflowX:'auto', borderBottom:`1px solid ${C.divider}`, display:'flex', scrollbarWidth:'none' }}>
           {TABS.map(t => (
             <button key={t} onClick={() => setTab(tabId(t))} style={{
-              flex:1, height:38, border:'none', background:'none', cursor:'pointer',
+              flexShrink:0, height:38, padding:'0 14px', border:'none', background:'none', cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               fontSize:13, fontWeight: tabId(t)===tab ? 800 : 600,
               color: tabId(t)===tab ? C.primary : C.subtle,
               borderBottom: `2.5px solid ${tabId(t)===tab ? C.primary : 'transparent'}`,
-              marginBottom:-1,
+              marginBottom:-1, whiteSpace:'nowrap',
             }}>{t}</button>
           ))}
         </div>
@@ -8670,25 +8708,29 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
                 input.type = 'file'; input.accept = 'image/*';
                 input.onchange = async (e) => {
                   const file = e.target.files[0]; if (!file) return;
-                  showToast('Uploading…');
+                  setUploadingIcon(true);
                   try {
-                    const url = await uploadImage(file, 'post-media', `${groupId}-${Date.now()}.jpg`);
+                    const url = await uploadImage(file, 'post-media', `groups/${groupId}-${Date.now()}.jpg`);
                     await supabase.from('groups').update({ avatar_url: url }).eq('id', groupId);
-                    showToast('Photo updated ✓');
-                  } catch { showToast('Upload failed'); }
+                    setAvatarUrl(url);
+                    showToast('Group icon updated ✓');
+                  } catch(err) { showToast('Upload failed: ' + err.message); }
+                  finally { setUploadingIcon(false); }
                 };
                 input.click();
               }} style={{
                 position:'relative', border:'none', background:'none',
-                cursor:'pointer', padding:0,
+                cursor:'pointer', padding:0, opacity: uploadingIcon ? 0.6 : 1,
               }}>
-                <div style={{ width:84, height:84, borderRadius:'50%',
+                <div style={{ width:84, height:84, borderRadius:22,
                               background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                               justifyContent:'center', color:'#fff', fontSize:26,
                               fontWeight:800, position:'relative', overflow:'hidden' }}>
-                  <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
-                  <div style={{ position:'absolute', inset:0, background:
-                    'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 9px)'}}/>
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
+                    : <><span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
+                        <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 9px)'}}/></>
+                  }
                 </div>
                 <div style={{ position:'absolute', bottom:0, right:0, width:28, height:28,
                               borderRadius:'50%', background:C.primary,
@@ -8700,8 +8742,8 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
                   </svg>
                 </div>
               </button>
-              <div style={{ fontSize:12, fontWeight:700, color:C.primary, marginTop:9 }}>
-                Change photo
+              <div style={{ fontSize:12, fontWeight:700, color: uploadingIcon ? C.subtle : C.primary, marginTop:9 }}>
+                {uploadingIcon ? 'Uploading…' : 'Change icon'}
               </div>
             </div>
 
@@ -8741,6 +8783,20 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
                 })}
               </div>
             </Field>
+
+            {/* Danger Zone */}
+            <div style={{ marginTop:32, padding:16, borderRadius:16, border:'1.5px solid #FECACA', background:'#FFF5F5' }}>
+              <div style={{ fontSize:13, fontWeight:800, color:'#EF4444', marginBottom:12 }}>Danger Zone</div>
+              <button onClick={async () => {
+                if (!window.confirm('Delete this group? This cannot be undone.')) return;
+                const { error } = await supabase.from('groups').delete().eq('id', groupId);
+                if (error) { showToast('Delete failed: ' + error.message); return; }
+                showToast('Group deleted');
+                goBack();
+              }} style={{ width:'100%', height:44, border:'1.5px solid #EF4444', borderRadius:13, background:'#fff', color:'#EF4444', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                Delete Group
+              </button>
+            </div>
           </>
         )}
 
@@ -8885,6 +8941,101 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast }) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── MEMBERS ── */}
+        {tab === 'members' && (
+          <div>
+            <div style={{ fontSize:13, color:C.muted, marginBottom:14 }}>Manage who's in your group. Remove members or change their roles.</div>
+            {membersLoading && <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:13 }}>Loading members…</div>}
+            {!membersLoading && members.length === 0 && <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:13 }}>No members yet</div>}
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {members.map(m => {
+                const u = m.users || {};
+                const displayName = u.name || m.user_id?.slice(0,8) || 'Member';
+                const isAdmin = m.role === 'admin' || m.role === 'owner';
+                return (
+                  <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:12, background:'#fff', borderRadius:16, padding:'12px 14px', boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
+                    <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0, background: u.avatar_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:800, color:'#fff', overflow:'hidden' }}>
+                      {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : displayName[0]?.toUpperCase()}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>{displayName}</div>
+                      <div style={{ fontSize:11, color: isAdmin ? C.primary : C.subtle, marginTop:2, fontWeight: isAdmin ? 700 : 500 }}>{m.role || 'member'}</div>
+                    </div>
+                    <div style={{ display:'flex', gap:7 }}>
+                      <button onClick={async () => {
+                        const newRole = isAdmin ? 'member' : 'admin';
+                        await supabase.from('group_members').update({ role: newRole }).eq('group_id', groupId).eq('user_id', m.user_id);
+                        setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, role: newRole } : x));
+                        showToast(isAdmin ? 'Removed admin' : 'Made admin ✓');
+                      }} style={{ height:32, padding:'0 12px', border:`1.5px solid ${C.border}`, borderRadius:10, background:'#fff', fontSize:11, fontWeight:700, color:C.body, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                        {isAdmin ? 'Demote' : 'Make Admin'}
+                      </button>
+                      <button onClick={async () => {
+                        if (!window.confirm(`Remove ${displayName} from the group?`)) return;
+                        await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', m.user_id);
+                        setMembers(prev => prev.filter(x => x.user_id !== m.user_id));
+                        showToast('Member removed');
+                      }} style={{ width:32, height:32, border:'none', borderRadius:10, background:'#FFF0F0', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#EF4444" strokeWidth="2.2" strokeLinecap="round"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── ANALYTICS ── */}
+        {tab === 'analytics' && (
+          <div>
+            {/* Stat cards */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:18 }}>
+              {[
+                { label:'Total Members', value: analytics.memberCount, icon:'👥', color:'#E9F6FF', text:C.primary },
+                { label:'Total Posts',   value: analytics.postCount,   icon:'📝', color:'#F0FDF4', text:'#10B981' },
+                { label:'New This Week', value: analytics.newMembersWeek, icon:'📈', color:'#FFF7ED', text:'#F59E0B' },
+                { label:'Engagement',    value: analytics.postCount > 0 ? Math.round((analytics.memberCount / Math.max(analytics.postCount,1)) * 10) / 10 + 'x' : '–', icon:'⚡', color:'#F5F3FF', text:'#7C5CFF' },
+              ].map(stat => (
+                <div key={stat.label} style={{ background:stat.color, borderRadius:18, padding:'16px 14px' }}>
+                  <div style={{ fontSize:22, marginBottom:6 }}>{stat.icon}</div>
+                  <div style={{ fontSize:24, fontWeight:800, color:stat.text, letterSpacing:-0.5 }}>{stat.value}</div>
+                  <div style={{ fontSize:11, fontWeight:600, color:C.subtle, marginTop:3 }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Top members */}
+            {analytics.topMembers.length > 0 && (
+              <div style={{ background:'#fff', borderRadius:18, padding:'14px 16px', boxShadow:'0 2px 10px rgba(16,24,40,0.06)' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:C.ink, marginBottom:12 }}>Founding Members</div>
+                {analytics.topMembers.map((m, i) => {
+                  const u = m.users || {};
+                  const name = u.name || 'Member';
+                  return (
+                    <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:10, paddingBottom: i < analytics.topMembers.length-1 ? 10 : 0, marginBottom: i < analytics.topMembers.length-1 ? 10 : 0, borderBottom: i < analytics.topMembers.length-1 ? `1px solid ${C.divider}` : 'none' }}>
+                      <div style={{ width:10, height:10, borderRadius:'50%', background:['#F59E0B','#9AA3B2','#CD7F32'][i] || C.subtle, flexShrink:0 }} />
+                      <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background: u.avatar_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'#fff', overflow:'hidden' }}>
+                        {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : name[0]?.toUpperCase()}
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:C.ink }}>{name}</div>
+                        <div style={{ fontSize:10, color:C.subtle }}>{m.role || 'member'}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ marginTop:14, background:'#F8FAFC', borderRadius:16, padding:'14px 16px' }}>
+              <div style={{ fontSize:12, color:C.subtle, lineHeight:1.6 }}>
+                📊 More detailed analytics — post reach, member activity charts, and retention metrics — will be available in the Riply admin dashboard.
+              </div>
+            </div>
           </div>
         )}
 
@@ -10527,7 +10678,7 @@ export default function RiplyApp() {
       case 'banned-members':   return <BannedMembersScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'review-reports':   return <ReviewReportsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
-      case 'group-edit':       return <GroupEditScreen groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} />;
+      case 'group-edit':       return <GroupEditScreen groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;

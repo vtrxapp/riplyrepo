@@ -830,7 +830,11 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               )}
 
               {/* Action */}
-              {isFull ? (
+              {done ? (
+                <button disabled style={{ width:'100%', marginTop:15, height:50, border:'none', borderRadius:15, background:'#D1D5DB', color:'#6B7280', fontSize:13, fontWeight:800, cursor:'not-allowed', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                  Space Ended
+                </button>
+              ) : isFull ? (
                 <div>
                   <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:15 }}>
                     <button style={{ flex:1, height:50, border:'none', borderRadius:15, background:C.subtle, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
@@ -4413,7 +4417,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 
       {/* ── Floating join button ────────────────────────── */}
       <div style={{ position:'absolute', bottom:24, left:24, right:24, zIndex:6 }}>
-        {isFull && !joined ? (
+        {done ? (
+          <button disabled style={{ width:'100%', height:54, border:'none', borderRadius:18, cursor:'not-allowed', background:'#D1D5DB', color:'#6B7280', fontSize:15, fontWeight:800, fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center' }}>
+            Space Ended
+          </button>
+        ) : isFull && !joined ? (
           <button onClick={() => showToast("You'll be notified when a spot opens")} style={{
             width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
             background:C.subtle, color:'#fff', fontSize:15, fontWeight:800,

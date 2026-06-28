@@ -3264,14 +3264,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
                 const file = e.target.files?.[0]; if (!file) return;
                 setShowPhotoPickerSheet(false); setUploadingAvatar(true);
-                const ext = file.name.split('.').pop();
-                const path = `groups/avatar-${groupId}.${ext}`;
-                const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
-                if (!upErr) {
-                  const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
-                  await supabase.from('groups').update({ avatar_url: publicUrl }).eq('id', groupId);
+                try {
+                  const url = await uploadImage(file, 'post-media', `groups/avatar-${groupId}.${file.name.split('.').pop()}`);
+                  await supabase.from('groups').update({ avatar_url: url }).eq('id', groupId);
                   refreshGroup(); showToast('Profile photo updated ✓');
-                } else { showToast('Upload failed: ' + upErr.message); }
+                } catch(err) { console.error('Avatar upload error:', err); showToast('Upload failed: ' + err.message); }
                 setUploadingAvatar(false);
               }}/>
             </label>
@@ -3292,14 +3289,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
                 const file = e.target.files?.[0]; if (!file) return;
                 setShowPhotoPickerSheet(false); setUploadingCover(true);
-                const ext = file.name.split('.').pop();
-                const path = `groups/cover-${groupId}.${ext}`;
-                const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
-                if (!upErr) {
-                  const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
-                  await supabase.from('groups').update({ cover_url: publicUrl }).eq('id', groupId);
+                try {
+                  const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${file.name.split('.').pop()}`);
+                  await supabase.from('groups').update({ cover_url: url }).eq('id', groupId);
                   refreshGroup(); showToast('Cover photo updated ✓');
-                } else { showToast('Upload failed: ' + upErr.message); }
+                } catch(err) { console.error('Cover upload error:', err); showToast('Upload failed: ' + err.message); }
                 setUploadingCover(false);
               }}/>
             </label>
@@ -3362,14 +3356,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
                   const file = e.target.files?.[0]; if (!file) return;
                   setShowOptionsSheet(false); setUploadingCover(true);
-                  const ext = file.name.split('.').pop();
-                  const path = `groups/cover-${groupId}.${ext}`;
-                  const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
-                  if (!upErr) {
-                    const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
-                    await supabase.from('groups').update({ cover_url: publicUrl }).eq('id', groupId);
+                  try {
+                    const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${file.name.split('.').pop()}`);
+                    await supabase.from('groups').update({ cover_url: url }).eq('id', groupId);
                     refreshGroup(); showToast('Cover updated ✓');
-                  } else { showToast('Upload failed: ' + upErr.message); }
+                  } catch(err) { console.error('Cover upload error:', err); showToast('Upload failed: ' + err.message); }
                   setUploadingCover(false);
                 }}/>
               </label>
@@ -3381,14 +3372,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
                   const file = e.target.files?.[0]; if (!file) return;
                   setShowOptionsSheet(false); setUploadingAvatar(true);
-                  const ext = file.name.split('.').pop();
-                  const path = `groups/avatar-${groupId}.${ext}`;
-                  const { error: upErr } = await supabase.storage.from('post-media').upload(path, file, { upsert: true });
-                  if (!upErr) {
-                    const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(path);
-                    await supabase.from('groups').update({ avatar_url: publicUrl }).eq('id', groupId);
+                  try {
+                    const url = await uploadImage(file, 'post-media', `groups/avatar-${groupId}.${file.name.split('.').pop()}`);
+                    await supabase.from('groups').update({ avatar_url: url }).eq('id', groupId);
                     refreshGroup(); showToast('Group photo updated ✓');
-                  } else { showToast('Upload failed: ' + upErr.message); }
+                  } catch(err) { console.error('Avatar upload error:', err); showToast('Upload failed: ' + err.message); }
                   setUploadingAvatar(false);
                 }}/>
               </label>

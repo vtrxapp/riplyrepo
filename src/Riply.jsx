@@ -3127,18 +3127,15 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {canSee && (
           <>
             {/* Tabs */}
-            <div style={{ display:'flex', padding:'8px 0 0',
-                          marginTop:14,
-                          borderBottom:`1px solid ${C.divider}` }}>
+            <div style={{ display:'flex', padding:'8px 0 0', marginTop:14 }}>
               {['posts','events','media','rules'].map(t => (
                 <button key={t} onClick={() => setActiveTab(t)} style={{
                   flex:1, border:'none', background:'none', cursor:'pointer',
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  fontSize:14, padding:'0 0 11px', position:'relative',
+                  fontSize:14, padding:'0 0 11px',
                   fontWeight: t===activeTab ? 800 : 700,
                   color: t===activeTab ? C.primary : C.subtle,
-                  borderBottom: t===activeTab ? `2.5px solid ${C.primary}` : '2.5px solid transparent',
-                  marginBottom:-1, textTransform:'capitalize',
+                  textTransform:'capitalize',
                 }}>
                   {t.charAt(0).toUpperCase()+t.slice(1)}
                 </button>

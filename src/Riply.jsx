@@ -2682,6 +2682,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [dbGroup,     setDbGroup]     = useState(null);
   const [groupEvents, setGroupEvents] = useState([]);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
+  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
   // Live counts from DB (source of truth, not static fallback)
   const [liveMembers, setLiveMembers] = useState(null);
   const [livePosts2,  setLivePosts2]  = useState(null);
@@ -2711,6 +2712,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).maybeSingle()
         .then(({ data }) => {
           if (data) setJoinState(data.role === 'pending' ? 'requested' : 'joined');
+          setIsGroupAdmin(data?.role === 'admin' || data?.role === 'owner');
         });
     }
   }, [groupId, user?.id]);
@@ -2962,6 +2964,58 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {/* ── Action row ──────────────────────────────────── */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'18px 16px 0' }}>
 
+        {isGroupAdmin ? (
+          <>
+            {/* Explore — group analytics */}
+            <button onClick={() => navigate('group-analytics', { groupId: g.id })} style={{
+              flex:'0 1 170px', height:46, borderRadius:999, border:'none',
+              background:C.ink, color:'#fff', boxShadow:'0 8px 20px rgba(14,23,38,0.28)',
+              fontSize:15, fontWeight:800, cursor:'pointer',
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            }}>
+              <span>Explore</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M5 19V11M12 19V5M19 19v-7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
+              </svg>
+            </button>
+
+            {/* Edit — group manage */}
+            <button onClick={() => navigate('group-manage', { groupId: g.id })} style={{
+              flex:'0 1 170px', height:46, borderRadius:999, border:'none',
+              background:C.ink, color:'#fff', boxShadow:'0 8px 20px rgba(14,23,38,0.28)',
+              fontSize:15, fontWeight:800, cursor:'pointer',
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            }}>
+              <span>Edit</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="#fff" strokeWidth="1.9"/>
+                <path d="M19.4 13a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V19a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-.3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"
+                      stroke="#fff" strokeWidth="1.6" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            {/* Messages */}
+            <button onClick={() => navigate('messages')} style={{
+              position:'relative', width:46, height:46, border:'none',
+              borderRadius:'50%', flexShrink:0, background:'#fff', cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              boxShadow:'0 4px 12px rgba(16,24,40,0.08)',
+            }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+                <path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z"
+                      stroke={C.body} strokeWidth="1.9" strokeLinejoin="round"/>
+              </svg>
+              <span style={{ position:'absolute', top:-2, right:-2, minWidth:18, height:18,
+                             padding:'0 4px', borderRadius:999, background:C.primary,
+                             color:'#fff', fontSize:10, fontWeight:800,
+                             display:'flex', alignItems:'center', justifyContent:'center',
+                             border:'2px solid #F4F6FA' }}>5</span>
+            </button>
+          </>
+        ) : (
+          <>
           {/* Primary button */}
           <button onClick={handlePrimary} style={{
             flex:'0 1 260px', height:46, borderRadius:999, border:btn.border||'none',
@@ -3040,6 +3094,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               </svg>
             </button>
           )}
+          </>
+        )}
         </div>
 
         {/* Pinned event removed — no static content */}

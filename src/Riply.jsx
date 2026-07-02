@@ -1081,7 +1081,14 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
             {chatsLoading ? (
               <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:40 }}>Loading…</div>
             ) : chats.length === 0 ? (
-              <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:40 }}>No conversations yet</div>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', paddingTop:60 }}>
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                        stroke={C.primary} strokeWidth="1.7" strokeLinejoin="round"/>
+                </svg>
+                <div style={{ fontSize:14, fontWeight:700, color:C.ink, marginTop:12 }}>No conversations yet</div>
+                <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>Start a chat to connect with someone</div>
+              </div>
             ) : chats.map(c => (
               <div key={c.id} onClick={()=>navigate('chat',{chatId:c.id})} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
                 <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>

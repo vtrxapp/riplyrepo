@@ -2725,15 +2725,21 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
   const GROUP_TABS = ['posts', 'events', 'media', 'rules'];
   const [activeTab,  setActiveTab]  = useState('posts');
-  const [coverCollapsed, setCoverCollapsed] = useState(false);
-  const prevScrollRef = useRef(0);
+  // Continuous scroll-driven collapse — the header scrubs in lockstep with
+  // scrollTop instead of snapping at a threshold, so content never slides
+  // out from under it.
+  const COLLAPSE_DISTANCE = 90;
+  const [scrollY, setScrollY] = useState(0);
+  const coverProgress = Math.min(1, Math.max(0, scrollY / COLLAPSE_DISTANCE));
+  const coverCollapsed = coverProgress > 0.5;
+  const lerp = (a, b) => a + (b - a) * coverProgress;
+  // The big avatar has to be fully gone before scrolling content reaches its
+  // fixed position, so it fades/shrinks on a much faster curve than the bar.
+  const avatarProgress = Math.min(1, coverProgress / 0.22);
+  const avatarLerp = (a, b) => a + (b - a) * avatarProgress;
 
   const handleGroupScroll = (e) => {
-    const top = e.currentTarget.scrollTop;
-    const delta = top - prevScrollRef.current;
-    prevScrollRef.current = top;
-    if (delta > 8 && top > 60) setCoverCollapsed(true);
-    if (delta < -8) setCoverCollapsed(false);
+    setScrollY(e.currentTarget.scrollTop);
   };
 
   // Swipe between group tabs
@@ -2752,7 +2758,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     });
   };
 
-  const coverProgress = coverCollapsed ? 1 : 0;
   const [postText,   setPostText]   = useState('');
   const [posting,    setPosting]    = useState(false);
 
@@ -2814,8 +2819,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       {/* ── Sticky collapsing bar (sits above scroll area) ── */}
       <div style={{
         position:'relative', zIndex:20,
-        height: coverCollapsed ? 52 : 100,
-        transition:'height 0.3s cubic-bezier(0.4,0,0.2,1)',
+        height: lerp(100, 52),
         flexShrink:0,
         /* allow avatar to overflow downward without clipping */
         overflow:'visible',
@@ -2826,10 +2830,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         <div style={{
           position:'absolute', inset:0,
           background:'linear-gradient(135deg,#1A1F2E 0%,#2E3548 60%,#465067 120%)',
-          opacity: coverCollapsed ? 0 : 1,
-          transform: coverCollapsed ? 'scale(1.04)' : 'scale(1)',
+          opacity: 1 - coverProgress,
+          transform: `scale(${lerp(1, 1.04)})`,
           transformOrigin:'center top',
-          transition:'opacity 0.3s ease, transform 0.3s ease',
         }}>
           {g.cover_url
             ? <img src={g.cover_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
@@ -2843,31 +2846,30 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           position:'absolute', inset:0,
           background:'linear-gradient(145deg,rgba(240,242,248,0.97),rgba(220,225,238,0.97))',
           backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-          opacity: coverCollapsed ? 1 : 0,
+          opacity: coverProgress,
           borderBottom:`1px solid rgba(190,198,218,0.6)`,
-          transition:'opacity 0.3s ease',
           boxShadow:'0 2px 16px rgba(0,0,0,0.08)',
         }}/>
         </div>{/* end clipping wrapper */}
 
         {/* Back + menu buttons — always visible, re-center as the bar shrinks */}
-        <button onClick={goBack} style={{ position:'absolute', top: coverCollapsed ? 6 : 50, left:14, width:40,
+        <button onClick={goBack} style={{ position:'absolute', top: lerp(50, 6), left:14, width:40,
           height:40, border:'none', borderRadius:'50%',
-          background: coverCollapsed ? C.ink : 'rgba(14,23,38,0.5)',
+          background: `rgba(14,23,38,${lerp(0.5, 1)})`,
           backdropFilter:'blur(8px)',
           display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-          transition:'background 0.3s, top 0.3s cubic-bezier(0.4,0,0.2,1)', zIndex:21 }}>
+          zIndex:21 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M14 6l-6 6 6 6" stroke='#fff' strokeWidth="2.2"
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <button onClick={() => setShowOptionsSheet(true)} style={{
-          position:'absolute', top: coverCollapsed ? 6 : 50, right:14, width:40, height:40,
+          position:'absolute', top: lerp(50, 6), right:14, width:40, height:40,
           border:'none', borderRadius:'50%',
-          background: coverCollapsed ? C.ink : 'rgba(14,23,38,0.5)',
+          background: `rgba(14,23,38,${lerp(0.5, 1)})`,
           backdropFilter:'blur(8px)', display:'flex', alignItems:'center',
-          justifyContent:'center', cursor:'pointer', transition:'background 0.3s, top 0.3s cubic-bezier(0.4,0,0.2,1)', zIndex:21 }}>
+          justifyContent:'center', cursor:'pointer', zIndex:21 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="5"  r="1.8" fill='#fff'/>
             <circle cx="12" cy="12" r="1.8" fill='#fff'/>
@@ -2879,10 +2881,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         <div style={{
           position:'absolute', bottom:0, left:0, right:0, height:52,
           display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-          opacity: coverCollapsed ? 1 : 0,
-          transform: coverCollapsed ? 'translateY(0px) scale(1)' : 'translateY(6px) scale(0.94)',
-          transition:'opacity 0.3s ease, transform 0.3s ease',
-          transitionDelay: coverCollapsed ? '0.1s' : '0s',
+          opacity: coverProgress,
+          transform: `translateY(${lerp(6, 0)}px) scale(${lerp(0.94, 1)})`,
           zIndex:2, pointerEvents: coverCollapsed ? 'auto' : 'none',
         }}>
           {/* gradient ring around the mini avatar */}
@@ -2904,22 +2904,21 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             {g.name || 'Group'}
           </span>
           {/* accent underline draws in from center */}
-          <div style={{ position:'absolute', bottom:6, left:'50%', width: coverCollapsed ? 44 : 0, height:2,
+          <div style={{ position:'absolute', bottom:6, left:'50%', width: lerp(0, 44), height:2,
                         borderRadius:999, background:C.grad, opacity:0.5,
-                        transform:'translateX(-50%)', transition:'width 0.35s ease 0.15s' }}/>
+                        transform:'translateX(-50%)' }}/>
         </div>
       </div>
 
       {/* ── Avatar — outside scroll so it sits above the sticky header, fades away as bar collapses ── */}
       <div style={{
         position:'absolute',
-        top: coverCollapsed ? 30 : 58,
+        top: avatarLerp(58, 30),
         left:0, right:0,
         display:'flex', justifyContent:'center',
-        zIndex:30, pointerEvents: coverCollapsed ? 'none' : 'auto',
-        opacity: coverCollapsed ? 0 : 1,
-        transform: coverCollapsed ? 'scale(0.7)' : 'scale(1)',
-        transition:'top 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, transform 0.3s cubic-bezier(0.4,0,0.2,1)',
+        zIndex:30, pointerEvents: avatarProgress > 0.5 ? 'none' : 'auto',
+        opacity: 1 - avatarProgress,
+        transform: `scale(${avatarLerp(1, 0.7)})`,
       }}>
         <div style={{ position:'relative', display:'inline-block', pointerEvents:'auto' }}>
           <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',

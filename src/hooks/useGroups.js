@@ -10,7 +10,7 @@ export function useGroups() {
       const { data } = await supabase
         .from('groups')
         .select('*')
-        .order('member_count', { ascending: false })
+        .order('name', { ascending: true })
 
       setGroups(data || [])
       setLoading(false)

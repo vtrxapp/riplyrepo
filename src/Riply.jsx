@@ -821,7 +821,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   const { groups: liveGroups, loading: groupsLoading } = useGroups();
   const groupData = groupsLoading ? [] : liveGroups;
   let list = groupData.slice();
-  if(discoverTab!=='popular'&&discoverTab!=='all') list=list.filter(g=>((g.cat || g.category || [])||g.category||[]).includes(discoverTab));
+  if(discoverTab==='popular') list=[...list].sort((a,b)=>(b.member_count||0)-(a.member_count||0));
+  else if(discoverTab!=='all') list=list.filter(g=>((g.cat || g.category || [])||g.category||[]).includes(discoverTab));
   if(discoverQuery.trim()) {
     const q = discoverQuery.toLowerCase();
     list = list.filter(g => (g.name||g.title||'').toLowerCase().includes(q) || (g.desc||g.description||'').toLowerCase().includes(q));

@@ -3319,7 +3319,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 borderTop:`1px solid ${C.divider}`,
               }}>
                 {opt.icon}
-                <span style={{ fontSize:15, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
+                <span style={{ fontSize:14, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
               </button>
             ))}
           </div>

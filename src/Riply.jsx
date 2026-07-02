@@ -2689,8 +2689,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [liveEvents2, setLiveEvents2] = useState(null);
 
   const refreshGroup = () => {
-    supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
-      .then(({ data }) => { if (data) setDbGroup(data); });
+    return supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
+      .then(({ data }) => { if (data) setDbGroup(data); return data; });
   };
 
   const refreshCounts = () => {
@@ -2704,17 +2704,22 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
   useEffect(() => {
     if (!groupId) return;
-    refreshGroup();
     refreshCounts();
     supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
       .then(({ data }) => { if (data?.length) setGroupEvents(data); });
-    if (user?.id) {
-      supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).maybeSingle()
-        .then(({ data }) => {
-          if (data) setJoinState(data.role === 'pending' ? 'requested' : 'joined');
-          setIsGroupAdmin(data?.role === 'admin' || data?.role === 'owner');
-        });
-    }
+    (async () => {
+      const freshGroup = await refreshGroup();
+      if (!user?.id) return;
+      const { data } = await supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).maybeSingle();
+      if (data) {
+        setJoinState(data.role === 'pending' ? 'requested' : 'joined');
+        setIsGroupAdmin(data.role === 'admin' || data.role === 'owner');
+      } else {
+        setIsGroupAdmin(false);
+        const privacy = freshGroup?.privacy || staticG.privacy;
+        setJoinState(privacy === 'private' ? 'request' : 'join');
+      }
+    })();
   }, [groupId, user?.id]);
   const g = dbGroup || staticG;
   const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);

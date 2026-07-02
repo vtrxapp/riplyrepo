@@ -2893,10 +2893,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         top: coverCollapsed ? 10 : 58,
         left:0, right:0,
         display:'flex', justifyContent:'center',
-        zIndex:30, pointerEvents:'auto',
+        zIndex:30, pointerEvents:'none',
         transition:'top 0.3s cubic-bezier(0.4,0,0.2,1)',
       }}>
-        <div style={{ position:'relative', display:'inline-block' }}>
+        <div style={{ position:'relative', display:'inline-block', pointerEvents:'auto' }}>
           <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
                         background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                         justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,

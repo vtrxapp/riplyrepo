@@ -2681,10 +2681,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup,     setDbGroup]     = useState(null);
   const [groupEvents, setGroupEvents] = useState([]);
-  const [uploadingCover, setUploadingCover] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
-  const [showPhotoPickerSheet, setShowPhotoPickerSheet] = useState(false);
   // Live counts from DB (source of truth, not static fallback)
   const [liveMembers, setLiveMembers] = useState(null);
   const [livePosts2,  setLivePosts2]  = useState(null);
@@ -2935,18 +2932,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 </>
             }
           </div>
-          {isJoined && (
-            <button onClick={() => setShowPhotoPickerSheet(true)}
-              style={{ position:'absolute', bottom:0, right:0, width:28, height:28, borderRadius:'50%',
-                       background:C.ink, display:'flex', alignItems:'center', justifyContent:'center',
-                       cursor:'pointer', border:'2.5px solid #F4F6FA', zIndex:3 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <rect x="3.5" y="6" width="17" height="13" rx="3" stroke="#fff" strokeWidth="1.9"/>
-                <circle cx="12" cy="12.5" r="3" stroke="#fff" strokeWidth="1.9"/>
-                <path d="M8.5 6l1-2h5l1 2" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          )}
         </div>
       </div>
 
@@ -3296,75 +3281,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         </button>
       )}
 
-      {/* ── Photo picker sheet ──────────────────────────── */}
-      {showPhotoPickerSheet && (
-        <div onClick={() => setShowPhotoPickerSheet(false)} style={{
-          position:'absolute', inset:0, zIndex:50,
-          background:'rgba(14,23,38,0.45)', display:'flex', alignItems:'flex-end',
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            width:'100%', background:'#fff', borderRadius:'22px 22px 0 0',
-            padding:'10px 0 44px', fontFamily:"'Montserrat',-apple-system,sans-serif",
-          }}>
-            <div style={{ width:38, height:4, borderRadius:99, background:'#D1D8E4', margin:'0 auto 18px' }}/>
-            <div style={{ fontSize:16, fontWeight:800, color:C.ink, padding:'0 20px 14px', borderBottom:`1px solid ${C.divider}` }}>
-              Edit Group Photos
-            </div>
-            {/* Profile Photo */}
-            <label style={{ width:'100%', display:'flex', alignItems:'center', gap:15,
-              padding:'17px 20px', cursor:'pointer', borderBottom:`1px solid ${C.divider}` }}>
-              <div style={{ width:42, height:42, borderRadius:'50%', flexShrink:0,
-                background: g.logoColor || g.logo_color || C.grad,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                overflow:'hidden' }}>
-                {g.avatar_url
-                  ? <img src={g.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                  : <span style={{ color:'#fff', fontSize:16, fontWeight:800 }}>{g.initial || (g.name||'G')[0]}</span>}
-              </div>
-              <div>
-                <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>{uploadingAvatar ? 'Uploading…' : 'Change Profile Photo'}</div>
-                <div style={{ fontSize:12, color:C.subtle, marginTop:2 }}>Group icon shown everywhere</div>
-              </div>
-              <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
-                const file = e.target.files?.[0]; if (!file) return;
-                setShowPhotoPickerSheet(false); setUploadingAvatar(true);
-                try {
-                  const url = await uploadImage(file, 'post-media', `groups/avatar-${groupId}.${file.name.split('.').pop()}`);
-                  await supabase.from('groups').update({ avatar_url: url }).eq('id', groupId);
-                  refreshGroup(); showToast('Profile photo updated ✓');
-                } catch(err) { console.error('Avatar upload error:', err); showToast('Upload failed: ' + err.message); }
-                setUploadingAvatar(false);
-              }}/>
-            </label>
-            {/* Cover Photo */}
-            <label style={{ width:'100%', display:'flex', alignItems:'center', gap:15,
-              padding:'17px 20px', cursor:'pointer' }}>
-              <div style={{ width:42, height:28, borderRadius:8, flexShrink:0,
-                background: g.cover_url ? 'transparent' : 'linear-gradient(135deg,#1A1F2E,#465067)',
-                overflow:'hidden' }}>
-                {g.cover_url
-                  ? <img src={g.cover_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                  : <div style={{ width:'100%', height:'100%', background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.1) 0,rgba(255,255,255,0.1) 2px,transparent 2px,transparent 10px)' }}/>}
-              </div>
-              <div>
-                <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>{uploadingCover ? 'Uploading…' : 'Change Cover Photo'}</div>
-                <div style={{ fontSize:12, color:C.subtle, marginTop:2 }}>Banner at the top of the group</div>
-              </div>
-              <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
-                const file = e.target.files?.[0]; if (!file) return;
-                setShowPhotoPickerSheet(false); setUploadingCover(true);
-                try {
-                  const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${file.name.split('.').pop()}`);
-                  await supabase.from('groups').update({ cover_url: url }).eq('id', groupId);
-                  refreshGroup(); showToast('Cover photo updated ✓');
-                } catch(err) { console.error('Cover upload error:', err); showToast('Upload failed: ' + err.message); }
-                setUploadingCover(false);
-              }}/>
-            </label>
-          </div>
-        </div>
-      )}
-
       {/* ── Options bottom sheet ────────────────────────── */}
       {showOptionsSheet && (
         <div onClick={() => setShowOptionsSheet(false)} style={{
@@ -3410,41 +3326,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 <span style={{ fontSize:15, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
               </button>
             ))}
-            {/* Upload options — file inputs need their own labels */}
-            {isJoined && (<>
-              <label style={{ width:'100%', display:'flex', alignItems:'center', gap:15,
-                padding:'15px 20px', borderTop:`1px solid ${C.divider}`, cursor:'pointer',
-                fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6" width="17" height="13" rx="3" stroke={C.body} strokeWidth="1.9"/><circle cx="12" cy="12.5" r="3" stroke={C.body} strokeWidth="1.9"/><path d="M8.5 6l1-2h5l1 2" stroke={C.body} strokeWidth="1.9" strokeLinejoin="round"/></svg>
-                <span style={{ fontSize:15, fontWeight:700, color:C.ink }}>{uploadingCover ? 'Uploading…' : 'Change Cover Photo'}</span>
-                <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  setShowOptionsSheet(false); setUploadingCover(true);
-                  try {
-                    const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${file.name.split('.').pop()}`);
-                    await supabase.from('groups').update({ cover_url: url }).eq('id', groupId);
-                    refreshGroup(); showToast('Cover updated ✓');
-                  } catch(err) { console.error('Cover upload error:', err); showToast('Upload failed: ' + err.message); }
-                  setUploadingCover(false);
-                }}/>
-              </label>
-              <label style={{ width:'100%', display:'flex', alignItems:'center', gap:15,
-                padding:'15px 20px', borderTop:`1px solid ${C.divider}`, cursor:'pointer',
-                fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={C.body} strokeWidth="1.9"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/></svg>
-                <span style={{ fontSize:15, fontWeight:700, color:C.ink }}>{uploadingAvatar ? 'Uploading…' : 'Change Group Photo'}</span>
-                <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  setShowOptionsSheet(false); setUploadingAvatar(true);
-                  try {
-                    const url = await uploadImage(file, 'post-media', `groups/avatar-${groupId}.${file.name.split('.').pop()}`);
-                    await supabase.from('groups').update({ avatar_url: url }).eq('id', groupId);
-                    refreshGroup(); showToast('Group photo updated ✓');
-                  } catch(err) { console.error('Avatar upload error:', err); showToast('Upload failed: ' + err.message); }
-                  setUploadingAvatar(false);
-                }}/>
-              </label>
-            </>)}
           </div>
         </div>
       )}

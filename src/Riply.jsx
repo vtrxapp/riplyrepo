@@ -1039,7 +1039,14 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
               <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:40 }}>Loading…</div>
             ) : notifications.length === 0 ? (
               <div style={{ textAlign:'center', paddingTop:48 }}>
-                <div style={{ fontSize:36, marginBottom:12 }}>🔔</div>
+                <div style={{ marginBottom:12, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z"
+                          stroke={C.primary} strokeWidth="1.7" strokeLinejoin="round"/>
+                    <path d="M10 19.5a2.2 2.2 0 0 0 4 0"
+                          stroke={C.primary} strokeWidth="1.7" strokeLinecap="round"/>
+                  </svg>
+                </div>
                 <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>All caught up</div>
                 <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>No notifications yet</div>
               </div>

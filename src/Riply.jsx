@@ -2839,25 +2839,25 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {/* Back + menu buttons — always visible */}
         <button onClick={goBack} style={{ position:'absolute', top:50, left:14, width:40,
           height:40, border:'none', borderRadius:'50%',
-          background: coverCollapsed ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
+          background: coverCollapsed ? C.ink : 'rgba(14,23,38,0.5)',
           backdropFilter:'blur(8px)',
           display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
           transition:'background 0.3s', zIndex:2 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M14 6l-6 6 6 6" stroke={coverCollapsed ? C.ink : '#fff'} strokeWidth="2.2"
+            <path d="M14 6l-6 6 6 6" stroke='#fff' strokeWidth="2.2"
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <button onClick={() => setShowOptionsSheet(true)} style={{
           position:'absolute', top:50, right:14, width:40, height:40,
           border:'none', borderRadius:'50%',
-          background: coverCollapsed ? 'rgba(0,0,0,0.07)' : 'rgba(14,23,38,0.5)',
+          background: coverCollapsed ? C.ink : 'rgba(14,23,38,0.5)',
           backdropFilter:'blur(8px)', display:'flex', alignItems:'center',
           justifyContent:'center', cursor:'pointer', transition:'background 0.3s', zIndex:2 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="5"  r="1.8" fill={coverCollapsed ? C.ink : '#fff'}/>
-            <circle cx="12" cy="12" r="1.8" fill={coverCollapsed ? C.ink : '#fff'}/>
-            <circle cx="12" cy="19" r="1.8" fill={coverCollapsed ? C.ink : '#fff'}/>
+            <circle cx="12" cy="5"  r="1.8" fill='#fff'/>
+            <circle cx="12" cy="12" r="1.8" fill='#fff'/>
+            <circle cx="12" cy="19" r="1.8" fill='#fff'/>
           </svg>
         </button>
 
@@ -2933,8 +2933,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
         {/* ── Name + desc ─────────────────────────────────── */}
         <div style={{ padding:'11px 24px 0', textAlign:'center' }}>
-          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink }}>{g.name}</div>
-          <div style={{ fontSize:13, lineHeight:1.5, color:'#7B8499', marginTop:6 }}>{g.desc || g.description || ""}</div>
+          <div style={{ fontSize:21, fontWeight:700, letterSpacing:-0.3, color:C.ink }}>{g.name}</div>
+          <div style={{ fontSize:13, lineHeight:1.55, color:'#7B8499', marginTop:6,
+                        display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+            {g.desc || g.description || ""}
+          </div>
         </div>
 
         {/* ── Stats ───────────────────────────────────────── */}
@@ -2948,11 +2951,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         </div>
 
         {/* ── Action row ──────────────────────────────────── */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'18px 16px 0' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'18px 16px 0' }}>
 
           {/* Primary button */}
           <button onClick={handlePrimary} style={{
-            flex:1, height:46, borderRadius:999, border:btn.border||'none',
+            flex:'0 1 260px', height:46, borderRadius:999, border:btn.border||'none',
             background:btn.bg, color:btn.color, boxShadow:btn.shadow,
             fontSize:15, fontWeight:800, cursor:'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",

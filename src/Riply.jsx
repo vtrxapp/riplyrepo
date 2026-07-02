@@ -2784,6 +2784,24 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     } else if (joinState === 'request') {
       setJoinState('requested');
       await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        type: 'group',
+        title: 'Request sent',
+        body: `Your request to join ${g.name} is pending approval.`,
+      });
+      const { data: admins } = await supabase.from('group_members').select('user_id')
+        .eq('group_id', groupId).in('role', ['admin', 'owner']);
+      const requesterName = currentUser?.name || 'Someone';
+      const adminNotifs = (admins || [])
+        .filter(a => a.user_id !== user.id)
+        .map(a => ({
+          user_id: a.user_id,
+          type: 'group',
+          title: 'New join request',
+          body: `${requesterName} wants to join ${g.name}.`,
+        }));
+      if (adminNotifs.length) await supabase.from('notifications').insert(adminNotifs);
     } else if (joinState === 'requested') {
       setJoinState('request');
       await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);

@@ -2850,24 +2850,24 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         }}/>
         </div>{/* end clipping wrapper */}
 
-        {/* Back + menu buttons — always visible */}
-        <button onClick={goBack} style={{ position:'absolute', top:50, left:14, width:40,
+        {/* Back + menu buttons — always visible, re-center as the bar shrinks */}
+        <button onClick={goBack} style={{ position:'absolute', top: coverCollapsed ? 6 : 50, left:14, width:40,
           height:40, border:'none', borderRadius:'50%',
           background: coverCollapsed ? C.ink : 'rgba(14,23,38,0.5)',
           backdropFilter:'blur(8px)',
           display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-          transition:'background 0.3s', zIndex:2 }}>
+          transition:'background 0.3s, top 0.3s cubic-bezier(0.4,0,0.2,1)', zIndex:21 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M14 6l-6 6 6 6" stroke='#fff' strokeWidth="2.2"
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <button onClick={() => setShowOptionsSheet(true)} style={{
-          position:'absolute', top:50, right:14, width:40, height:40,
+          position:'absolute', top: coverCollapsed ? 6 : 50, right:14, width:40, height:40,
           border:'none', borderRadius:'50%',
           background: coverCollapsed ? C.ink : 'rgba(14,23,38,0.5)',
           backdropFilter:'blur(8px)', display:'flex', alignItems:'center',
-          justifyContent:'center', cursor:'pointer', transition:'background 0.3s', zIndex:2 }}>
+          justifyContent:'center', cursor:'pointer', transition:'background 0.3s, top 0.3s cubic-bezier(0.4,0,0.2,1)', zIndex:21 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="5"  r="1.8" fill='#fff'/>
             <circle cx="12" cy="12" r="1.8" fill='#fff'/>
@@ -2875,40 +2875,48 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           </svg>
         </button>
 
-        {/* Avatar + group name slide in from left as cover collapses */}
+        {/* Avatar + group name fill the compact bar once it's collapsed */}
         <div style={{
           position:'absolute', bottom:0, left:0, right:0, height:52,
-          display:'flex', alignItems:'center', gap:10, padding:'0 70px 0 16px',
+          display:'flex', alignItems:'center', justifyContent:'center', gap:9,
           opacity: coverCollapsed ? 1 : 0,
-          transform: coverCollapsed ? 'translateX(0px)' : 'translateX(-30px)',
+          transform: coverCollapsed ? 'translateY(0px) scale(1)' : 'translateY(6px) scale(0.94)',
           transition:'opacity 0.3s ease, transform 0.3s ease',
-          zIndex:2,
+          transitionDelay: coverCollapsed ? '0.1s' : '0s',
+          zIndex:2, pointerEvents: coverCollapsed ? 'auto' : 'none',
         }}>
-          <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0,
-                        background: g.logoColor || g.logo_color || C.grad,
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                        color:'#fff', fontSize:13, fontWeight:800,
-                        border:'2.5px solid rgba(255,255,255,0.5)',
-                        boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }}>
-            {g.initial || (g.name || 'G')[0].toUpperCase()}
+          {/* gradient ring around the mini avatar */}
+          <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, padding:2,
+                        background: g.logoColor || g.logo_color || C.grad }}>
+            <div style={{ width:'100%', height:'100%', borderRadius:'50%',
+                          background: g.logoColor || g.logo_color || C.grad,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          color:'#fff', fontSize:12, fontWeight:800,
+                          border:'2px solid #F4F6FA' }}>
+              {g.initial || (g.name || 'G')[0].toUpperCase()}
+            </div>
           </div>
-          <span style={{ fontSize:15, fontWeight:800, color:C.ink, letterSpacing:'-0.3px' }}>
+          <span style={{ fontSize:15, fontWeight:800, color:C.ink, letterSpacing:'-0.3px',
+                        maxWidth:170, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             {g.name || 'Group'}
           </span>
-          {/* blue underline accent */}
-          <div style={{ position:'absolute', bottom:0, left:16, right:16, height:2,
-                        borderRadius:999, background:C.grad, opacity:0.4 }}/>
+          {/* accent underline draws in from center */}
+          <div style={{ position:'absolute', bottom:6, left:'50%', width: coverCollapsed ? 44 : 0, height:2,
+                        borderRadius:999, background:C.grad, opacity:0.5,
+                        transform:'translateX(-50%)', transition:'width 0.35s ease 0.15s' }}/>
         </div>
       </div>
 
-      {/* ── Avatar — outside scroll so it sits above the sticky header ── */}
+      {/* ── Avatar — outside scroll so it sits above the sticky header, fades away as bar collapses ── */}
       <div style={{
         position:'absolute',
-        top: coverCollapsed ? 10 : 58,
+        top: coverCollapsed ? 30 : 58,
         left:0, right:0,
         display:'flex', justifyContent:'center',
-        zIndex:30, pointerEvents:'none',
-        transition:'top 0.3s cubic-bezier(0.4,0,0.2,1)',
+        zIndex:30, pointerEvents: coverCollapsed ? 'none' : 'auto',
+        opacity: coverCollapsed ? 0 : 1,
+        transform: coverCollapsed ? 'scale(0.7)' : 'scale(1)',
+        transition:'top 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, transform 0.3s cubic-bezier(0.4,0,0.2,1)',
       }}>
         <div style={{ position:'relative', display:'inline-block', pointerEvents:'auto' }}>
           <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',

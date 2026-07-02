@@ -3293,10 +3293,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           }}>
             <div style={{ width:38, height:4, borderRadius:99, background:'#D1D8E4',
                           margin:'0 auto 18px' }}/>
-            <div style={{ fontSize:16, fontWeight:800, color:C.ink,
-                          padding:'0 20px 14px', borderBottom:`1px solid ${C.divider}` }}>
-              {g.name || 'Group'}
-            </div>
             {/* Notification toggle */}
             {[
               { label: notifyOn ? 'Turn off notifications' : 'Turn on notifications',

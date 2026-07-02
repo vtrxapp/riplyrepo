@@ -2892,8 +2892,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                           background: g.logoColor || g.logo_color || C.grad,
                           display:'flex', alignItems:'center', justifyContent:'center',
                           color:'#fff', fontSize:12, fontWeight:800,
-                          border:'2px solid #F4F6FA' }}>
-              {g.initial || (g.name || 'G')[0].toUpperCase()}
+                          border:'2px solid #F4F6FA', position:'relative', overflow:'hidden' }}>
+              {g.avatar_url
+                ? <img src={g.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+                : (g.initial || (g.name || 'G')[0].toUpperCase())
+              }
             </div>
           </div>
           <span style={{ fontSize:15, fontWeight:800, color:C.ink, letterSpacing:'-0.3px',

@@ -223,7 +223,7 @@ function Sheet({ onClose, title, children }) {
 // ─────────────────────────────────────────────────────────────
 // FLOATING SCROLL PILL  (appears when user scrolls down)
 // ─────────────────────────────────────────────────────────────
-const SCREEN_LABELS = { home:'Explore', spaces:'Groups', discover:'Discover', messages:'Messages', profile:'Profile' };
+const SCREEN_LABELS = { home:'Explore', spaces:'Spaces', discover:'Discover', messages:'Messages', profile:'Profile' };
 
 function FloatingScrollPill({ visible, screen }) {
   const label = SCREEN_LABELS[screen] || '';
@@ -281,8 +281,12 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
       </button>
       {/* Spaces */}
       <button onClick={()=>setScreen('spaces')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke={navColor('spaces')} strokeWidth="2"/><circle cx="16" cy="9" r="2.6" stroke={navColor('spaces')} strokeWidth="2"/><path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2" stroke={navColor('spaces')} strokeWidth="2" strokeLinecap="round"/></svg>
-        <span style={{ fontSize:8, fontWeight:navWeight('spaces'), color:navColor('spaces'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Groups</span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 4.5 15 10H9l3-5.5Z" fill={navColor('spaces')}/>
+          <path d="M5.5 13.5l3 5.5h-6l3-5.5Z" fill={navColor('spaces')}/>
+          <path d="M18.5 13.5l3 5.5h-6l3-5.5Z" fill={navColor('spaces')}/>
+        </svg>
+        <span style={{ fontSize:8, fontWeight:navWeight('spaces'), color:navColor('spaces'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Spaces</span>
       </button>
       {/* Discover */}
       <button onClick={()=>setScreen('discover')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
@@ -337,27 +341,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
   if (activeCat==='new') list = [...list].reverse();
   else if (activeCat==='popular') list = [...list].sort((a,b)=>b.attendees-a.attendees);
 
-  // Multi-type search results (groups, spaces, people)
-  const [searchGroups, setSearchGroups] = useState([]);
-  const [searchSpaces, setSearchSpaces] = useState([]);
-  const [searchPeople, setSearchPeople] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  useEffect(() => {
-    const q = query?.trim();
-    if (!q) { setSearchGroups([]); setSearchSpaces([]); setSearchPeople([]); return; }
-    setSearchLoading(true);
-    Promise.all([
-      supabase.from('groups').select('id,name,description,member_count,logo_color').or(`name.ilike.%${q}%,description.ilike.%${q}%`).limit(4),
-      supabase.from('spaces').select('id,title,description,host_text,host_color').or(`title.ilike.%${q}%,description.ilike.%${q}%`).limit(4),
-      supabase.from('users').select('id,name,email,avatar_url,avatar_color,university,program').or(`name.ilike.%${q}%,email.ilike.%${q}%,university.ilike.%${q}%,program.ilike.%${q}%`).limit(4),
-    ]).then(([g, s, p]) => {
-      setSearchGroups(g.data || []);
-      setSearchSpaces(s.data || []);
-      setSearchPeople(p.data || []);
-      setSearchLoading(false);
-    });
-  }, [query]);
-
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
 
@@ -380,79 +363,13 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
         onTouchStart={handleHomeSwipeStart} onTouchEnd={handleHomeSwipeEnd}>
 
-        {/* ── Multi-type search results ── */}
-        {query?.trim() && (
-          <div>
-            {searchLoading && <div style={{ textAlign:'center', color:C.subtle, fontSize:12, padding:'12px 0 8px' }}>Searching…</div>}
-
-            {/* Groups */}
-            {searchGroups.length > 0 && (
-              <div style={{ marginBottom:18 }}>
-                <div style={{ fontSize:11, fontWeight:800, color:C.subtle, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8 }}>Groups</div>
-                {searchGroups.map(g => (
-                  <div key={g.id} onClick={() => navigate('group-profile', { groupId: g.id })}
-                    style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:16, padding:'11px 13px', marginBottom:8, cursor:'pointer', boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
-                    <div style={{ width:42, height:42, borderRadius:'50%', flexShrink:0, background: g.logo_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'#fff', overflow:'hidden' }}>{(g.name||'G')[0].toUpperCase()}</div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:800, color:C.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{g.name}</div>
-                      <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{g.member_count || 0} members</div>
-                    </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Spaces */}
-            {searchSpaces.length > 0 && (
-              <div style={{ marginBottom:18 }}>
-                <div style={{ fontSize:11, fontWeight:800, color:C.subtle, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8 }}>Spaces</div>
-                {searchSpaces.map(sp => (
-                  <div key={sp.id} onClick={() => navigate('space-details', { spaceId: sp.id })}
-                    style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:16, padding:'11px 13px', marginBottom:8, cursor:'pointer', boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
-                    <div style={{ width:42, height:42, borderRadius:13, flexShrink:0, background: sp.host_color || 'linear-gradient(135deg,#10B981,#06B6D4)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'#fff' }}>{(sp.title||'S')[0].toUpperCase()}</div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:800, color:C.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{sp.title}</div>
-                      <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>by {sp.host_text || 'Host'}</div>
-                    </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* People */}
-            {searchPeople.length > 0 && (
-              <div style={{ marginBottom:18 }}>
-                <div style={{ fontSize:11, fontWeight:800, color:C.subtle, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8 }}>People</div>
-                {searchPeople.map(u => (
-                  <div key={u.id} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:16, padding:'11px 13px', marginBottom:8, boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
-                    <div style={{ width:42, height:42, borderRadius:'50%', flexShrink:0, background: u.avatar_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'#fff', overflow:'hidden' }}>
-                      {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : (u.name||'?')[0].toUpperCase()}
-                    </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>{u.name || u.email}</div>
-                      <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{[u.program, u.university].filter(Boolean).join(' · ') || 'Student'}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Divider before events */}
-            {(searchGroups.length > 0 || searchSpaces.length > 0 || searchPeople.length > 0) && list.length > 0 && (
-              <div style={{ fontSize:11, fontWeight:800, color:C.subtle, letterSpacing:0.8, textTransform:'uppercase', marginBottom:8 }}>Events</div>
-            )}
-          </div>
-        )}
-
         {list.length===0 && !query?.trim() && !eventsLoading && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No upcoming events right now.</div>
         )}
         {eventsLoading && list.length===0 && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>
         )}
-        {list.length===0 && query?.trim() && !searchLoading && searchGroups.length===0 && searchSpaces.length===0 && searchPeople.length===0 && (
+        {list.length===0 && query?.trim() && !eventsLoading && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No results found for "{query}"</div>
         )}
         {list.map(ev => {
@@ -10831,8 +10748,8 @@ export default function RiplyApp() {
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} />;
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
-      case 'spaces':    return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
-      case 'discover':  return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;

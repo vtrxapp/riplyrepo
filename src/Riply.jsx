@@ -6125,7 +6125,7 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
   );
 }
 
-function MyTicketsScreen({ goBack, navigate, showToast }) {
+function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
   const { user } = useUser();
   const TABS = [
     { id: 'all',    label: 'All'    },
@@ -6232,7 +6232,7 @@ function MyTicketsScreen({ goBack, navigate, showToast }) {
             <div style={{ fontSize:12, color:C.subtle, marginTop:6, lineHeight:1.5 }}>
               Reserve a spot at an event and your<br/>ticket will appear here.
             </div>
-            <button onClick={goBack} style={{ marginTop:18, height:44, padding:'0 28px',
+            <button onClick={() => setScreen('home')} style={{ marginTop:18, height:44, padding:'0 28px',
               border:'none', borderRadius:14, background:C.grad, color:'#fff',
               fontSize:13, fontWeight:800, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -10857,7 +10857,7 @@ export default function RiplyApp() {
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
-      case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} goBack={goBack} showToast={showToast} currentUser={currentUser} />;

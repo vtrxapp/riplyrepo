@@ -1,5 +1,5 @@
 // Riply v1.0
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
@@ -2662,8 +2662,19 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const avatarProgress = Math.min(1, coverProgress / 0.22);
   const avatarLerp = (a, b) => a + (b - a) * avatarProgress;
 
+  // Throttle to one state update per animation frame — native scroll events
+  // can fire far more often than the screen can paint, and each update
+  // re-renders this whole screen (post list included). Reads the latest
+  // scrollTop at paint time, not whichever event happened to schedule the frame.
+  const latestScrollTopRef = useRef(0);
+  const scrollRafRef = useRef(null);
   const handleGroupScroll = (e) => {
-    setScrollY(e.currentTarget.scrollTop);
+    latestScrollTopRef.current = e.currentTarget.scrollTop;
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      setScrollY(latestScrollTopRef.current);
+    });
   };
 
   // Swipe between group tabs
@@ -2689,7 +2700,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const isJoined     = joinState === 'joined';
   const isRequested  = joinState === 'requested';
   const canSee       = isJoined || (g.state || "join") === 'joined';
-  const mediaImages  = livePosts.filter(p => p.image_url);
+  const mediaImages  = useMemo(() => livePosts.filter(p => p.image_url), [livePosts]);
 
   const handlePrimary = async () => {
     if (!user?.id) { showToast('Sign in to join groups'); return; }

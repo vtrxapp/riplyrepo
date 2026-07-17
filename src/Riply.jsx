@@ -2656,7 +2656,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const COLLAPSE_DISTANCE = 90;
   const [scrollY, setScrollY] = useState(0);
   const coverProgress = Math.min(1, Math.max(0, scrollY / COLLAPSE_DISTANCE));
-  const coverCollapsed = coverProgress > 0.5;
   const lerp = (a, b) => a + (b - a) * coverProgress;
   // The big avatar has to be fully gone before scrolling content reaches its
   // fixed position, so it fades/shrinks on a much faster curve than the bar.
@@ -2831,13 +2830,16 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           </svg>
         </button>
 
-        {/* Avatar + group name fill the compact bar once it's collapsed */}
+        {/* Avatar + group name fill the compact bar once it's collapsed.
+            Opacity/interactivity track avatarProgress (not coverProgress) so this
+            row finishes fading in exactly as the big avatar finishes fading out —
+            no gap where neither is visible/tappable. */}
         <div style={{
           position:'absolute', bottom:0, left:0, right:0, height:52,
           display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-          opacity: coverProgress,
+          opacity: avatarProgress,
           transform: `translateY(${lerp(6, 0)}px) scale(${lerp(0.94, 1)})`,
-          zIndex:2, pointerEvents: coverCollapsed ? 'auto' : 'none',
+          zIndex:2, pointerEvents: avatarProgress > 0.5 ? 'auto' : 'none',
         }}>
           {/* gradient ring around the mini avatar */}
           <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, padding:2,

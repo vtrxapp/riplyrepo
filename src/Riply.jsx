@@ -2634,8 +2634,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         setIsGroupAdmin(data.role === 'admin' || data.role === 'owner');
       } else {
         setIsGroupAdmin(false);
-        const privacy = freshGroup?.privacy || staticG.privacy;
-        setJoinState(privacy === 'private' ? 'request' : 'join');
+        // Fail closed: if we couldn't confirm the group's real privacy (fetch
+        // failed/lagged), require a request instead of defaulting to instant join.
+        setJoinState(freshGroup ? (freshGroup.privacy === 'private' ? 'request' : 'join') : 'request');
       }
     })();
   }, [groupId, user?.id]);
@@ -3020,21 +3021,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             </button>
           )}
 
-          {/* Manage (joined) */}
-          {isJoined && (
-            <button onClick={() => navigate('group-manage',{groupId:g.id})} style={{
-              width:46, height:46, border:'none', borderRadius:'50%', flexShrink:0,
-              background:C.ink, cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              boxShadow:'0 4px 12px rgba(14,23,38,0.2)',
-            }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
-                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="#fff" strokeWidth="1.9"/>
-                <path d="M19.4 13a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V19a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-.3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"
-                      stroke="#fff" strokeWidth="1.6" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          )}
           </>
         )}
         </div>
@@ -7809,15 +7795,35 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP MANAGE
 // ─────────────────────────────────────────────────────────────
-function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
+function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }) {
   const [dbGroup, setDbGroup] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(null);
   useEffect(() => {
     if (!groupId) return;
     supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
       .then(({ data }) => { if (data) setDbGroup(data); });
-  }, [groupId]);
+    if (!currentUser?.userId) { setIsAuthorized(false); return; }
+    supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser.userId).maybeSingle()
+      .then(({ data }) => setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'));
+  }, [groupId, currentUser?.userId]);
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const g = dbGroup || staticG;
+
+  if (isAuthorized === false) {
+    return (
+      <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', gap:12, padding:24, textAlign:'center',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Admins only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be an admin of this group to manage it.</div>
+        <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
+          borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
+      </div>
+    );
+  }
+  if (isAuthorized === null) {
+    return <div style={{ height:'100%', background:C.pageBg }} />;
+  }
 
   const SETTINGS = [
     { key:'info',    label:'Edit Group Info',    iconBg:'#E9F6FF', iconColor:C.primary,
@@ -8386,13 +8392,21 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP ANALYTICS
 // ─────────────────────────────────────────────────────────────
-function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
+function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
   const PERIODS = ['7 Days', '30 Days', '90 Days'];
 
   const [periodIdx, setPeriodIdx] = useState(0);
   const [stats, setStats] = useState(null);
   const [contributors, setContributors] = useState([]);
   const [barData, setBarData] = useState({ bars: [0,0,0,0,0,0,0], labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] });
+  const [isAuthorized, setIsAuthorized] = useState(null);
+
+  useEffect(() => {
+    if (!groupId) return;
+    if (!currentUser?.userId) { setIsAuthorized(false); return; }
+    supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser.userId).maybeSingle()
+      .then(({ data }) => setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'));
+  }, [groupId, currentUser?.userId]);
 
   useEffect(() => {
     if (!groupId) return;
@@ -8442,6 +8456,22 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
         setContributors(sorted);
       });
   }, [groupId, periodIdx]);
+
+  if (isAuthorized === false) {
+    return (
+      <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', gap:12, padding:24, textAlign:'center',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Admins only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be an admin of this group to view its analytics.</div>
+        <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
+          borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
+      </div>
+    );
+  }
+  if (isAuthorized === null) {
+    return <div style={{ height:'100%', background:C.pageBg }} />;
+  }
 
   const d   = barData;
   const max = Math.max(...d.bars, 1);
@@ -10771,11 +10801,11 @@ export default function RiplyApp() {
       case 'check-in':      return <CheckInScreen eventId={navParams.eventId} goBack={goBack} showToast={showToast} />;
       case 'review':        return <ReviewScreen ticketId={navParams.ticketId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'tickets':       return <TicketsScreen eventId={navParams.eventId} goBack={goBack} navigate={navigate} showToast={showToast} />;
-      case 'group-manage':  return <GroupManageScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'group-manage':  return <GroupManageScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'pending-requests': return <PendingRequestsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'banned-members':   return <BannedMembersScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'review-reports':   return <ReviewReportsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
-      case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
+      case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'group-edit':       return <GroupEditScreen groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

@@ -2608,14 +2608,16 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [liveEvents2, setLiveEvents2] = useState(null);
 
   // Counts only active members — pending join requests shouldn't inflate the total.
-  const refreshCounts = () => {
+  // Accepts an optional staleness check so callers loading a fresh group can
+  // discard responses that resolve after the user has moved on again.
+  const refreshCounts = (isStale = () => false) => {
     supabase.from('group_members').select('*', { count:'exact', head:true })
       .eq('group_id', groupId).in('role', ['member', 'admin', 'owner'])
-      .then(({ count }) => setLiveMembers(count ?? 0));
+      .then(({ count }) => { if (!isStale()) setLiveMembers(count ?? 0); });
     supabase.from('posts').select('*', { count:'exact', head:true }).eq('group_id', groupId)
-      .then(({ count }) => setLivePosts2(count ?? 0));
+      .then(({ count }) => { if (!isStale()) setLivePosts2(count ?? 0); });
     supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId)
-      .then(({ count }) => setLiveEvents2(count ?? 0));
+      .then(({ count }) => { if (!isStale()) setLiveEvents2(count ?? 0); });
   };
 
   // Bumped on every groupId/user change so in-flight requests from a previous
@@ -2627,15 +2629,20 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     const gen = ++loadGenRef.current;
     const isStale = () => gen !== loadGenRef.current;
 
-    // Reset identity-scoped state up front so a stale row/admin flag from the
-    // previous group can't linger while the new lookup is in flight.
+    // Reset all group-scoped state up front so stale values from the previous
+    // group can't linger while the new lookup is in flight.
     setDbGroup(null);
     setMembershipChecked(false);
     setIsGroupAdmin(false);
+    setJoinState(staticG.state || 'join');
+    setGroupEvents([]);
+    setLiveMembers(null);
+    setLivePosts2(null);
+    setLiveEvents2(null);
 
-    refreshCounts();
+    refreshCounts(isStale);
     supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
-      .then(({ data }) => { if (!isStale() && data?.length) setGroupEvents(data); });
+      .then(({ data }) => { if (!isStale()) setGroupEvents(data || []); });
 
     (async () => {
       const { data: freshGroup } = await supabase.from('groups').select('*').eq('id', groupId).maybeSingle();
@@ -2725,51 +2732,61 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const canSee       = isJoined || (g.state || "join") === 'joined';
   const mediaImages  = useMemo(() => livePosts.filter(p => p.image_url), [livePosts]);
 
+  // Guards against a rapid second click launching the opposite mutation
+  // (e.g. Join immediately followed by Leave) while the first is in flight.
+  const [membershipMutating, setMembershipMutating] = useState(false);
+
   const handlePrimary = async () => {
     if (!user?.id) { showToast('Sign in to join groups'); return; }
-    if (joinState === 'join') {
-      setJoinState('joined');
-      const { error } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
-      if (error) { setJoinState('join'); showToast('Failed to join: ' + error.message); return; }
-      refreshCounts();
-    } else if (joinState === 'joined') {
-      setJoinState('join');
-      const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-      if (error) { setJoinState('joined'); showToast('Failed to leave: ' + error.message); return; }
-      refreshCounts();
-    } else if (joinState === 'request') {
-      setJoinState('requested');
-      const { error: joinErr } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
-      if (joinErr) { setJoinState('request'); showToast('Failed to send request: ' + joinErr.message); return; }
+    if (membershipMutating) return;
+    setMembershipMutating(true);
+    try {
+      if (joinState === 'join') {
+        setJoinState('joined');
+        const { error } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
+        if (error) { setJoinState('join'); showToast('Failed to join: ' + error.message); return; }
+        refreshCounts();
+      } else if (joinState === 'joined') {
+        setJoinState('join');
+        const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+        if (error) { setJoinState('joined'); showToast('Failed to leave: ' + error.message); return; }
+        refreshCounts();
+      } else if (joinState === 'request') {
+        setJoinState('requested');
+        const { error: joinErr } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
+        if (joinErr) { setJoinState('request'); showToast('Failed to send request: ' + joinErr.message); return; }
 
-      const { error: notifErr } = await supabase.from('notifications').insert({
-        user_id: user.id,
-        type: 'group',
-        title: 'Request sent',
-        body: `Your request to join ${g.name} is pending approval.`,
-      });
-      if (notifErr) console.error('Request-sent notification failed:', notifErr);
-
-      const { data: admins, error: adminsErr } = await supabase.from('group_members').select('user_id')
-        .eq('group_id', groupId).in('role', ['admin', 'owner']);
-      if (adminsErr) console.error('Admin lookup for join-request notification failed:', adminsErr);
-      const requesterName = currentUser?.name || 'Someone';
-      const adminNotifs = (admins || [])
-        .filter(a => a.user_id !== user.id)
-        .map(a => ({
-          user_id: a.user_id,
+        const { error: notifErr } = await supabase.from('notifications').insert({
+          user_id: user.id,
           type: 'group',
-          title: 'New join request',
-          body: `${requesterName} wants to join ${g.name}.`,
-        }));
-      if (adminNotifs.length) {
-        const { error: fanoutErr } = await supabase.from('notifications').insert(adminNotifs);
-        if (fanoutErr) console.error('Admin join-request notification fanout failed:', fanoutErr);
+          title: 'Request sent',
+          body: `Your request to join ${g.name} is pending approval.`,
+        });
+        if (notifErr) console.error('Request-sent notification failed:', notifErr);
+
+        const { data: admins, error: adminsErr } = await supabase.from('group_members').select('user_id')
+          .eq('group_id', groupId).in('role', ['admin', 'owner']);
+        if (adminsErr) console.error('Admin lookup for join-request notification failed:', adminsErr);
+        const requesterName = currentUser?.name || 'Someone';
+        const adminNotifs = (admins || [])
+          .filter(a => a.user_id !== user.id)
+          .map(a => ({
+            user_id: a.user_id,
+            type: 'group',
+            title: 'New join request',
+            body: `${requesterName} wants to join ${g.name}.`,
+          }));
+        if (adminNotifs.length) {
+          const { error: fanoutErr } = await supabase.from('notifications').insert(adminNotifs);
+          if (fanoutErr) console.error('Admin join-request notification fanout failed:', fanoutErr);
+        }
+      } else if (joinState === 'requested') {
+        setJoinState('request');
+        const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+        if (error) { setJoinState('requested'); showToast('Failed to cancel request: ' + error.message); return; }
       }
-    } else if (joinState === 'requested') {
-      setJoinState('request');
-      const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-      if (error) { setJoinState('requested'); showToast('Failed to cancel request: ' + error.message); return; }
+    } finally {
+      setMembershipMutating(false);
     }
   };
 
@@ -3008,10 +3025,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         ) : (
           <>
           {/* Primary button */}
-          <button onClick={handlePrimary} style={{
+          <button onClick={handlePrimary} disabled={membershipMutating} style={{
             flex:'0 1 260px', height:46, borderRadius:999, border:btn.border||'none',
             background:btn.bg, color:btn.color, boxShadow:btn.shadow,
-            fontSize:15, fontWeight:800, cursor:'pointer',
+            fontSize:15, fontWeight:800, cursor: membershipMutating ? 'default' : 'pointer',
+            opacity: membershipMutating ? 0.7 : 1,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
           }}>
@@ -7892,16 +7910,16 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
   const SETTINGS = [
     { key:'info',    label:'Edit Group Info',    iconBg:'#E9F6FF', iconColor:C.primary,
       icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/></svg>,
-      onPress:()=>navigate('group-edit',{groupId:g.id, editTab:'info'}) },
+      onPress:()=>navigate('group-edit',{groupId, editTab:'info'}) },
     { key:'social',  label:'Social Media Links',  iconBg:'#F1ECFF', iconColor:'#7C5CFF',
       icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M9 15l6-6M8 12l-2 2a3 3 0 1 0 4 4l2-2M16 12l2-2a3 3 0 1 0-4-4l-2 2" stroke="#7C5CFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      onPress:()=>navigate('group-edit',{groupId:g.id, editTab:'social'}) },
+      onPress:()=>navigate('group-edit',{groupId, editTab:'social'}) },
     { key:'rules',   label:'Group Rules',          iconBg:'#FFF6EC', iconColor:'#F59E0B',
       icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 6h10M4 12h10M4 18h6" stroke="#F59E0B" strokeWidth="1.9" strokeLinecap="round"/><path d="m16 6 2 2 3-3M16 16l2 2 3-3" stroke="#F59E0B" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      onPress:()=>navigate('group-edit',{groupId:g.id, editTab:'rules'}) },
+      onPress:()=>navigate('group-edit',{groupId, editTab:'rules'}) },
     { key:'privacy', label:'Privacy Settings',     iconBg:'#E4F7EC', iconColor:'#15A34A',
       icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3.5 5 6v5.5c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-2.5Z" stroke="#15A34A" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
-      onPress:()=>navigate('group-edit',{groupId:g.id, editTab:'privacy'}) },
+      onPress:()=>navigate('group-edit',{groupId, editTab:'privacy'}) },
   ];
 
   const ACTIVITY = [
@@ -7916,13 +7934,13 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
   const MODERATION = [
     { label:'Review Reports',    iconBg:'#FFF1ED', iconColor:'#F4452B', badge:'3',
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#F4452B" strokeWidth="1.8"/><path d="M12 7.5v5M12 16h.01" stroke="#F4452B" strokeWidth="2" strokeLinecap="round"/></svg>,
-      onPress:()=>navigate('review-reports',{groupId:g.id}) },
+      onPress:()=>navigate('review-reports',{groupId}) },
     { label:'Pending Requests',  iconBg:'#FFF6EC', iconColor:'#F59E0B', badge:'8',
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#F59E0B" strokeWidth="1.8"/><path d="M12 8v4.5l3 2" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      onPress:()=>navigate('pending-requests',{groupId:g.id}) },
+      onPress:()=>navigate('pending-requests',{groupId}) },
     { label:'Banned Members',    iconBg:'#F1F3F7', iconColor:'#5B6473', badge:null,
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#5B6473" strokeWidth="1.8"/><path d="m6 6 12 12" stroke="#5B6473" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-      onPress:()=>navigate('banned-members',{groupId:g.id}) },
+      onPress:()=>navigate('banned-members',{groupId}) },
   ];
 
   const Row = ({ icon, iconBg, label, chevron=true, badge, onPress, last=false }) => (
@@ -7977,7 +7995,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 30px' }}>
 
         {/* Analytics banner */}
-        <button onClick={() => navigate('group-analytics', {groupId: g.id})} style={{
+        <button onClick={() => navigate('group-analytics', {groupId})} style={{
           width:'100%', display:'flex', alignItems:'center', gap:13,
           background:'linear-gradient(135deg,#19BFFF,#0E84E0)', border:'none',
           borderRadius:18, padding:16, marginTop:12, cursor:'pointer',
@@ -8054,7 +8072,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
         <button onClick={async () => {
           const confirmed = window.confirm('Archive this group? Members will no longer be able to post or join. This cannot be undone.');
           if (!confirmed) return;
-          const { error } = await supabase.from('groups').update({ archived: true }).eq('id', g.id);
+          const { error } = await supabase.from('groups').update({ archived: true }).eq('id', groupId);
           if (error) { showToast('Failed to archive: ' + error.message); return; }
           showToast('Group archived');
           goBack();
@@ -8481,7 +8499,7 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
   }, [groupId, currentUser?.userId, currentUser?.isLoaded, currentUser?.profileLoading]);
 
   useEffect(() => {
-    if (!groupId) return;
+    if (!groupId || isAuthorized !== true) return;
 
     // Real stats
     Promise.all([
@@ -8527,7 +8545,7 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
         const sorted = Object.values(byUser).sort((a,b) => b.posts - a.posts).slice(0, 3);
         setContributors(sorted);
       });
-  }, [groupId, periodIdx]);
+  }, [groupId, periodIdx, isAuthorized]);
 
   if (isAuthorized === false) {
     return (

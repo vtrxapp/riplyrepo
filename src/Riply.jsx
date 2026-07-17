@@ -2595,7 +2595,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
 function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser }) {
-  const { user } = useUser();
+  const { user, isLoaded: userLoaded } = useUser();
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup,     setDbGroup]     = useState(null);
   const [groupEvents, setGroupEvents] = useState([]);
@@ -2607,13 +2607,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [livePosts2,  setLivePosts2]  = useState(null);
   const [liveEvents2, setLiveEvents2] = useState(null);
 
-  const refreshGroup = () => {
-    return supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
-      .then(({ data }) => { if (data) setDbGroup(data); return data; });
-  };
-
+  // Counts only active members — pending join requests shouldn't inflate the total.
   const refreshCounts = () => {
-    supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId)
+    supabase.from('group_members').select('*', { count:'exact', head:true })
+      .eq('group_id', groupId).in('role', ['member', 'admin', 'owner'])
       .then(({ count }) => setLiveMembers(count ?? 0));
     supabase.from('posts').select('*', { count:'exact', head:true }).eq('group_id', groupId)
       .then(({ count }) => setLivePosts2(count ?? 0));
@@ -2621,15 +2618,38 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       .then(({ count }) => setLiveEvents2(count ?? 0));
   };
 
+  // Bumped on every groupId/user change so in-flight requests from a previous
+  // group/user can't overwrite state after the effect has moved on.
+  const loadGenRef = useRef(0);
+
   useEffect(() => {
     if (!groupId) return;
+    const gen = ++loadGenRef.current;
+    const isStale = () => gen !== loadGenRef.current;
+
+    // Reset identity-scoped state up front so a stale row/admin flag from the
+    // previous group can't linger while the new lookup is in flight.
+    setDbGroup(null);
+    setMembershipChecked(false);
+    setIsGroupAdmin(false);
+
     refreshCounts();
     supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
-      .then(({ data }) => { if (data?.length) setGroupEvents(data); });
+      .then(({ data }) => { if (!isStale() && data?.length) setGroupEvents(data); });
+
     (async () => {
-      const freshGroup = await refreshGroup();
+      const { data: freshGroup } = await supabase.from('groups').select('*').eq('id', groupId).maybeSingle();
+      if (isStale()) return;
+      if (freshGroup) setDbGroup(freshGroup);
+
+      // Wait for Clerk to finish loading before deciding there's no user —
+      // otherwise a momentarily-null user during auth load gets treated as
+      // "signed out" and the row unlocks with default state too early.
+      if (!userLoaded) return;
       if (!user?.id) { setMembershipChecked(true); return; }
+
       const { data } = await supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).maybeSingle();
+      if (isStale()) return;
       if (data) {
         setJoinState(data.role === 'pending' ? 'requested' : 'joined');
         setIsGroupAdmin(data.role === 'admin' || data.role === 'owner');
@@ -2641,7 +2661,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       }
       setMembershipChecked(true);
     })();
-  }, [groupId, user?.id]);
+  }, [groupId, user?.id, userLoaded]);
   const g = dbGroup || staticG;
   const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
 
@@ -2676,6 +2696,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       setScrollY(latestScrollTopRef.current);
     });
   };
+  useEffect(() => () => {
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+  }, []);
 
   // Swipe between group tabs
   const swipeTouchStart = useRef(null);
@@ -2932,7 +2955,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {/* ── Action row ──────────────────────────────────── */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'18px 16px 0' }}>
 
-        {membershipChecked && (isGroupAdmin ? (
+        {membershipChecked && (isJoined && isGroupAdmin ? (
           <>
             {/* Explore — group analytics */}
             <button onClick={() => navigate('group-analytics', { groupId: g.id })} style={{
@@ -3313,8 +3336,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               ...(isJoined ? [{ label:'Leave Group', danger:true,
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
                 action: async () => {
-                  setShowOptionsSheet(false); setJoinState('join');
-                  await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+                  setShowOptionsSheet(false); setJoinState('join'); setIsGroupAdmin(false);
+                  const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+                  if (error) {
+                    setJoinState('joined'); setIsGroupAdmin(isGroupAdmin);
+                    showToast('Failed to leave: ' + error.message);
+                    return;
+                  }
                   refreshCounts(); showToast('You left the group');
                 }}] : []),
               { label:'Report Group', danger:true,
@@ -7824,14 +7852,24 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
 function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }) {
   const [dbGroup, setDbGroup] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(null);
+  const authGenRef = useRef(0);
   useEffect(() => {
     if (!groupId) return;
+    const gen = ++authGenRef.current;
+    const isStale = () => gen !== authGenRef.current;
+
+    setDbGroup(null);
+    setIsAuthorized(null); // back to "checking" for the new group, not stale true/false
     supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
-      .then(({ data }) => { if (data) setDbGroup(data); });
+      .then(({ data }) => { if (!isStale() && data) setDbGroup(data); });
+
+    // Auth still resolving (Clerk/profile) — stay in the loading state rather
+    // than treating a momentarily-null userId as "not authorized".
+    if (!currentUser?.isLoaded || currentUser?.profileLoading) return;
     if (!currentUser?.userId) { setIsAuthorized(false); return; }
     supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser.userId).maybeSingle()
-      .then(({ data }) => setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'));
-  }, [groupId, currentUser?.userId]);
+      .then(({ data }) => { if (!isStale()) setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'); });
+  }, [groupId, currentUser?.userId, currentUser?.isLoaded, currentUser?.profileLoading]);
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const g = dbGroup || staticG;
 
@@ -8426,20 +8464,28 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
   const [contributors, setContributors] = useState([]);
   const [barData, setBarData] = useState({ bars: [0,0,0,0,0,0,0], labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] });
   const [isAuthorized, setIsAuthorized] = useState(null);
+  const authGenRef = useRef(0);
 
   useEffect(() => {
     if (!groupId) return;
+    const gen = ++authGenRef.current;
+    const isStale = () => gen !== authGenRef.current;
+
+    setIsAuthorized(null); // back to "checking" for the new group
+    // Auth still resolving — stay in the loading state instead of treating a
+    // momentarily-null userId as "not authorized".
+    if (!currentUser?.isLoaded || currentUser?.profileLoading) return;
     if (!currentUser?.userId) { setIsAuthorized(false); return; }
     supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser.userId).maybeSingle()
-      .then(({ data }) => setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'));
-  }, [groupId, currentUser?.userId]);
+      .then(({ data }) => { if (!isStale()) setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'); });
+  }, [groupId, currentUser?.userId, currentUser?.isLoaded, currentUser?.profileLoading]);
 
   useEffect(() => {
     if (!groupId) return;
 
     // Real stats
     Promise.all([
-      supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId),
+      supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId).in('role', ['member', 'admin', 'owner']),
       supabase.from('posts').select('likes_count, comment_count, created_at').eq('group_id', groupId),
       supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId),
     ]).then(([members, posts, events]) => {

@@ -2601,6 +2601,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const [groupEvents, setGroupEvents] = useState([]);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const [membershipChecked, setMembershipChecked] = useState(false);
   // Live counts from DB (source of truth, not static fallback)
   const [liveMembers, setLiveMembers] = useState(null);
   const [livePosts2,  setLivePosts2]  = useState(null);
@@ -2627,7 +2628,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       .then(({ data }) => { if (data?.length) setGroupEvents(data); });
     (async () => {
       const freshGroup = await refreshGroup();
-      if (!user?.id) return;
+      if (!user?.id) { setMembershipChecked(true); return; }
       const { data } = await supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).maybeSingle();
       if (data) {
         setJoinState(data.role === 'pending' ? 'requested' : 'joined');
@@ -2638,6 +2639,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         // failed/lagged), require a request instead of defaulting to instant join.
         setJoinState(freshGroup ? (freshGroup.privacy === 'private' ? 'request' : 'join') : 'request');
       }
+      setMembershipChecked(true);
     })();
   }, [groupId, user?.id]);
   const g = dbGroup || staticG;
@@ -2694,23 +2696,30 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     if (!user?.id) { showToast('Sign in to join groups'); return; }
     if (joinState === 'join') {
       setJoinState('joined');
-      await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
+      const { error } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
+      if (error) { setJoinState('join'); showToast('Failed to join: ' + error.message); return; }
       refreshCounts();
     } else if (joinState === 'joined') {
       setJoinState('join');
-      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+      const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+      if (error) { setJoinState('joined'); showToast('Failed to leave: ' + error.message); return; }
       refreshCounts();
     } else if (joinState === 'request') {
       setJoinState('requested');
-      await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
-      await supabase.from('notifications').insert({
+      const { error: joinErr } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
+      if (joinErr) { setJoinState('request'); showToast('Failed to send request: ' + joinErr.message); return; }
+
+      const { error: notifErr } = await supabase.from('notifications').insert({
         user_id: user.id,
         type: 'group',
         title: 'Request sent',
         body: `Your request to join ${g.name} is pending approval.`,
       });
-      const { data: admins } = await supabase.from('group_members').select('user_id')
+      if (notifErr) console.error('Request-sent notification failed:', notifErr);
+
+      const { data: admins, error: adminsErr } = await supabase.from('group_members').select('user_id')
         .eq('group_id', groupId).in('role', ['admin', 'owner']);
+      if (adminsErr) console.error('Admin lookup for join-request notification failed:', adminsErr);
       const requesterName = currentUser?.name || 'Someone';
       const adminNotifs = (admins || [])
         .filter(a => a.user_id !== user.id)
@@ -2720,10 +2729,14 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           title: 'New join request',
           body: `${requesterName} wants to join ${g.name}.`,
         }));
-      if (adminNotifs.length) await supabase.from('notifications').insert(adminNotifs);
+      if (adminNotifs.length) {
+        const { error: fanoutErr } = await supabase.from('notifications').insert(adminNotifs);
+        if (fanoutErr) console.error('Admin join-request notification fanout failed:', fanoutErr);
+      }
     } else if (joinState === 'requested') {
       setJoinState('request');
-      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+      const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+      if (error) { setJoinState('requested'); showToast('Failed to cancel request: ' + error.message); return; }
     }
   };
 
@@ -2906,7 +2919,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {/* ── Action row ──────────────────────────────────── */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'18px 16px 0' }}>
 
-        {isGroupAdmin ? (
+        {membershipChecked && (isGroupAdmin ? (
           <>
             {/* Explore — group analytics */}
             <button onClick={() => navigate('group-analytics', { groupId: g.id })} style={{
@@ -3022,7 +3035,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           )}
 
           </>
-        )}
+        ))}
         </div>
 
         {/* Pinned event removed — no static content */}

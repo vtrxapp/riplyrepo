@@ -1,5 +1,5 @@
 // Riply v1.0
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
@@ -2595,50 +2595,80 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
 function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser }) {
-  const { user } = useUser();
+  const { user, isLoaded: userLoaded } = useUser();
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup,     setDbGroup]     = useState(null);
   const [groupEvents, setGroupEvents] = useState([]);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const [membershipChecked, setMembershipChecked] = useState(false);
   // Live counts from DB (source of truth, not static fallback)
   const [liveMembers, setLiveMembers] = useState(null);
   const [livePosts2,  setLivePosts2]  = useState(null);
   const [liveEvents2, setLiveEvents2] = useState(null);
 
-  const refreshGroup = () => {
-    return supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
-      .then(({ data }) => { if (data) setDbGroup(data); return data; });
+  // Counts only active members — pending join requests shouldn't inflate the total.
+  // Accepts an optional staleness check so callers loading a fresh group can
+  // discard responses that resolve after the user has moved on again.
+  const refreshCounts = (isStale = () => false) => {
+    supabase.from('group_members').select('*', { count:'exact', head:true })
+      .eq('group_id', groupId).in('role', ['member', 'admin', 'owner'])
+      .then(({ count }) => { if (!isStale()) setLiveMembers(count ?? 0); });
+    supabase.from('posts').select('*', { count:'exact', head:true }).eq('group_id', groupId)
+      .then(({ count }) => { if (!isStale()) setLivePosts2(count ?? 0); });
+    supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId)
+      .then(({ count }) => { if (!isStale()) setLiveEvents2(count ?? 0); });
   };
 
-  const refreshCounts = () => {
-    supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId)
-      .then(({ count }) => setLiveMembers(count ?? 0));
-    supabase.from('posts').select('*', { count:'exact', head:true }).eq('group_id', groupId)
-      .then(({ count }) => setLivePosts2(count ?? 0));
-    supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId)
-      .then(({ count }) => setLiveEvents2(count ?? 0));
-  };
+  // Bumped on every groupId/user change so in-flight requests from a previous
+  // group/user can't overwrite state after the effect has moved on.
+  const loadGenRef = useRef(0);
 
   useEffect(() => {
     if (!groupId) return;
-    refreshCounts();
+    const gen = ++loadGenRef.current;
+    const isStale = () => gen !== loadGenRef.current;
+
+    // Reset all group-scoped state up front so stale values from the previous
+    // group can't linger while the new lookup is in flight.
+    setDbGroup(null);
+    setMembershipChecked(false);
+    setIsGroupAdmin(false);
+    setJoinState(staticG.state || 'join');
+    setGroupEvents([]);
+    setLiveMembers(null);
+    setLivePosts2(null);
+    setLiveEvents2(null);
+
+    refreshCounts(isStale);
     supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
-      .then(({ data }) => { if (data?.length) setGroupEvents(data); });
+      .then(({ data }) => { if (!isStale()) setGroupEvents(data || []); });
+
     (async () => {
-      const freshGroup = await refreshGroup();
-      if (!user?.id) return;
+      const { data: freshGroup } = await supabase.from('groups').select('*').eq('id', groupId).maybeSingle();
+      if (isStale()) return;
+      if (freshGroup) setDbGroup(freshGroup);
+
+      // Wait for Clerk to finish loading before deciding there's no user —
+      // otherwise a momentarily-null user during auth load gets treated as
+      // "signed out" and the row unlocks with default state too early.
+      if (!userLoaded) return;
+      if (!user?.id) { setMembershipChecked(true); return; }
+
       const { data } = await supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', user.id).maybeSingle();
+      if (isStale()) return;
       if (data) {
         setJoinState(data.role === 'pending' ? 'requested' : 'joined');
         setIsGroupAdmin(data.role === 'admin' || data.role === 'owner');
       } else {
         setIsGroupAdmin(false);
-        const privacy = freshGroup?.privacy || staticG.privacy;
-        setJoinState(privacy === 'private' ? 'request' : 'join');
+        // Fail closed: if we couldn't confirm the group's real privacy (fetch
+        // failed/lagged), require a request instead of defaulting to instant join.
+        setJoinState(freshGroup ? (freshGroup.privacy === 'private' ? 'request' : 'join') : 'request');
       }
+      setMembershipChecked(true);
     })();
-  }, [groupId, user?.id]);
+  }, [groupId, user?.id, userLoaded]);
   const g = dbGroup || staticG;
   const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
 
@@ -2653,16 +2683,29 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const COLLAPSE_DISTANCE = 90;
   const [scrollY, setScrollY] = useState(0);
   const coverProgress = Math.min(1, Math.max(0, scrollY / COLLAPSE_DISTANCE));
-  const coverCollapsed = coverProgress > 0.5;
   const lerp = (a, b) => a + (b - a) * coverProgress;
   // The big avatar has to be fully gone before scrolling content reaches its
   // fixed position, so it fades/shrinks on a much faster curve than the bar.
   const avatarProgress = Math.min(1, coverProgress / 0.22);
   const avatarLerp = (a, b) => a + (b - a) * avatarProgress;
 
+  // Throttle to one state update per animation frame — native scroll events
+  // can fire far more often than the screen can paint, and each update
+  // re-renders this whole screen (post list included). Reads the latest
+  // scrollTop at paint time, not whichever event happened to schedule the frame.
+  const latestScrollTopRef = useRef(0);
+  const scrollRafRef = useRef(null);
   const handleGroupScroll = (e) => {
-    setScrollY(e.currentTarget.scrollTop);
+    latestScrollTopRef.current = e.currentTarget.scrollTop;
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      setScrollY(latestScrollTopRef.current);
+    });
   };
+  useEffect(() => () => {
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+  }, []);
 
   // Swipe between group tabs
   const swipeTouchStart = useRef(null);
@@ -2687,42 +2730,63 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   const isJoined     = joinState === 'joined';
   const isRequested  = joinState === 'requested';
   const canSee       = isJoined || (g.state || "join") === 'joined';
-  const mediaImages  = livePosts.filter(p => p.image_url);
+  const mediaImages  = useMemo(() => livePosts.filter(p => p.image_url), [livePosts]);
+
+  // Guards against a rapid second click launching the opposite mutation
+  // (e.g. Join immediately followed by Leave) while the first is in flight.
+  const [membershipMutating, setMembershipMutating] = useState(false);
 
   const handlePrimary = async () => {
     if (!user?.id) { showToast('Sign in to join groups'); return; }
-    if (joinState === 'join') {
-      setJoinState('joined');
-      await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
-      refreshCounts();
-    } else if (joinState === 'joined') {
-      setJoinState('join');
-      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-      refreshCounts();
-    } else if (joinState === 'request') {
-      setJoinState('requested');
-      await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
-      await supabase.from('notifications').insert({
-        user_id: user.id,
-        type: 'group',
-        title: 'Request sent',
-        body: `Your request to join ${g.name} is pending approval.`,
-      });
-      const { data: admins } = await supabase.from('group_members').select('user_id')
-        .eq('group_id', groupId).in('role', ['admin', 'owner']);
-      const requesterName = currentUser?.name || 'Someone';
-      const adminNotifs = (admins || [])
-        .filter(a => a.user_id !== user.id)
-        .map(a => ({
-          user_id: a.user_id,
+    if (membershipMutating) return;
+    setMembershipMutating(true);
+    try {
+      if (joinState === 'join') {
+        setJoinState('joined');
+        const { error } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
+        if (error) { setJoinState('join'); showToast('Failed to join: ' + error.message); return; }
+        refreshCounts();
+      } else if (joinState === 'joined') {
+        setJoinState('join');
+        const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+        if (error) { setJoinState('joined'); showToast('Failed to leave: ' + error.message); return; }
+        refreshCounts();
+      } else if (joinState === 'request') {
+        setJoinState('requested');
+        const { error: joinErr } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
+        if (joinErr) { setJoinState('request'); showToast('Failed to send request: ' + joinErr.message); return; }
+
+        const { error: notifErr } = await supabase.from('notifications').insert({
+          user_id: user.id,
           type: 'group',
-          title: 'New join request',
-          body: `${requesterName} wants to join ${g.name}.`,
-        }));
-      if (adminNotifs.length) await supabase.from('notifications').insert(adminNotifs);
-    } else if (joinState === 'requested') {
-      setJoinState('request');
-      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+          title: 'Request sent',
+          body: `Your request to join ${g.name} is pending approval.`,
+        });
+        if (notifErr) console.error('Request-sent notification failed:', notifErr);
+
+        const { data: admins, error: adminsErr } = await supabase.from('group_members').select('user_id')
+          .eq('group_id', groupId).in('role', ['admin', 'owner']);
+        if (adminsErr) console.error('Admin lookup for join-request notification failed:', adminsErr);
+        const requesterName = currentUser?.name || 'Someone';
+        const adminNotifs = (admins || [])
+          .filter(a => a.user_id !== user.id)
+          .map(a => ({
+            user_id: a.user_id,
+            type: 'group',
+            title: 'New join request',
+            body: `${requesterName} wants to join ${g.name}.`,
+          }));
+        if (adminNotifs.length) {
+          const { error: fanoutErr } = await supabase.from('notifications').insert(adminNotifs);
+          if (fanoutErr) console.error('Admin join-request notification fanout failed:', fanoutErr);
+        }
+      } else if (joinState === 'requested') {
+        setJoinState('request');
+        const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+        if (error) { setJoinState('requested'); showToast('Failed to cancel request: ' + error.message); return; }
+      }
+    } finally {
+      setMembershipMutating(false);
     }
   };
 
@@ -2817,13 +2881,16 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           </svg>
         </button>
 
-        {/* Avatar + group name fill the compact bar once it's collapsed */}
+        {/* Avatar + group name fill the compact bar once it's collapsed.
+            Opacity/interactivity track avatarProgress (not coverProgress) so this
+            row finishes fading in exactly as the big avatar finishes fading out —
+            no gap where neither is visible/tappable. */}
         <div style={{
           position:'absolute', bottom:0, left:0, right:0, height:52,
           display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-          opacity: coverProgress,
+          opacity: avatarProgress,
           transform: `translateY(${lerp(6, 0)}px) scale(${lerp(0.94, 1)})`,
-          zIndex:2, pointerEvents: coverCollapsed ? 'auto' : 'none',
+          zIndex:2, pointerEvents: avatarProgress > 0.5 ? 'auto' : 'none',
         }}>
           {/* gradient ring around the mini avatar */}
           <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, padding:2,
@@ -2905,7 +2972,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {/* ── Action row ──────────────────────────────────── */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'18px 16px 0' }}>
 
-        {isGroupAdmin ? (
+        {membershipChecked && (isJoined && isGroupAdmin ? (
           <>
             {/* Explore — group analytics */}
             <button onClick={() => navigate('group-analytics', { groupId: g.id })} style={{
@@ -2958,10 +3025,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         ) : (
           <>
           {/* Primary button */}
-          <button onClick={handlePrimary} style={{
+          <button onClick={handlePrimary} disabled={membershipMutating} style={{
             flex:'0 1 260px', height:46, borderRadius:999, border:btn.border||'none',
             background:btn.bg, color:btn.color, boxShadow:btn.shadow,
-            fontSize:15, fontWeight:800, cursor:'pointer',
+            fontSize:15, fontWeight:800, cursor: membershipMutating ? 'default' : 'pointer',
+            opacity: membershipMutating ? 0.7 : 1,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
           }}>
@@ -3020,23 +3088,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             </button>
           )}
 
-          {/* Manage (joined) */}
-          {isJoined && (
-            <button onClick={() => navigate('group-manage',{groupId:g.id})} style={{
-              width:46, height:46, border:'none', borderRadius:'50%', flexShrink:0,
-              background:C.ink, cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              boxShadow:'0 4px 12px rgba(14,23,38,0.2)',
-            }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
-                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="#fff" strokeWidth="1.9"/>
-                <path d="M19.4 13a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V19a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-.3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"
-                      stroke="#fff" strokeWidth="1.6" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          )}
           </>
-        )}
+        ))}
         </div>
 
         {/* Pinned event removed — no static content */}
@@ -3301,8 +3354,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               ...(isJoined ? [{ label:'Leave Group', danger:true,
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
                 action: async () => {
-                  setShowOptionsSheet(false); setJoinState('join');
-                  await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+                  setShowOptionsSheet(false); setJoinState('join'); setIsGroupAdmin(false);
+                  const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+                  if (error) {
+                    setJoinState('joined'); setIsGroupAdmin(isGroupAdmin);
+                    showToast('Failed to leave: ' + error.message);
+                    return;
+                  }
                   refreshCounts(); showToast('You left the group');
                 }}] : []),
               { label:'Report Group', danger:true,
@@ -7809,29 +7867,59 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP MANAGE
 // ─────────────────────────────────────────────────────────────
-function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
+function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }) {
   const [dbGroup, setDbGroup] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(null);
+  const authGenRef = useRef(0);
   useEffect(() => {
     if (!groupId) return;
+    const gen = ++authGenRef.current;
+    const isStale = () => gen !== authGenRef.current;
+
+    setDbGroup(null);
+    setIsAuthorized(null); // back to "checking" for the new group, not stale true/false
     supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
-      .then(({ data }) => { if (data) setDbGroup(data); });
-  }, [groupId]);
+      .then(({ data }) => { if (!isStale() && data) setDbGroup(data); });
+
+    // Auth still resolving (Clerk/profile) — stay in the loading state rather
+    // than treating a momentarily-null userId as "not authorized".
+    if (!currentUser?.isLoaded || currentUser?.profileLoading) return;
+    if (!currentUser?.userId) { setIsAuthorized(false); return; }
+    supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser.userId).maybeSingle()
+      .then(({ data }) => { if (!isStale()) setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'); });
+  }, [groupId, currentUser?.userId, currentUser?.isLoaded, currentUser?.profileLoading]);
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const g = dbGroup || staticG;
+
+  if (isAuthorized === false) {
+    return (
+      <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', gap:12, padding:24, textAlign:'center',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Admins only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be an admin of this group to manage it.</div>
+        <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
+          borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
+      </div>
+    );
+  }
+  if (isAuthorized === null) {
+    return <div style={{ height:'100%', background:C.pageBg }} />;
+  }
 
   const SETTINGS = [
     { key:'info',    label:'Edit Group Info',    iconBg:'#E9F6FF', iconColor:C.primary,
       icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/></svg>,
-      onPress:()=>navigate('group-edit',{groupId:g.id, editTab:'info'}) },
+      onPress:()=>navigate('group-edit',{groupId, editTab:'info'}) },
     { key:'social',  label:'Social Media Links',  iconBg:'#F1ECFF', iconColor:'#7C5CFF',
       icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M9 15l6-6M8 12l-2 2a3 3 0 1 0 4 4l2-2M16 12l2-2a3 3 0 1 0-4-4l-2 2" stroke="#7C5CFF" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      onPress:()=>navigate('group-edit',{groupId:g.id, editTab:'social'}) },
+      onPress:()=>navigate('group-edit',{groupId, editTab:'social'}) },
     { key:'rules',   label:'Group Rules',          iconBg:'#FFF6EC', iconColor:'#F59E0B',
       icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 6h10M4 12h10M4 18h6" stroke="#F59E0B" strokeWidth="1.9" strokeLinecap="round"/><path d="m16 6 2 2 3-3M16 16l2 2 3-3" stroke="#F59E0B" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      onPress:()=>navigate('group-edit',{groupId:g.id, editTab:'rules'}) },
+      onPress:()=>navigate('group-edit',{groupId, editTab:'rules'}) },
     { key:'privacy', label:'Privacy Settings',     iconBg:'#E4F7EC', iconColor:'#15A34A',
       icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3.5 5 6v5.5c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-2.5Z" stroke="#15A34A" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
-      onPress:()=>navigate('group-edit',{groupId:g.id, editTab:'privacy'}) },
+      onPress:()=>navigate('group-edit',{groupId, editTab:'privacy'}) },
   ];
 
   const ACTIVITY = [
@@ -7846,13 +7934,13 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
   const MODERATION = [
     { label:'Review Reports',    iconBg:'#FFF1ED', iconColor:'#F4452B', badge:'3',
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#F4452B" strokeWidth="1.8"/><path d="M12 7.5v5M12 16h.01" stroke="#F4452B" strokeWidth="2" strokeLinecap="round"/></svg>,
-      onPress:()=>navigate('review-reports',{groupId:g.id}) },
+      onPress:()=>navigate('review-reports',{groupId}) },
     { label:'Pending Requests',  iconBg:'#FFF6EC', iconColor:'#F59E0B', badge:'8',
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#F59E0B" strokeWidth="1.8"/><path d="M12 8v4.5l3 2" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-      onPress:()=>navigate('pending-requests',{groupId:g.id}) },
+      onPress:()=>navigate('pending-requests',{groupId}) },
     { label:'Banned Members',    iconBg:'#F1F3F7', iconColor:'#5B6473', badge:null,
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#5B6473" strokeWidth="1.8"/><path d="m6 6 12 12" stroke="#5B6473" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-      onPress:()=>navigate('banned-members',{groupId:g.id}) },
+      onPress:()=>navigate('banned-members',{groupId}) },
   ];
 
   const Row = ({ icon, iconBg, label, chevron=true, badge, onPress, last=false }) => (
@@ -7907,7 +7995,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 30px' }}>
 
         {/* Analytics banner */}
-        <button onClick={() => navigate('group-analytics', {groupId: g.id})} style={{
+        <button onClick={() => navigate('group-analytics', {groupId})} style={{
           width:'100%', display:'flex', alignItems:'center', gap:13,
           background:'linear-gradient(135deg,#19BFFF,#0E84E0)', border:'none',
           borderRadius:18, padding:16, marginTop:12, cursor:'pointer',
@@ -7984,7 +8072,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast }) {
         <button onClick={async () => {
           const confirmed = window.confirm('Archive this group? Members will no longer be able to post or join. This cannot be undone.');
           if (!confirmed) return;
-          const { error } = await supabase.from('groups').update({ archived: true }).eq('id', g.id);
+          const { error } = await supabase.from('groups').update({ archived: true }).eq('id', groupId);
           if (error) { showToast('Failed to archive: ' + error.message); return; }
           showToast('Group archived');
           goBack();
@@ -8386,20 +8474,36 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP ANALYTICS
 // ─────────────────────────────────────────────────────────────
-function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
+function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
   const PERIODS = ['7 Days', '30 Days', '90 Days'];
 
   const [periodIdx, setPeriodIdx] = useState(0);
   const [stats, setStats] = useState(null);
   const [contributors, setContributors] = useState([]);
   const [barData, setBarData] = useState({ bars: [0,0,0,0,0,0,0], labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] });
+  const [isAuthorized, setIsAuthorized] = useState(null);
+  const authGenRef = useRef(0);
 
   useEffect(() => {
     if (!groupId) return;
+    const gen = ++authGenRef.current;
+    const isStale = () => gen !== authGenRef.current;
+
+    setIsAuthorized(null); // back to "checking" for the new group
+    // Auth still resolving — stay in the loading state instead of treating a
+    // momentarily-null userId as "not authorized".
+    if (!currentUser?.isLoaded || currentUser?.profileLoading) return;
+    if (!currentUser?.userId) { setIsAuthorized(false); return; }
+    supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser.userId).maybeSingle()
+      .then(({ data }) => { if (!isStale()) setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'); });
+  }, [groupId, currentUser?.userId, currentUser?.isLoaded, currentUser?.profileLoading]);
+
+  useEffect(() => {
+    if (!groupId || isAuthorized !== true) return;
 
     // Real stats
     Promise.all([
-      supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId),
+      supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId).in('role', ['member', 'admin', 'owner']),
       supabase.from('posts').select('likes_count, comment_count, created_at').eq('group_id', groupId),
       supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId),
     ]).then(([members, posts, events]) => {
@@ -8441,7 +8545,23 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast }) {
         const sorted = Object.values(byUser).sort((a,b) => b.posts - a.posts).slice(0, 3);
         setContributors(sorted);
       });
-  }, [groupId, periodIdx]);
+  }, [groupId, periodIdx, isAuthorized]);
+
+  if (isAuthorized === false) {
+    return (
+      <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', gap:12, padding:24, textAlign:'center',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Admins only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be an admin of this group to view its analytics.</div>
+        <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
+          borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
+      </div>
+    );
+  }
+  if (isAuthorized === null) {
+    return <div style={{ height:'100%', background:C.pageBg }} />;
+  }
 
   const d   = barData;
   const max = Math.max(...d.bars, 1);
@@ -10771,11 +10891,11 @@ export default function RiplyApp() {
       case 'check-in':      return <CheckInScreen eventId={navParams.eventId} goBack={goBack} showToast={showToast} />;
       case 'review':        return <ReviewScreen ticketId={navParams.ticketId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'tickets':       return <TicketsScreen eventId={navParams.eventId} goBack={goBack} navigate={navigate} showToast={showToast} />;
-      case 'group-manage':  return <GroupManageScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'group-manage':  return <GroupManageScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'pending-requests': return <PendingRequestsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'banned-members':   return <BannedMembersScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'review-reports':   return <ReviewReportsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
-      case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
+      case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'group-edit':       return <GroupEditScreen groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

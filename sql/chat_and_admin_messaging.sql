@@ -95,6 +95,11 @@ begin
 end;
 $$;
 
+-- Note: chat_participants has no single-row "this is the pair" shape to put
+-- a unique constraint on for 1:1 DMs, so concurrent calls for the same
+-- unordered pair are serialized with a transaction-scoped advisory lock
+-- instead (caught in review: without it, two concurrent calls could each
+-- miss the other's not-yet-committed chat and create duplicate DMs).
 create or replace function public.create_direct_chat(p_other_user_id text)
 returns uuid
 language plpgsql
@@ -104,6 +109,7 @@ as $$
 declare
   v_me text := current_user_id();
   v_chat_id uuid;
+  v_lock_key bigint;
 begin
   if v_me is null then
     raise exception 'must be signed in';
@@ -111,6 +117,11 @@ begin
   if p_other_user_id is null or p_other_user_id = v_me then
     raise exception 'invalid recipient';
   end if;
+
+  v_lock_key := hashtextextended(
+    least(v_me, p_other_user_id) || '|' || greatest(v_me, p_other_user_id), 0
+  );
+  perform pg_advisory_xact_lock(v_lock_key);
 
   select c.id into v_chat_id
   from public.chats c
@@ -130,6 +141,12 @@ begin
   return v_chat_id;
 end;
 $$;
+
+-- Real unique index enforces at most one admin thread per group (caught in
+-- review: the previous select-then-insert had the same concurrent-creation
+-- race as create_direct_chat).
+create unique index if not exists chats_group_id_unique_idx
+  on public.chats (group_id) where group_id is not null;
 
 create or replace function public.create_admin_thread(p_group_id uuid)
 returns uuid
@@ -165,7 +182,15 @@ begin
     return v_chat_id;
   end if;
 
-  insert into public.chats (group_id, name) values (p_group_id, 'UMSU Support') returning id into v_chat_id;
+  insert into public.chats (group_id, name) values (p_group_id, 'UMSU Support')
+    on conflict (group_id) do nothing
+    returning id into v_chat_id;
+
+  if v_chat_id is null then
+    -- Lost the race to a concurrent call -- use the thread it created.
+    select id into v_chat_id from public.chats where group_id = p_group_id;
+  end if;
+
   insert into public.chat_participants (chat_id, user_id) values (v_chat_id, v_me)
     on conflict (chat_id, user_id) do nothing;
 

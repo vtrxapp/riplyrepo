@@ -19,41 +19,21 @@ function enrichMessages(msgs, currentUserId) {
   }))
 }
 
-// Find or create a chat row, returns the real UUID chat_id
+// chatId here is always a real chats.id UUID -- either from the chat list
+// (useChats.js, where the user is already a participant) or from a
+// create_direct_chat/create_admin_thread RPC call made before navigating
+// here, both of which already enroll the current user server-side. Verify
+// membership (rather than upserting it) so a client-supplied chatId can't
+// self-enroll into a chat the user was never actually added to.
 async function resolveChat(chatId, currentUserId) {
-  // If it's already a UUID, use it directly
-  if (/^[0-9a-f-]{36}$/.test(chatId)) {
-    // Ensure current user is a participant
-    await supabase.from('chat_participants')
-      .upsert({ chat_id: chatId, user_id: currentUserId }, { onConflict: 'chat_id,user_id' })
-    return chatId
-  }
-
-  // For synthetic DM ids like "dm-John Doe", look up or create a chat
-  const { data: existing } = await supabase
-    .from('chats')
-    .select('id')
-    .eq('synthetic_id', chatId)
+  if (!chatId) return null
+  const { data, error } = await supabase
+    .from('chat_participants')
+    .select('chat_id')
+    .eq('chat_id', chatId)
+    .eq('user_id', currentUserId)
     .maybeSingle()
-
-  if (existing?.id) {
-    await supabase.from('chat_participants')
-      .upsert({ chat_id: existing.id, user_id: currentUserId }, { onConflict: 'chat_id,user_id' })
-    return existing.id
-  }
-
-  const { data: created } = await supabase
-    .from('chats')
-    .insert({ synthetic_id: chatId, created_by: currentUserId })
-    .select('id')
-    .single()
-
-  if (created?.id) {
-    await supabase.from('chat_participants')
-      .upsert({ chat_id: created.id, user_id: currentUserId }, { onConflict: 'chat_id,user_id' })
-  }
-
-  return created?.id || null
+  return error || !data ? null : chatId
 }
 
 export function useChat(chatId) {
@@ -69,7 +49,8 @@ export function useChat(chatId) {
 
     const init = async () => {
       const resolved = await resolveChat(chatId, user.id)
-      if (cancelled || !resolved) return
+      if (cancelled) return
+      if (!resolved) { setLoading(false); return }
       setRealChatId(resolved)
 
       const { data } = await supabase

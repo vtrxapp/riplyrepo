@@ -4151,15 +4151,22 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               <div style={{ position:'absolute', right:0, top:40, background:'#fff', borderRadius:12,
                             boxShadow:'0 8px 24px rgba(16,24,40,0.14)', border:`1px solid ${C.border}`,
                             zIndex:99, minWidth:130, overflow:'hidden' }}>
-                <button onClick={() => {
+                <button onClick={async () => {
                   setMoreOpen(false);
-                  const dmId = `dm-${(hostName || 'host').toLowerCase().replace(/\s+/g, '-')}`;
-                  navigate('chat', {
-                    chatId: dmId,
-                    chatName: hostName || 'Organizer',
-                    chatInitial: (hostName || 'O')[0].toUpperCase(),
-                    chatColor: sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
-                  });
+                  if (!sp.host_id || !currentUser?.userId) { showToast('Sign in to message the host'); return; }
+                  if (sp.host_id === currentUser.userId) { showToast("That's you!"); return; }
+                  try {
+                    const { data: chatId, error } = await supabase.rpc('create_direct_chat', { p_other_user_id: sp.host_id });
+                    if (error || !chatId) { showToast('Failed to start chat'); return; }
+                    navigate('chat', {
+                      chatId,
+                      chatName: hostName || 'Organizer',
+                      chatInitial: (hostName || 'O')[0].toUpperCase(),
+                      chatColor: sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+                    });
+                  } catch {
+                    showToast('Failed to start chat');
+                  }
                 }} style={{
                   width:'100%', padding:'12px 16px', border:'none', background:'none',
                   textAlign:'left', fontSize:13, fontWeight:700, color:C.body,
@@ -7963,6 +7970,17 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
     { label:'Banned Members',    iconBg:'#F1F3F7', iconColor:'#5B6473', badge:null,
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#5B6473" strokeWidth="1.8"/><path d="m6 6 12 12" stroke="#5B6473" strokeWidth="1.8" strokeLinecap="round"/></svg>,
       onPress:()=>navigate('banned-members',{groupId}) },
+    { label:'Message UMSU Support', iconBg:'#E9F6FF', iconColor:C.primary, badge:null,
+      icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z" stroke={C.primary} strokeWidth="1.8" strokeLinejoin="round"/></svg>,
+      onPress: async () => {
+        try {
+          const { data: chatId, error } = await supabase.rpc('create_admin_thread', { p_group_id: groupId });
+          if (error || !chatId) { showToast('Failed to reach UMSU support'); return; }
+          navigate('chat', { chatId, chatName: 'UMSU Support', chatInitial: 'U', chatColor: 'linear-gradient(135deg,#19BFFF,#0098F0)' });
+        } catch {
+          showToast('Failed to reach UMSU support');
+        }
+      } },
   ];
 
   const Row = ({ icon, iconBg, label, chevron=true, badge, onPress, last=false }) => (

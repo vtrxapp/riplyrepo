@@ -21,12 +21,14 @@ export function useChats() {
 
     const { data: chatRows } = await supabase
       .from('chats')
-      .select('id, name, initial, color, last_message, last_message_at, synthetic_id')
+      .select('id, name, initial, color, last_message, last_message_at, group_id')
       .in('id', chatIds)
       .order('last_message_at', { ascending: false, nullsFirst: false })
 
-    // For DM chats, look up the other participant's profile
-    const dmChats = (chatRows || []).filter(c => c.synthetic_id?.startsWith('dm-'))
+    // A chat with no group_id is a plain 1:1 DM -- look up the other
+    // participant's profile so the list shows their name/avatar rather than
+    // a blank "Chat" row (chats.name is only set for group/admin threads).
+    const dmChats = (chatRows || []).filter(c => !c.group_id)
     const otherParticipantIds = []
 
     if (dmChats.length > 0) {

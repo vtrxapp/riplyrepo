@@ -26,7 +26,7 @@ function enrichMessages(msgs, currentUserId) {
 // membership (rather than upserting it) so a client-supplied chatId can't
 // self-enroll into a chat the user was never actually added to.
 async function resolveChat(chatId, currentUserId) {
-  if (!chatId) return null
+  if (!chatId) return { chatId: null, error: null }
   const { data, error } = await supabase
     .from('chat_participants')
     .select('chat_id')
@@ -35,9 +35,9 @@ async function resolveChat(chatId, currentUserId) {
     .maybeSingle()
   if (error) {
     console.error('resolveChat: Supabase error while verifying membership', { chatId, currentUserId, error })
-    return null
+    return { chatId: null, error }
   }
-  return data ? chatId : null
+  return { chatId: data ? chatId : null, error: null }
 }
 
 export function useChat(chatId) {
@@ -45,6 +45,7 @@ export function useChat(chatId) {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [resolveError, setResolveError] = useState(null)
   const [realChatId, setRealChatId] = useState(null)
   const channelRef = useRef(null)
 
@@ -53,12 +54,14 @@ export function useChat(chatId) {
     setRealChatId(null)
     setMessages([])
     setNotFound(false)
+    setResolveError(null)
     setLoading(true)
     let cancelled = false
 
     const init = async () => {
-      const resolved = await resolveChat(chatId, user.id)
+      const { chatId: resolved, error: resolveErr } = await resolveChat(chatId, user.id)
       if (cancelled) return
+      if (resolveErr) { setLoading(false); setResolveError(resolveErr); return }
       if (!resolved) { setLoading(false); setNotFound(true); return }
       setRealChatId(resolved)
 
@@ -68,12 +71,12 @@ export function useChat(chatId) {
         .eq('chat_id', resolved)
         .order('created_at', { ascending: true })
 
-      if (!cancelled) {
-        const msgs = data || []
-        await fetchSenderProfiles([...new Set(msgs.map(m => m.sender_id).filter(Boolean))])
-        setMessages(enrichMessages(msgs, user.id))
-        setLoading(false)
-      }
+      if (cancelled) return
+      const msgs = data || []
+      await fetchSenderProfiles([...new Set(msgs.map(m => m.sender_id).filter(Boolean))])
+      if (cancelled) return
+      setMessages(enrichMessages(msgs, user.id))
+      setLoading(false)
 
       const channel = supabase
         .channel(`chat:${resolved}`)
@@ -133,6 +136,7 @@ export function useChat(chatId) {
 
   const sendAttachment = async (file) => {
     if (!file || !user?.id) return
+    if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
     const ext = file.name.split('.').pop()
     const path = `chat-attachments/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
     const { error: upErr } = await supabase.storage.from('attachments').upload(path, file)
@@ -141,5 +145,5 @@ export function useChat(chatId) {
     return sendMessage('', publicUrl)
   }
 
-  return { messages, loading, notFound, sendMessage, sendAttachment, currentUserId: user?.id || null }
+  return { messages, loading, notFound, resolveError, sendMessage, sendAttachment, currentUserId: user?.id || null }
 }

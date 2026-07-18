@@ -808,6 +808,10 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   // pending state separately to avoid the button reading "Joined ✓" right
   // after sending a request to a request-only group.
   const [pendingRequests, setPendingRequests] = useState({});
+  // Per-group in-flight guard — a rapid double-tap on the same group's
+  // button would otherwise fire an upsert and a delete concurrently, racing
+  // against each other and potentially leaving the UI and DB disagreeing.
+  const joinMutatingRef = useRef({});
 
   const { groups: liveGroups, loading: groupsLoading } = useGroups();
   const groupData = groupsLoading ? [] : liveGroups;
@@ -878,6 +882,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                   if (!user?.id) { showToast('Sign in to join groups'); return; }
                   const isUuid = typeof g.id === 'string' && g.id.includes('-');
                   if (!isUuid) return;
+                  if (joinMutatingRef.current[g.id]) return;
+                  joinMutatingRef.current[g.id] = true;
                   const wasReq = isReq;
                   const nowJoined = !hasEntry;
                   setGroupJoined(j=>({...j,[g.id]:nowJoined}));
@@ -888,6 +894,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                   const { error } = nowJoined
                     ? await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role: wasReq ? 'pending' : 'member' })
                     : await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);
+                  joinMutatingRef.current[g.id] = false;
                   if (error) {
                     setGroupJoined(j=>({...j,[g.id]:hasEntry}));
                     setPendingRequests(p=>({...p,[g.id]: isPending}));
@@ -1324,7 +1331,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           <div style={{ position:'relative', borderRadius:16, overflow:'hidden', marginTop:8 }}>
             <img src={imagePreview} alt="" style={{ width:'100%', maxHeight:240, objectFit:'cover', display:'block' }} />
             {uploading && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:700 }}>Uploading…</div>}
-            <button onClick={() => { setImageUrl(null); setImagePreviewBlob(null); }} style={{
+            <button onClick={() => { photoUploadGenRef.current++; setImageUrl(null); setImagePreviewBlob(null); }} style={{
               position:'absolute', top:10, right:10, width:30, height:30, border:'none',
               borderRadius:'50%', background:'rgba(14,23,38,0.6)',
               display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>

@@ -872,12 +872,15 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                   if (!isUuid) return;
                   const nowJoined = !isJoined;
                   setGroupJoined(j=>({...j,[g.id]:nowJoined}));
+                  // Request-only groups need approval — write a pending row,
+                  // not an instant membership, so this button matches its
+                  // own "Request" label instead of silently joining outright.
                   const { error } = nowJoined
-                    ? await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role:'member' })
+                    ? await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role: isReq ? 'pending' : 'member' })
                     : await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);
                   if (error) {
                     setGroupJoined(j=>({...j,[g.id]:isJoined}));
-                    showToast((nowJoined ? 'Failed to join: ' : 'Failed to leave: ') + error.message);
+                    showToast((nowJoined ? (isReq ? 'Failed to send request: ' : 'Failed to join: ') : 'Failed to leave: ') + error.message);
                   }
                 }} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
                   {joinLabel}
@@ -1065,6 +1068,9 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const [uploading,   setUploading]   = useState(false);
   const photoInputRef = useRef(null);
   const fileInputRef  = useRef(null);
+  // Bumped on every photo pick so a slower, superseded upload can't clobber
+  // state (imageUrl/preview/uploading) once a newer photo has been selected.
+  const photoUploadGenRef = useRef(0);
 
   const joinedGroups = GROUPS.filter(g => (g.state || "join") === 'joined');
 
@@ -1272,13 +1278,19 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         {/* Hidden inputs */}
         <input ref={photoInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={async e => {
           const file = e.target.files?.[0]; if (!file) return;
+          const gen = ++photoUploadGenRef.current;
           setImagePreviewBlob(URL.createObjectURL(file));
           setUploading(true);
           try {
             const url = await uploadImage(file, 'post-media', `posts/${user?.id}-${Date.now()}.jpg`);
-            setImageUrl(url);
-          } catch (err) { showToast('Image upload failed: ' + (err?.message || 'Bucket not found')); setImagePreviewBlob(null); }
-          setUploading(false);
+            if (gen === photoUploadGenRef.current) setImageUrl(url);
+          } catch (err) {
+            if (gen === photoUploadGenRef.current) {
+              showToast('Image upload failed: ' + (err?.message || 'Bucket not found'));
+              setImagePreviewBlob(null);
+            }
+          }
+          if (gen === photoUploadGenRef.current) setUploading(false);
           e.target.value = '';
         }} />
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style={{ display:'none' }} onChange={async e => {

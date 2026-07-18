@@ -13,6 +13,7 @@ class ErrorBoundary extends Component {
     return { hasError: true }
   }
   componentDidCatch(error, info) {
+    // Swap for a real telemetry call (Sentry, etc.) when one is wired up.
     console.error('[ErrorBoundary]', error, info)
   }
   render() {
@@ -28,7 +29,7 @@ class ErrorBoundary extends Component {
         <div style={{ fontSize: 13.5, color: '#7B8499', maxWidth: 280 }}>
           Riply hit an unexpected error. Reloading usually fixes it.
         </div>
-        <button onClick={() => window.location.reload()} style={{
+        <button type="button" onClick={() => window.location.reload()} style={{
           marginTop: 6, height: 46, padding: '0 26px', border: 'none',
           borderRadius: 999, background: 'linear-gradient(135deg,#19BFFF,#1499F5)',
           color: '#fff', fontSize: 14.5, fontWeight: 800, cursor: 'pointer',
@@ -80,11 +81,12 @@ export default function App() {
   // Show splash until both the timer AND Clerk are ready (or Clerk timed out)
   const ready = splashDone && (isLoaded || clerkTimedOut)
 
-  if (!ready) return <SplashScreen onDone={() => setSplashDone(true)} />
-
+  // Boundary wraps both branches so it also catches crashes during splash.
   return (
     <ErrorBoundary>
-      <RiplyApp clerkTimedOut={clerkTimedOut} />
+      {!ready
+        ? <SplashScreen onDone={() => setSplashDone(true)} />
+        : <RiplyApp clerkTimedOut={clerkTimedOut} />}
     </ErrorBoundary>
   )
 }

@@ -5342,7 +5342,7 @@ function WelcomeScreen({ navigate, setScreen }) {
                         flexDirection:'column', alignItems:'center' }}>
             <div style={{ fontSize:24, fontWeight:800, color:'#fff', textAlign:'center',
                           marginBottom:10 }}>
-              Lets get started !
+              Let's get started!
             </div>
             <div style={{ fontSize:14, color:'rgba(255,255,255,0.78)', textAlign:'center',
                           lineHeight:1.55, marginBottom:28 }}>
@@ -5501,6 +5501,10 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
   // "Get Started" button) rather than after it, so its Continue button
   // should advance to signup instead of completing onboarding.
   const preSignupRoleFlow = initialStep === 'role';
+  const STEP_ORDER = preSignupRoleFlow
+    ? ['role','signup','verify','onboard']
+    : ['signup','verify','onboard','role'];
+  const currentStepIndex = STEP_ORDER.indexOf(step);
 
   const slideStyle = { animation:`authSlide 0.26s cubic-bezier(.4,0,.2,1)` };
 
@@ -5749,9 +5753,9 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
       <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'60px 26px 24px' }}>
         {/* Progress pip */}
         <div style={{ display:'flex', gap:6, marginBottom:28 }}>
-          {[0,1,2,3].map(i=>(
-            <div key={i} style={{ flex:1, height:4, borderRadius:999,
-              background: i<=3 ? C.primary : '#E4E8EF' }}/>
+          {STEP_ORDER.map((s,i)=>(
+            <div key={s} style={{ flex:1, height:4, borderRadius:999,
+              background: i<=currentStepIndex ? C.primary : '#E4E8EF' }}/>
           ))}
         </div>
         <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink, marginBottom:20 }}>
@@ -5859,9 +5863,9 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
       <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'62px 26px 24px' }}>
         {/* Progress pip */}
         <div style={{ display:'flex', gap:6, marginBottom:28 }}>
-          {[0,1,2,3].map(i=>(
-            <div key={i} style={{ flex:1, height:4, borderRadius:999,
-              background: i===0 ? C.primary : '#E4E8EF' }}/>
+          {STEP_ORDER.map((s,i)=>(
+            <div key={s} style={{ flex:1, height:4, borderRadius:999,
+              background: i<=currentStepIndex ? C.primary : '#E4E8EF' }}/>
           ))}
         </div>
         <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:C.ink,
@@ -5914,7 +5918,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
           loading={loading}
           color={role ? 'linear-gradient(135deg,#19BFFF,#1499F5)' : '#E4E8EF'}
           onClick={preSignupRoleFlow
-            ? (()=>{ if(role) go('signup'); })
+            ? (()=>{ if(role) go('signup'); else showToast('Select an account type'); })
             : withLoading(()=>completeOnboarding(role, university, campus, program, year))}
         >{role ? (preSignupRoleFlow ? 'Continue' : 'Enter Riply') : 'Select an account type'}</AuthBigBtn>
       </div>

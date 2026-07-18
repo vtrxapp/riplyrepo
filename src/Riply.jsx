@@ -5327,7 +5327,7 @@ function WelcomeScreen({ navigate, setScreen }) {
                        display:'flex', alignItems:'center', gap:11,
                        fontFamily:"'Montserrat',-apple-system,sans-serif",
                        fontSize:17, fontWeight:700, letterSpacing:1.2, color:'#19BFFF' }}>
-              Swipe
+              Get Started
               <svg width="14" height="22" viewBox="0 0 14 22" fill="none">
                 <path d="M2 2l9 9-9 9" stroke="#19BFFF" strokeWidth="2.6"
                   strokeLinecap="round" strokeLinejoin="round"/>

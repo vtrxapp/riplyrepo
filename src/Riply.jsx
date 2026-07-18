@@ -7794,6 +7794,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
             const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
             const { data: event, error } = await supabase.from('events').insert({
+              user_id: currentUser.userId,
               title: title.trim(),
               org: currentUser.name || 'Organizer',
               org_initial: (currentUser.name || 'O')[0].toUpperCase(),

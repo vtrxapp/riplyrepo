@@ -868,10 +868,10 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                 </div>
                 <button onClick={async ()=>{
                   if (!user?.id) { showToast('Sign in to join groups'); return; }
-                  const nowJoined = !isJoined;
-                  setGroupJoined(j=>({...j,[g.id]:nowJoined}));
                   const isUuid = typeof g.id === 'string' && g.id.includes('-');
                   if (!isUuid) return;
+                  const nowJoined = !isJoined;
+                  setGroupJoined(j=>({...j,[g.id]:nowJoined}));
                   const { error } = nowJoined
                     ? await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role:'member' })
                     : await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);

@@ -175,6 +175,13 @@ begin
   join public.users u on u.id = g.admin_id
   where g.id = p_group_id;
 
+  -- Caught in review: treating a missing university/campus as "match
+  -- anything" would enroll every UMSU admin system-wide, across every
+  -- campus, into this one group's thread. Require both to be resolvable.
+  if v_university is null or v_campus is null then
+    raise exception 'group admin profile is missing university/campus -- cannot route to UMSU support';
+  end if;
+
   select id into v_chat_id from public.chats where group_id = p_group_id limit 1;
   if v_chat_id is not null then
     insert into public.chat_participants (chat_id, user_id) values (v_chat_id, v_me)
@@ -197,8 +204,8 @@ begin
   insert into public.chat_participants (chat_id, user_id)
   select v_chat_id, ap.user_id
   from public.admin_profiles ap
-  where (v_university is null or ap.university = v_university)
-    and (v_campus is null or ap.campus = v_campus)
+  where ap.university = v_university
+    and ap.campus = v_campus
   on conflict (chat_id, user_id) do nothing;
 
   return v_chat_id;

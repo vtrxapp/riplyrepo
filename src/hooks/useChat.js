@@ -22,13 +22,18 @@ function enrichMessages(msgs, currentUserId) {
 // chatId here is always a real chats.id UUID -- either from the chat list
 // (useChats.js, where the user is already a participant) or from a
 // create_direct_chat/create_admin_thread RPC call made before navigating
-// here. Re-upserting self as a participant is a harmless no-op in the
-// normal case and a safety net if a stale reference is ever passed.
+// here, both of which already enroll the current user server-side. Verify
+// membership (rather than upserting it) so a client-supplied chatId can't
+// self-enroll into a chat the user was never actually added to.
 async function resolveChat(chatId, currentUserId) {
   if (!chatId) return null
-  await supabase.from('chat_participants')
-    .upsert({ chat_id: chatId, user_id: currentUserId }, { onConflict: 'chat_id,user_id' })
-  return chatId
+  const { data, error } = await supabase
+    .from('chat_participants')
+    .select('chat_id')
+    .eq('chat_id', chatId)
+    .eq('user_id', currentUserId)
+    .maybeSingle()
+  return error || !data ? null : chatId
 }
 
 export function useChat(chatId) {
@@ -44,7 +49,8 @@ export function useChat(chatId) {
 
     const init = async () => {
       const resolved = await resolveChat(chatId, user.id)
-      if (cancelled || !resolved) return
+      if (cancelled) return
+      if (!resolved) { setLoading(false); return }
       setRealChatId(resolved)
 
       const { data } = await supabase

@@ -50,6 +50,10 @@ export function useChat(chatId) {
 
   useEffect(() => {
     if (!chatId || !user?.id) return
+    setRealChatId(null)
+    setMessages([])
+    setNotFound(false)
+    setLoading(true)
     let cancelled = false
 
     const init = async () => {
@@ -99,7 +103,8 @@ export function useChat(chatId) {
 
   const sendMessage = async (content, attachmentUrl = null) => {
     if (!user?.id) return
-    const cid = realChatId || chatId
+    if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
+    const cid = realChatId
     const row = {
       chat_id: cid,
       sender_id: user.id,

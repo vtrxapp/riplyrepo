@@ -198,7 +198,7 @@ begin
 
   if v_chat_id is null then
     insert into public.chats (group_id, name) values (p_group_id, 'UMSU Support')
-      on conflict (group_id) do nothing
+      on conflict (group_id) where group_id is not null do nothing
       returning id into v_chat_id;
 
     if v_chat_id is null then

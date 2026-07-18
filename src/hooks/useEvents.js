@@ -153,3 +153,24 @@ export function useEvents({ category, search, filters } = {}) {
 
   return { events, loading, error }
 }
+
+// Fetch a single event by id — for screens (tickets, check-in) that need one
+// specific event rather than a filtered list.
+export function useEvent(eventId) {
+  const [event, setEvent] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!eventId) { setEvent(null); setLoading(false); return }
+    setLoading(true)
+    supabase.from('events').select('*').eq('id', eventId).single()
+      .then(async ({ data }) => {
+        if (!data) { setEvent(null); setLoading(false); return }
+        const [enriched] = await attachUserProfiles([data])
+        setEvent(enriched)
+        setLoading(false)
+      })
+  }, [eventId])
+
+  return { event, loading }
+}

@@ -5243,8 +5243,8 @@ function WelcomeScreen({ navigate, setScreen }) {
   const [slide, setSlide] = useState(0);
   const onSlide2 = slide === 1;
 
-  const goRole = (role) => {
-    setScreen('auth', { initialStep: 'signup', role });
+  const goGetStarted = () => {
+    setScreen('auth', { initialStep: 'role' });
   };
 
   // Real swipe/drag support between the two slides
@@ -5338,51 +5338,29 @@ function WelcomeScreen({ navigate, setScreen }) {
 
         {/* Slide 2 content */}
         {onSlide2 && (
-          <div style={{ width:'100%', padding:'0 22px 32px' }}>
+          <div style={{ width:'100%', padding:'0 22px 32px', display:'flex',
+                        flexDirection:'column', alignItems:'center' }}>
             <div style={{ fontSize:24, fontWeight:800, color:'#fff', textAlign:'center',
                           marginBottom:10 }}>
-              What do you intend to use Riply for?
+              Let's get started!
             </div>
             <div style={{ fontSize:14, color:'rgba(255,255,255,0.78)', textAlign:'center',
                           lineHeight:1.55, marginBottom:28 }}>
               Join thousands of students on campus<br/>and make meaningful connections
             </div>
 
-            {/* Role buttons */}
-            {[
-              { label:'Group Moderators', icon:(
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L3 7l9 5 9-5-9-5Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
-                  <path d="M3 12l9 5 9-5M3 17l9 5 9-5" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
-                </svg>
-              ), role:'admin' },
-              { label:'Event Organizers', icon:(
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="2"/>
-                  <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              ), role:'organizer' },
-              { label:'Student SignUp', icon:(
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3L2 9l10 6 10-6-10-6Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
-                  <path d="M6 12v5c0 2 2.686 3 6 3s6-1 6-3v-5" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              ), role:'student' },
-            ].map(({ label, icon, role }) => (
-              <button key={role} onClick={() => goRole(role)} style={{
-                width:'100%', height:54, border:'none', borderRadius:999, marginBottom:12,
-                background:'#19BFFF', cursor:'pointer',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-                fontSize:15, fontWeight:700, color:'#fff',
-                fontFamily:"'Montserrat',-apple-system,sans-serif",
-                boxShadow:'0 6px 20px rgba(25,191,255,0.35)',
-              }}>
-                {label}
-                {icon}
-              </button>
-            ))}
+            <button onClick={goGetStarted} style={{
+              width:'100%', height:54, border:'none', borderRadius:999,
+              background:'#19BFFF', cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+              fontSize:15, fontWeight:700, color:'#fff',
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+              boxShadow:'0 6px 20px rgba(25,191,255,0.35)',
+            }}>
+              Get Started
+            </button>
 
-            <div style={{ textAlign:'center', marginTop:4, fontSize:11.5,
+            <div style={{ textAlign:'center', marginTop:16, fontSize:11.5,
                           color:'rgba(255,255,255,0.55)', lineHeight:1.6 }}>
               By signing up, you agree to our{' '}
               <span style={{ color:'#19BFFF', cursor:'pointer' }}>Terms of Service</span> and{' '}
@@ -5518,6 +5496,15 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
     { id:'organizer', title:'Event Organizer',  sub:'Create and manage ticketed events on campus.',            color:'#7C5CFF', bg:'#F1ECFF' },
     { id:'admin',     title:'Group Admin',      sub:'Run a campus club — post, moderate and manage members.',  color:'#15A34A', bg:'#E4F7EC' },
   ];
+
+  // The role step is now reached before signup (from the welcome screen's
+  // "Get Started" button) rather than after it, so its Continue button
+  // should advance to signup instead of completing onboarding.
+  const preSignupRoleFlow = initialStep === 'role';
+  const STEP_ORDER = preSignupRoleFlow
+    ? ['role','signup','verify','onboard']
+    : ['signup','verify','onboard','role'];
+  const currentStepIndex = STEP_ORDER.indexOf(step);
 
   const slideStyle = { animation:`authSlide 0.26s cubic-bezier(.4,0,.2,1)` };
 
@@ -5766,9 +5753,9 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
       <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'60px 26px 24px' }}>
         {/* Progress pip */}
         <div style={{ display:'flex', gap:6, marginBottom:28 }}>
-          {['signup','verify','onboard','role'].map((s,i)=>(
+          {STEP_ORDER.map((s,i)=>(
             <div key={s} style={{ flex:1, height:4, borderRadius:999,
-              background:['signup','verify','onboard'].includes(step)||i<=2 ? C.primary : '#E4E8EF' }}/>
+              background: i<=currentStepIndex ? C.primary : '#E4E8EF' }}/>
           ))}
         </div>
         <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink, marginBottom:20 }}>
@@ -5860,7 +5847,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
        <AuthBigBtn fullWidth loading={loading} onClick={()=>{
           if(!university.trim()){showToast('Enter your university');return;}
           if(!campus){showToast('Select your campus');return;}
-          if(initialRole) withLoading(()=>completeOnboarding(role, university, campus, program, year))();
+          if(role) withLoading(()=>completeOnboarding(role, university, campus, program, year))();
           else go('role');
         }}>Continue</AuthBigBtn>
       </div>
@@ -5876,9 +5863,9 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
       <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'62px 26px 24px' }}>
         {/* Progress pip */}
         <div style={{ display:'flex', gap:6, marginBottom:28 }}>
-          {[0,1,2,3].map(i=>(
-            <div key={i} style={{ flex:1, height:4, borderRadius:999,
-              background: i<=3 ? C.primary : '#E4E8EF' }}/>
+          {STEP_ORDER.map((s,i)=>(
+            <div key={s} style={{ flex:1, height:4, borderRadius:999,
+              background: i<=currentStepIndex ? C.primary : '#E4E8EF' }}/>
           ))}
         </div>
         <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:C.ink,
@@ -5930,8 +5917,10 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
           fullWidth
           loading={loading}
           color={role ? 'linear-gradient(135deg,#19BFFF,#1499F5)' : '#E4E8EF'}
-          onClick={withLoading(()=>completeOnboarding(role, university, campus, program, year))}
-        >{role ? 'Enter Riply' : 'Select an account type'}</AuthBigBtn>
+          onClick={preSignupRoleFlow
+            ? (()=>{ if(role) go('signup'); else showToast('Select an account type'); })
+            : withLoading(()=>completeOnboarding(role, university, campus, program, year))}
+        >{role ? (preSignupRoleFlow ? 'Continue' : 'Enter Riply') : 'Select an account type'}</AuthBigBtn>
       </div>
     </div>
   );

@@ -33,7 +33,11 @@ async function resolveChat(chatId, currentUserId) {
     .eq('chat_id', chatId)
     .eq('user_id', currentUserId)
     .maybeSingle()
-  return error || !data ? null : chatId
+  if (error) {
+    console.error('resolveChat: Supabase error while verifying membership', { chatId, currentUserId, error })
+    return null
+  }
+  return data ? chatId : null
 }
 
 export function useChat(chatId) {

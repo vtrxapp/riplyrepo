@@ -89,7 +89,7 @@ begin
     where chat_id = NEW.chat_id and user_id <> NEW.sender_id
   loop
     insert into notifications(user_id, type, title, body)
-    values (rec.user_id, 'message', sender_name || ' sent you a message', coalesce(left(NEW.content, 80), '📎 Attachment'));
+    values (rec.user_id, 'message', sender_name || ' sent you a message', coalesce(nullif(left(NEW.content, 80), ''), '📎 Attachment'));
   end loop;
   return NEW;
 end;
@@ -185,25 +185,33 @@ begin
     raise exception 'group admin profile is missing university/campus -- cannot route to UMSU support';
   end if;
 
-  select id into v_chat_id from public.chats where group_id = p_group_id limit 1;
-  if v_chat_id is not null then
-    insert into public.chat_participants (chat_id, user_id) values (v_chat_id, v_me)
-      on conflict (chat_id, user_id) do nothing;
-    return v_chat_id;
+  -- Caught in review: a group whose campus has zero UMSU admins would
+  -- otherwise silently create a one-sided thread with no one to reply.
+  if not exists (
+    select 1 from public.admin_profiles
+    where university = v_university and campus = v_campus
+  ) then
+    raise exception 'no UMSU admins found for % / % -- cannot create support thread', v_university, v_campus;
   end if;
 
-  insert into public.chats (group_id, name) values (p_group_id, 'UMSU Support')
-    on conflict (group_id) do nothing
-    returning id into v_chat_id;
+  select id into v_chat_id from public.chats where group_id = p_group_id limit 1;
 
   if v_chat_id is null then
-    -- Lost the race to a concurrent call -- use the thread it created.
-    select id into v_chat_id from public.chats where group_id = p_group_id;
+    insert into public.chats (group_id, name) values (p_group_id, 'UMSU Support')
+      on conflict (group_id) do nothing
+      returning id into v_chat_id;
+
+    if v_chat_id is null then
+      -- Lost the race to a concurrent call -- use the thread it created.
+      select id into v_chat_id from public.chats where group_id = p_group_id;
+    end if;
   end if;
 
   insert into public.chat_participants (chat_id, user_id) values (v_chat_id, v_me)
     on conflict (chat_id, user_id) do nothing;
 
+  -- Runs every call, not just at creation, so admins added to a campus
+  -- after a group's thread already exists are still backfilled in.
   insert into public.chat_participants (chat_id, user_id)
   select v_chat_id, ap.user_id
   from public.admin_profiles ap

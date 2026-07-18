@@ -5838,14 +5838,11 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </div>
       </div>
       <div style={{ position:'relative', flexShrink:0, padding:'12px 26px 32px' }}>
-       <AuthBigBtn fullWidth loading={loading} onClick={initialRole ? withLoading(()=>{
+       <AuthBigBtn fullWidth loading={loading} onClick={()=>{
           if(!university.trim()){showToast('Enter your university');return;}
           if(!campus){showToast('Select your campus');return;}
-          return completeOnboarding(role, university, campus, program, year);
-        }) : ()=>{
-          if(!university.trim()){showToast('Enter your university');return;}
-          if(!campus){showToast('Select your campus');return;}
-          go('role');
+          if(initialRole) withLoading(()=>completeOnboarding(role, university, campus, program, year))();
+          else go('role');
         }}>Continue</AuthBigBtn>
       </div>
     </div>

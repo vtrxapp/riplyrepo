@@ -9250,23 +9250,33 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                     <div style={{ display:'flex', gap:7 }}>
                       <button onClick={async () => {
                         const newRole = isAdmin ? 'member' : 'admin';
-                        const { data, error } = await supabase.from('group_members').update({ role: newRole }).eq('group_id', groupId).eq('user_id', m.user_id).select();
-                        if (error) { showToast('Failed to update role: ' + error.message); return; }
-                        // RLS can silently match zero rows (no error, no update) rather
-                        // than reject -- only treat it as success if a row came back.
-                        if (!data?.length) { showToast('Failed to update role'); return; }
-                        setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, role: newRole } : x));
-                        showToast(isAdmin ? 'Removed admin' : 'Made admin ✓');
+                        try {
+                          const { data, error } = await supabase.from('group_members').update({ role: newRole }).eq('group_id', groupId).eq('user_id', m.user_id).select();
+                          if (error) { showToast('Failed to update role: ' + error.message); return; }
+                          // RLS can silently match zero rows (no error, no update) rather
+                          // than reject -- only treat it as success if a row came back.
+                          if (!data?.length) { showToast('Failed to update role'); return; }
+                          setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, role: newRole } : x));
+                          showToast(isAdmin ? 'Removed admin' : 'Made admin ✓');
+                        } catch {
+                          // A network-level failure rejects rather than resolving with
+                          // `error` -- catch it too so the click doesn't silently no-op.
+                          showToast('Failed to update role');
+                        }
                       }} style={{ height:32, padding:'0 12px', border:`1.5px solid ${C.border}`, borderRadius:10, background:'#fff', fontSize:11, fontWeight:700, color:C.body, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
                         {isAdmin ? 'Demote' : 'Make Admin'}
                       </button>
                       <button onClick={async () => {
                         if (!window.confirm(`Remove ${displayName} from the group?`)) return;
-                        const { data, error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', m.user_id).select();
-                        if (error) { showToast('Failed to remove member: ' + error.message); return; }
-                        if (!data?.length) { showToast('Failed to remove member'); return; }
-                        setMembers(prev => prev.filter(x => x.user_id !== m.user_id));
-                        showToast('Member removed');
+                        try {
+                          const { data, error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', m.user_id).select();
+                          if (error) { showToast('Failed to remove member: ' + error.message); return; }
+                          if (!data?.length) { showToast('Failed to remove member'); return; }
+                          setMembers(prev => prev.filter(x => x.user_id !== m.user_id));
+                          showToast('Member removed');
+                        } catch {
+                          showToast('Failed to remove member');
+                        }
                       }} style={{ width:32, height:32, border:'none', borderRadius:10, background:'#FFF0F0', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#EF4444" strokeWidth="2.2" strokeLinecap="round"/></svg>
                       </button>

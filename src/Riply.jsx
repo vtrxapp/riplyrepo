@@ -4513,12 +4513,25 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     type: 'dm',
   };
 
-  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId } = useChat(chatId)
+  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
   const [draft,    setDraft]    = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef  = useRef(null);
   const inputRef   = useRef(null);
   const fileRef    = useRef(null);
+
+  useEffect(() => {
+    if (notFound) {
+      showToast("Couldn't open that chat");
+      goBack();
+    }
+  }, [notFound]);
+
+  useEffect(() => {
+    if (resolveError || messagesError) {
+      showToast("Couldn't load chat -- check your connection and try again");
+    }
+  }, [resolveError, messagesError]);
 
   // Map Supabase shape → UI shape
   const messages = rawMessages.map(msg => {
@@ -4560,7 +4573,13 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     const t = draft.trim();
     if (!t) return;
     setDraft('');
-    await sendMessage(t);
+    try {
+      const err = await sendMessage(t);
+      if (err) throw err;
+    } catch {
+      setDraft(current => current || t);
+      showToast("Couldn't send -- try again");
+    }
   };
 
   // Auto-scroll when messages change
@@ -5228,9 +5247,30 @@ function WelcomeScreen({ navigate, setScreen }) {
     setScreen('auth', { initialStep: 'signup', role });
   };
 
+  // Real swipe/drag support between the two slides
+  const touchStartX = useRef(null);
+  const touchDeltaX = useRef(0);
+
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; touchDeltaX.current = 0; };
+  const onTouchMove = (e) => {
+    if (touchStartX.current == null) return;
+    touchDeltaX.current = e.touches[0].clientX - touchStartX.current;
+  };
+  const onTouchEnd = () => {
+    if (touchStartX.current == null) return;
+    const dx = touchDeltaX.current;
+    const THRESHOLD = 50;
+    if (dx <= -THRESHOLD && slide === 0) setSlide(1);
+    else if (dx >= THRESHOLD && slide === 1) setSlide(0);
+    touchStartX.current = null;
+    touchDeltaX.current = 0;
+  };
+
   return (
-    <div style={{ height:'100%', position:'relative', overflow:'hidden',
-                  background:'#0a0a0a', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+    <div
+      style={{ height:'100%', position:'relative', overflow:'hidden',
+                  background:'#0a0a0a', fontFamily:"'Montserrat',-apple-system,sans-serif", touchAction:'pan-y' }}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       <style>{`@keyframes wFade{from{opacity:0}to{opacity:1}}`}</style>
 
       {/* Full-bleed background photo */}
@@ -5284,11 +5324,12 @@ function WelcomeScreen({ navigate, setScreen }) {
             </div>
             <button onClick={() => setSlide(1)}
               style={{ border:'none', background:'none', cursor:'pointer', padding:0,
-                       display:'flex', alignItems:'center', gap:8,
-                       fontSize:17, fontWeight:700, color:'#19BFFF' }}>
+                       display:'flex', alignItems:'center', gap:11,
+                       fontFamily:"'Montserrat',-apple-system,sans-serif",
+                       fontSize:17, fontWeight:700, letterSpacing:1.2, color:'#19BFFF' }}>
               Swipe
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h14M14 6l6 6-6 6" stroke="#19BFFF" strokeWidth="2.4"
+              <svg width="14" height="22" viewBox="0 0 14 22" fill="none">
+                <path d="M2 2l9 9-9 9" stroke="#19BFFF" strokeWidth="2.6"
                   strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -5300,7 +5341,7 @@ function WelcomeScreen({ navigate, setScreen }) {
           <div style={{ width:'100%', padding:'0 22px 32px' }}>
             <div style={{ fontSize:24, fontWeight:800, color:'#fff', textAlign:'center',
                           marginBottom:10 }}>
-              Lets get started !
+              What do you intend to use Riply for?
             </div>
             <div style={{ fontSize:14, color:'rgba(255,255,255,0.78)', textAlign:'center',
                           lineHeight:1.55, marginBottom:28 }}>
@@ -5816,10 +5857,11 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </div>
       </div>
       <div style={{ position:'relative', flexShrink:0, padding:'12px 26px 32px' }}>
-       <AuthBigBtn fullWidth onClick={()=>{
+       <AuthBigBtn fullWidth loading={loading} onClick={()=>{
           if(!university.trim()){showToast('Enter your university');return;}
           if(!campus){showToast('Select your campus');return;}
-          go('role');
+          if(initialRole) withLoading(()=>completeOnboarding(role, university, campus, program, year))();
+          else go('role');
         }}>Continue</AuthBigBtn>
       </div>
     </div>

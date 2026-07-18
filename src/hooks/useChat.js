@@ -26,45 +26,68 @@ function enrichMessages(msgs, currentUserId) {
 // membership (rather than upserting it) so a client-supplied chatId can't
 // self-enroll into a chat the user was never actually added to.
 async function resolveChat(chatId, currentUserId) {
-  if (!chatId) return null
+  if (!chatId) return { chatId: null, error: null }
   const { data, error } = await supabase
     .from('chat_participants')
     .select('chat_id')
     .eq('chat_id', chatId)
     .eq('user_id', currentUserId)
     .maybeSingle()
-  return error || !data ? null : chatId
+  if (error) {
+    console.error('resolveChat: Supabase error while verifying membership', { chatId, currentUserId, error })
+    return { chatId: null, error }
+  }
+  return { chatId: data ? chatId : null, error: null }
 }
 
 export function useChat(chatId) {
   const { user } = useUser()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+  const [resolveError, setResolveError] = useState(null)
+  const [messagesError, setMessagesError] = useState(null)
   const [realChatId, setRealChatId] = useState(null)
   const channelRef = useRef(null)
 
   useEffect(() => {
-    if (!chatId || !user?.id) return
+    setRealChatId(null)
+    setMessages([])
+    setNotFound(false)
+    setResolveError(null)
+    setMessagesError(null)
+    if (!chatId || !user?.id) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
     let cancelled = false
 
     const init = async () => {
-      const resolved = await resolveChat(chatId, user.id)
+      const { chatId: resolved, error: resolveErr } = await resolveChat(chatId, user.id)
       if (cancelled) return
-      if (!resolved) { setLoading(false); return }
+      if (resolveErr) { setLoading(false); setResolveError(resolveErr); return }
+      if (!resolved) { setLoading(false); setNotFound(true); return }
       setRealChatId(resolved)
 
-      const { data } = await supabase
+      const { data, error: messagesErr } = await supabase
         .from('messages')
         .select('*')
         .eq('chat_id', resolved)
         .order('created_at', { ascending: true })
 
-      if (!cancelled) {
-        const msgs = data || []
-        await fetchSenderProfiles([...new Set(msgs.map(m => m.sender_id).filter(Boolean))])
-        setMessages(enrichMessages(msgs, user.id))
+      if (cancelled) return
+      if (messagesErr) {
+        console.error('useChat: failed to load messages', { chatId: resolved, error: messagesErr })
         setLoading(false)
+        setMessagesError(messagesErr)
+        return
       }
+      const msgs = data || []
+      await fetchSenderProfiles([...new Set(msgs.map(m => m.sender_id).filter(Boolean))])
+      if (cancelled) return
+      setMessages(enrichMessages(msgs, user.id))
+      setLoading(false)
 
       const channel = supabase
         .channel(`chat:${resolved}`)
@@ -93,8 +116,9 @@ export function useChat(chatId) {
   }, [chatId, user?.id])
 
   const sendMessage = async (content, attachmentUrl = null) => {
-    if (!user?.id) return
-    const cid = realChatId || chatId
+    if (!user?.id) return new Error('Not signed in')
+    if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
+    const cid = realChatId
     const row = {
       chat_id: cid,
       sender_id: user.id,
@@ -123,13 +147,18 @@ export function useChat(chatId) {
 
   const sendAttachment = async (file) => {
     if (!file || !user?.id) return
+    if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
     const ext = file.name.split('.').pop()
     const path = `chat-attachments/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
     const { error: upErr } = await supabase.storage.from('attachments').upload(path, file)
     if (upErr) return upErr
     const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(path)
-    return sendMessage('', publicUrl)
+    const sendErr = await sendMessage('', publicUrl)
+    if (sendErr) {
+      await supabase.storage.from('attachments').remove([path])
+    }
+    return sendErr
   }
 
-  return { messages, loading, sendMessage, sendAttachment, currentUserId: user?.id || null }
+  return { messages, loading, notFound, resolveError, messagesError, sendMessage, sendAttachment, currentUserId: user?.id || null }
 }

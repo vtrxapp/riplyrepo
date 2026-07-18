@@ -1,6 +1,45 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Component } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import RiplyApp from './Riply.jsx'
+
+// Catches uncaught render/lifecycle errors from anywhere in the app so a bug
+// in one screen shows a recoverable fallback instead of a blank white page.
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  componentDidCatch(error, info) {
+    // Swap for a real telemetry call (Sentry, etc.) when one is wired up.
+    console.error('[ErrorBoundary]', error, info)
+  }
+  render() {
+    if (!this.state.hasError) return this.props.children
+    return (
+      <div style={{
+        height: '100%', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 14,
+        padding: 24, textAlign: 'center', background: '#F4F6FA',
+        fontFamily: "'Montserrat',-apple-system,sans-serif",
+      }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: '#0E1726' }}>Something went wrong</div>
+        <div style={{ fontSize: 13.5, color: '#7B8499', maxWidth: 280 }}>
+          Riply hit an unexpected error. Reloading usually fixes it.
+        </div>
+        <button type="button" onClick={() => window.location.reload()} style={{
+          marginTop: 6, height: 46, padding: '0 26px', border: 'none',
+          borderRadius: 999, background: 'linear-gradient(135deg,#19BFFF,#1499F5)',
+          color: '#fff', fontSize: 14.5, fontWeight: 800, cursor: 'pointer',
+          fontFamily: "'Montserrat',-apple-system,sans-serif",
+          boxShadow: '0 8px 20px rgba(2,162,240,0.35)',
+        }}>Reload</button>
+      </div>
+    )
+  }
+}
 
 function SplashScreen({ onDone }) {
   const [fading, setFading] = useState(false)
@@ -42,7 +81,12 @@ export default function App() {
   // Show splash until both the timer AND Clerk are ready (or Clerk timed out)
   const ready = splashDone && (isLoaded || clerkTimedOut)
 
-  if (!ready) return <SplashScreen onDone={() => setSplashDone(true)} />
-
-  return <RiplyApp clerkTimedOut={clerkTimedOut} />
+  // Boundary wraps both branches so it also catches crashes during splash.
+  return (
+    <ErrorBoundary>
+      {!ready
+        ? <SplashScreen onDone={() => setSplashDone(true)} />
+        : <RiplyApp clerkTimedOut={clerkTimedOut} />}
+    </ErrorBoundary>
+  )
 }

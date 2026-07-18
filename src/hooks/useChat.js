@@ -51,12 +51,15 @@ export function useChat(chatId) {
   const channelRef = useRef(null)
 
   useEffect(() => {
-    if (!chatId || !user?.id) return
     setRealChatId(null)
     setMessages([])
     setNotFound(false)
     setResolveError(null)
     setMessagesError(null)
+    if (!chatId || !user?.id) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     let cancelled = false
 

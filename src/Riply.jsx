@@ -8739,7 +8739,7 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP EDIT
 // ─────────────────────────────────────────────────────────────
-function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast, currentUser }) {
+function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup, setDbGroup] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
@@ -8815,8 +8815,11 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast, curren
   const tabId = (t) => t.toLowerCase();
 
   const [tab,        setTab]        = useState(editTab || 'info');
-  useEffect(() => { if (tab === 'members') loadMembers(); }, [tab]);
-  useEffect(() => { if (tab === 'analytics') loadAnalytics(); }, [tab]);
+  // Gated on isAuthorized === true, not just tab: entering the screen
+  // directly on the members/analytics tab (editTab) would otherwise fire
+  // these fetches before -- or even after failing -- the admin check.
+  useEffect(() => { if (tab === 'members' && isAuthorized === true) loadMembers(); }, [tab, isAuthorized]);
+  useEffect(() => { if (tab === 'analytics' && isAuthorized === true) loadAnalytics(); }, [tab, isAuthorized]);
   const [name,       setName]       = useState(staticG.name);
   const [desc,       setDesc]       = useState(staticG.desc || staticG.description || '');
   const [category,   setCategory]   = useState((staticG.cat || staticG.category || [])?.[0] || 'academic');
@@ -9247,8 +9250,11 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast, curren
                     <div style={{ display:'flex', gap:7 }}>
                       <button onClick={async () => {
                         const newRole = isAdmin ? 'member' : 'admin';
-                        const { error } = await supabase.from('group_members').update({ role: newRole }).eq('group_id', groupId).eq('user_id', m.user_id);
+                        const { data, error } = await supabase.from('group_members').update({ role: newRole }).eq('group_id', groupId).eq('user_id', m.user_id).select();
                         if (error) { showToast('Failed to update role: ' + error.message); return; }
+                        // RLS can silently match zero rows (no error, no update) rather
+                        // than reject -- only treat it as success if a row came back.
+                        if (!data?.length) { showToast('Failed to update role'); return; }
                         setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, role: newRole } : x));
                         showToast(isAdmin ? 'Removed admin' : 'Made admin ✓');
                       }} style={{ height:32, padding:'0 12px', border:`1.5px solid ${C.border}`, borderRadius:10, background:'#fff', fontSize:11, fontWeight:700, color:C.body, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -9256,8 +9262,9 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast, curren
                       </button>
                       <button onClick={async () => {
                         if (!window.confirm(`Remove ${displayName} from the group?`)) return;
-                        const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', m.user_id);
+                        const { data, error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', m.user_id).select();
                         if (error) { showToast('Failed to remove member: ' + error.message); return; }
+                        if (!data?.length) { showToast('Failed to remove member'); return; }
                         setMembers(prev => prev.filter(x => x.user_id !== m.user_id));
                         showToast('Member removed');
                       }} style={{ width:32, height:32, border:'none', borderRadius:10, background:'#FFF0F0', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
@@ -11045,7 +11052,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'banned-members':   return <BannedMembersScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'review-reports':   return <ReviewReportsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'group-edit':       return <GroupEditScreen groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;

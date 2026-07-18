@@ -10322,14 +10322,18 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   const FEE_PER   = 2.50;
   const TAX_RATE  = 0.05;
 
+  // VIP costs a premium over the event's listed price; General pays that
+  // listed price outright (previously General was hardcoded free, which let
+  // anyone skip payment on a paid event by picking that tier).
+  const VIP_MULTIPLIER = 1.5;
   const TICKET_TYPES = [
-    { id:'general', name:'General Admission', desc:'Standing room · general access',     price:0 },
-    { id:'vip',     name:'VIP Experience',    desc:'Premium seating · backstage access', price: eventIsFree ? 0 : eventPrice },
+    { id:'general', name:'General Admission', desc:'Standing room · general access',     price: eventIsFree ? 0 : eventPrice },
+    { id:'vip',     name:'VIP Experience',    desc:'Premium seating · backstage access', price: eventIsFree ? 0 : +(eventPrice * VIP_MULTIPLIER).toFixed(2) },
   ];
 
   // ── pricing helpers ─────────────────────────────────────────
-  const isFree    = ticket === 'general' || eventIsFree;
-  const unitPrice = isFree ? 0 : eventPrice;
+  const isFree    = eventIsFree;
+  const unitPrice = isFree ? 0 : (ticket === 'vip' ? eventPrice * VIP_MULTIPLIER : eventPrice);
   const subtotal  = unitPrice * qty;
   const fee       = isFree ? 0 : FEE_PER * qty;
   const tax       = isFree ? 0 : +((subtotal + fee) * TAX_RATE).toFixed(2);

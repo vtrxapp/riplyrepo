@@ -1064,9 +1064,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   // because someone opened the post composer.
   const [linkableEvents, setLinkableEvents] = useState([]);
   useEffect(() => {
-    const todayIso = new Date().toISOString();
+    // events.date is stored as a plain YYYY-MM-DD string; comparing it
+    // against a full ISO timestamp would exclude today's events (the
+    // date-only string sorts before any same-day timestamp).
+    const now = new Date();
+    const todayStr = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
     supabase.from('events').select('id,title,date')
-      .gte('date', todayIso)
+      .gte('date', todayStr)
       .or('status.is.null,status.eq.published')
       .order('date', { ascending: true })
       .limit(50)
@@ -10286,8 +10290,11 @@ function StripePaymentForm({ total, onSuccess, onError }) {
 function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   const { user } = useUser();
   const { event: dbEvent, loading: eventLoading } = useEvent(eventId);
-  const mockEv = EVENTS.find(e => e.id === eventId);
-  const ev = dbEvent || mockEv || null;
+  // No mock fallback here — this screen writes real ticket rows and takes
+  // real payments, so a failed/missing Supabase lookup must show the
+  // not-found state below rather than silently checking out against fake
+  // event data.
+  const ev = dbEvent || null;
 
   const [step,          setStep]          = useState('purchase'); // purchase | stripe | processing | success | failed
   const [ticket,        setTicket]        = useState('general');
@@ -10344,7 +10351,9 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   // ── save ticket to Supabase after success ──────────────────
   // Returns whether the save succeeded so proceedImpl can avoid showing a
   // false "confirmed" screen when the write actually failed.
-  const saveTicket = async () => {
+  // `silent` lets the paid (Stripe) path show its own context-specific
+  // message instead of stacking this generic one on top of it.
+  const saveTicket = async (silent = false) => {
     if (!user?.id) return false;
     // Store an ISO date when the event's date field parses cleanly, so
     // MyTicketsScreen's ACTIVE/USED comparison doesn't depend on the
@@ -10353,22 +10362,24 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
     const rawDate = ev.fullDate || ev.full_date || ev.date;
     const parsedDate = rawDate ? new Date(rawDate) : null;
     const ticketDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toISOString() : rawDate;
-    const { error } = await supabase.from('tickets').insert({
-      user_id:      user.id,
-      event_id:     ev.id,
-      event_title:  ev.title,
-      access:       ticket === 'vip' ? 'VIP Experience' : 'General Admission',
-      status:       'ACTIVE',
-      date:         ticketDate,
-      time:         ev.timeRange || ev.time_range || ev.start_time || null,
-      location:     ev.location,
-    });
-    if (error) {
-      console.error('[tickets] save error:', error);
-      showToast('Could not save your ticket. Please try again.');
+    try {
+      const { error } = await supabase.from('tickets').insert({
+        user_id:      user.id,
+        event_id:     ev.id,
+        event_title:  ev.title,
+        access:       ticket === 'vip' ? 'VIP Experience' : 'General Admission',
+        status:       'ACTIVE',
+        date:         ticketDate,
+        time:         ev.timeRange || ev.time_range || ev.start_time || null,
+        location:     ev.location,
+      });
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.error('[tickets] save error:', err);
+      if (!silent) showToast('Could not save your ticket. Please try again.');
       return false;
     }
-    return true;
   };
 
   // ── proceed → free RSVP or create Stripe PaymentIntent ─────
@@ -10470,7 +10481,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>{ev.title}</div>
                 <div style={{ fontSize:12, fontWeight:600, color:C.primary, marginTop:3 }}>
-                  {ev.fullDate || ev.full_date}
+                  {ev.fullDate || ev.full_date || ev.date}
                 </div>
                 <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
                   {ev.venue} · {ev.room}
@@ -10619,7 +10630,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               // success (the charge is real) but flag it if the ticket
               // record itself didn't save, since saveTicket already showed
               // its own generic toast which doesn't fit a completed payment.
-              const saved = await saveTicket();
+              const saved = await saveTicket(true);
               if (!saved) showToast('Payment received, but we had trouble saving your ticket — contact support if it doesn\'t appear in My Tickets.');
               setStep('success');
             }}
@@ -10702,7 +10713,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               <div style={{ fontSize:16, fontWeight:800, color:C.ink,
                             letterSpacing:-0.3 }}>{ev.title}</div>
               <div style={{ fontSize:12.5, fontWeight:600, color:C.primary,
-                            marginTop:4 }}>{ev.fullDate || ev.full_date}</div>
+                            marginTop:4 }}>{ev.fullDate || ev.full_date || ev.date}</div>
               <div style={{ fontSize:12, color:C.subtle, marginTop:2 }}>
                 {ev.venue}
               </div>

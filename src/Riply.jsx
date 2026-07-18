@@ -8739,7 +8739,7 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP EDIT
 // ─────────────────────────────────────────────────────────────
-function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
+function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup, setDbGroup] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
@@ -8749,6 +8749,30 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [analytics, setAnalytics] = useState({ memberCount:0, postCount:0, newMembersWeek:0, topMembers:[] });
+
+  // Admin-only gate, independent of GroupManageScreen's own check (this
+  // screen is reachable directly, e.g. by navigating back to it, so it
+  // can't just trust that the caller already verified admin status).
+  const [isAuthorized, setIsAuthorized] = useState(null);
+  const authGenRef = useRef(0);
+  useEffect(() => {
+    if (!groupId) return;
+    const gen = ++authGenRef.current;
+    const isStale = () => gen !== authGenRef.current;
+    setIsAuthorized(null);
+    if (!currentUser?.isLoaded || currentUser?.profileLoading) return;
+    if (!currentUser?.userId) { setIsAuthorized(false); return; }
+    supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser.userId).maybeSingle()
+      .then(({ data, error }) => {
+        if (isStale()) return;
+        setIsAuthorized(!error && (data?.role === 'admin' || data?.role === 'owner'));
+      })
+      // A query-level failure resolves with `error` set (handled above); this
+      // catches a network-level failure (fetch itself throwing), which would
+      // otherwise leave isAuthorized stuck at null and the screen loading
+      // forever -- fail closed here too instead.
+      .catch(() => { if (!isStale()) setIsAuthorized(false); });
+  }, [groupId, currentUser?.userId, currentUser?.isLoaded, currentUser?.profileLoading]);
 
   useEffect(() => {
     if (!groupId) return;
@@ -8791,8 +8815,11 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
   const tabId = (t) => t.toLowerCase();
 
   const [tab,        setTab]        = useState(editTab || 'info');
-  useEffect(() => { if (tab === 'members') loadMembers(); }, [tab]);
-  useEffect(() => { if (tab === 'analytics') loadAnalytics(); }, [tab]);
+  // Gated on isAuthorized === true, not just tab: entering the screen
+  // directly on the members/analytics tab (editTab) would otherwise fire
+  // these fetches before -- or even after failing -- the admin check.
+  useEffect(() => { if (tab === 'members' && isAuthorized === true) loadMembers(); }, [tab, isAuthorized]);
+  useEffect(() => { if (tab === 'analytics' && isAuthorized === true) loadAnalytics(); }, [tab, isAuthorized]);
   const [name,       setName]       = useState(staticG.name);
   const [desc,       setDesc]       = useState(staticG.desc || staticG.description || '');
   const [category,   setCategory]   = useState((staticG.cat || staticG.category || [])?.[0] || 'academic');
@@ -8855,6 +8882,22 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
       {children}
     </div>
   );
+
+  if (isAuthorized === false) {
+    return (
+      <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', gap:12, padding:24, textAlign:'center',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Admins only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be an admin of this group to edit it.</div>
+        <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
+          borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
+      </div>
+    );
+  }
+  if (isAuthorized === null) {
+    return <div style={{ height:'100%', background:C.pageBg }} />;
+  }
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column',
@@ -9207,17 +9250,33 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
                     <div style={{ display:'flex', gap:7 }}>
                       <button onClick={async () => {
                         const newRole = isAdmin ? 'member' : 'admin';
-                        await supabase.from('group_members').update({ role: newRole }).eq('group_id', groupId).eq('user_id', m.user_id);
-                        setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, role: newRole } : x));
-                        showToast(isAdmin ? 'Removed admin' : 'Made admin ✓');
+                        try {
+                          const { data, error } = await supabase.from('group_members').update({ role: newRole }).eq('group_id', groupId).eq('user_id', m.user_id).select();
+                          if (error) { showToast('Failed to update role: ' + error.message); return; }
+                          // RLS can silently match zero rows (no error, no update) rather
+                          // than reject -- only treat it as success if a row came back.
+                          if (!data?.length) { showToast('Failed to update role'); return; }
+                          setMembers(prev => prev.map(x => x.user_id === m.user_id ? { ...x, role: newRole } : x));
+                          showToast(isAdmin ? 'Removed admin' : 'Made admin ✓');
+                        } catch {
+                          // A network-level failure rejects rather than resolving with
+                          // `error` -- catch it too so the click doesn't silently no-op.
+                          showToast('Failed to update role');
+                        }
                       }} style={{ height:32, padding:'0 12px', border:`1.5px solid ${C.border}`, borderRadius:10, background:'#fff', fontSize:11, fontWeight:700, color:C.body, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
                         {isAdmin ? 'Demote' : 'Make Admin'}
                       </button>
                       <button onClick={async () => {
                         if (!window.confirm(`Remove ${displayName} from the group?`)) return;
-                        await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', m.user_id);
-                        setMembers(prev => prev.filter(x => x.user_id !== m.user_id));
-                        showToast('Member removed');
+                        try {
+                          const { data, error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', m.user_id).select();
+                          if (error) { showToast('Failed to remove member: ' + error.message); return; }
+                          if (!data?.length) { showToast('Failed to remove member'); return; }
+                          setMembers(prev => prev.filter(x => x.user_id !== m.user_id));
+                          showToast('Member removed');
+                        } catch {
+                          showToast('Failed to remove member');
+                        }
                       }} style={{ width:32, height:32, border:'none', borderRadius:10, background:'#FFF0F0', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#EF4444" strokeWidth="2.2" strokeLinecap="round"/></svg>
                       </button>
@@ -11003,7 +11062,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'banned-members':   return <BannedMembersScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'review-reports':   return <ReviewReportsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'group-edit':       return <GroupEditScreen groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;

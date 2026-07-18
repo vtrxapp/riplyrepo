@@ -6097,7 +6097,11 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
         const mapped = (data || []).map(t => {
           const evDate = t.date ? new Date(t.date) : null;
           const dateValid = evDate && !isNaN(evDate);
-          const isPast = dateValid ? evDate < new Date() : false;
+          // Compare calendar days, not exact timestamps — otherwise an event
+          // happening later today gets marked USED the moment midnight passes.
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const evDayStart = dateValid ? new Date(evDate.getFullYear(), evDate.getMonth(), evDate.getDate()) : null;
+          const isPast = evDayStart ? evDayStart < today : false;
           return {
             id: t.id,
             title: t.event_title || 'Event',
@@ -7792,7 +7796,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               // Store a clean numeric string, not a raw `$`-prefixed user
               // string — every read site parses this defensively, but no
               // need to bake a display artifact into the stored value.
-              price: isPaid ? String(parseFloat(price) || 0) : 'Free',
+              // parseEventPrice (not a bare parseFloat) so a user who typed
+              // "$15" into the field doesn't silently become a free event.
+              price: isPaid ? String(parseEventPrice(price).amount) : 'Free',
               capacity: unlimited ? null : capacity,
               attendee_count: 0,
               likes: 0,
@@ -10323,13 +10329,20 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   // false "confirmed" screen when the write actually failed.
   const saveTicket = async () => {
     if (!user?.id) return false;
+    // Store an ISO date when the event's date field parses cleanly, so
+    // MyTicketsScreen's ACTIVE/USED comparison doesn't depend on the
+    // event's display-formatted string surviving a round trip through
+    // `new Date(...)`. Falls back to the raw string if it doesn't parse.
+    const rawDate = ev.fullDate || ev.full_date || ev.date;
+    const parsedDate = rawDate ? new Date(rawDate) : null;
+    const ticketDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toISOString() : rawDate;
     const { error } = await supabase.from('tickets').insert({
       user_id:      user.id,
       event_id:     ev.id,
       event_title:  ev.title,
       access:       ticket === 'vip' ? 'VIP Experience' : 'General Admission',
       status:       'ACTIVE',
-      date:         ev.fullDate || ev.full_date || ev.date,
+      date:         ticketDate,
       time:         ev.timeRange || ev.time_range || ev.date,
       location:     ev.location,
     });

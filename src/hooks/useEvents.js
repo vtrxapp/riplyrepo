@@ -159,18 +159,31 @@ export function useEvents({ category, search, filters } = {}) {
 export function useEvent(eventId) {
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!eventId) { setEvent(null); setLoading(false); return }
+    if (!eventId) { setEvent(null); setError(null); setLoading(false); return }
+    let cancelled = false
     setLoading(true)
+    setError(null)
     supabase.from('events').select('*').eq('id', eventId).single()
-      .then(async ({ data }) => {
-        if (!data) { setEvent(null); setLoading(false); return }
+      .then(async ({ data, error: err }) => {
+        if (cancelled) return
+        if (err || !data) { setEvent(null); setError(err || null); setLoading(false); return }
         const [enriched] = await attachUserProfiles([data])
+        if (cancelled) return
         setEvent(enriched)
         setLoading(false)
       })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('[useEvent] fetch error:', err)
+        setEvent(null)
+        setError(err)
+        setLoading(false)
+      })
+    return () => { cancelled = true }
   }, [eventId])
 
-  return { event, loading }
+  return { event, loading, error }
 }

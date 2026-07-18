@@ -2617,6 +2617,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     supabase.from('posts').select('*', { count:'exact', head:true }).eq('group_id', groupId)
       .then(({ count }) => { if (!isStale()) setLivePosts2(count ?? 0); });
     supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId)
+      .or('status.is.null,status.eq.published')
       .then(({ count }) => { if (!isStale()) setLiveEvents2(count ?? 0); });
   };
 
@@ -2641,7 +2642,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     setLiveEvents2(null);
 
     refreshCounts(isStale);
-    supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
+    supabase.from('events').select('*').eq('group_id', groupId)
+      .or('status.is.null,status.eq.published')
+      .order('created_at', { ascending: false }).limit(10)
       .then(({ data }) => { if (!isStale()) setGroupEvents(data || []); });
 
     (async () => {

@@ -8763,7 +8763,15 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast, curren
     if (!currentUser?.isLoaded || currentUser?.profileLoading) return;
     if (!currentUser?.userId) { setIsAuthorized(false); return; }
     supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', currentUser.userId).maybeSingle()
-      .then(({ data }) => { if (!isStale()) setIsAuthorized(data?.role === 'admin' || data?.role === 'owner'); });
+      .then(({ data, error }) => {
+        if (isStale()) return;
+        setIsAuthorized(!error && (data?.role === 'admin' || data?.role === 'owner'));
+      })
+      // A query-level failure resolves with `error` set (handled above); this
+      // catches a network-level failure (fetch itself throwing), which would
+      // otherwise leave isAuthorized stuck at null and the screen loading
+      // forever -- fail closed here too instead.
+      .catch(() => { if (!isStale()) setIsAuthorized(false); });
   }, [groupId, currentUser?.userId, currentUser?.isLoaded, currentUser?.profileLoading]);
 
   useEffect(() => {

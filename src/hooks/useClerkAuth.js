@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react'
 import { useSignIn, useSignUp, useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 
-export function useClerkAuth(showToast, setScreen, go) {
+export function useClerkAuth(showToast, setScreen, go, refetchProfile) {
   const { signIn, isLoaded: signInLoaded, setActive: setActiveIn } = useSignIn()
   const { signUp, isLoaded: signUpLoaded, setActive: setActiveUp } = useSignUp()
   const { user, isLoaded: userLoaded } = useUser()
@@ -94,7 +94,10 @@ export function useClerkAuth(showToast, setScreen, go) {
         showToast('Could not save profile — no user ID. Please try again.')
         return
       }
-      const { error } = await supabase.from('users').insert({
+      // upsert, not insert — useCurrentUser no longer creates a stub row on
+      // load, but this is still the only place a users row gets written, so
+      // upsert keeps this idempotent against a retry after a failed attempt.
+      const { error } = await supabase.from('users').upsert({
         id: userId, email, name, university, campus, program, year, role,
       })
       if (error) {
@@ -102,6 +105,9 @@ export function useClerkAuth(showToast, setScreen, go) {
         showToast('Profile save failed: ' + (error.message || 'unknown error'))
         return
       }
+      // The profile row now exists in the DB; refetch so currentUser.profile
+      // reflects it immediately instead of staying null until next reload.
+      refetchProfile?.()
     } catch(e) {
       console.error('[onboarding] error:', e)
     }

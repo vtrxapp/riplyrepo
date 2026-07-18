@@ -5403,7 +5403,7 @@ function DarkEyeBtn({ show, onToggle }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: AUTH  (signup → verify → onboard → role → home)
 // ─────────────────────────────────────────────────────────────
-function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
+function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUser }) {
   // ── step machine ──────────────────────────────────────────
   const [step,    setStep]    = useState(initialStep || 'login');  // login | signup | verify | onboard | role
   const [animKey, setAnimKey] = useState(0);
@@ -5421,7 +5421,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
     try { await fn(...args); } finally { loadingRef.current = false; setLoading(false); }
   };
   const go = (s) => { setStep(s); setAnimKey(k => k+1); };
-  const { login, signup, verify, completeOnboarding } = useClerkAuth(showToast, setScreen, go);
+  const { login, signup, verify, completeOnboarding } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
 
   // ── field state ───────────────────────────────────────────
   const [name,     setName]     = useState('');
@@ -10774,6 +10774,11 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     const authScreens = ['welcome', 'auth', 'loading'];
     if (currentUser.isAuthenticated && currentUser.profile) {
       if (authScreens.includes(current)) setNavStack([{ screen: 'home' }]);
+    } else if (currentUser.isAuthenticated && !currentUser.profile) {
+      // Signed in via Clerk but no completed users row (e.g. reopened the app
+      // mid-onboarding, or verified in a previous session) — send them to
+      // finish onboarding instead of leaving them stuck on 'loading'.
+      if (current !== 'auth') setNavStack([{ screen: 'auth', initialStep: 'onboard' }]);
     } else if (!currentUser.isAuthenticated) {
       if (!authScreens.includes(current)) setNavStack([{ screen: 'welcome' }]);
       else if (current === 'loading') setNavStack([{ screen: 'welcome' }]);
@@ -10866,7 +10871,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     switch(screen) {
       case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
-      case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} />;
+      case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} currentUser={currentUser} />;
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;

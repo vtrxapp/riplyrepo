@@ -25,30 +25,24 @@ export function useCurrentUser() {
   const [profile, setProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(true)
 
-  const fetchProfile = useCallback(async (userId, clerkUser) => {
+  // Only reads the profile — never creates one. A signed-in Clerk user with
+  // no `users` row yet (mid-onboarding) is a real, valid state; the auth
+  // guard in Riply.jsx routes that case to the onboarding screen, which is
+  // the only place a row should be written (via upsert in completeOnboarding).
+  const fetchProfile = useCallback(async (userId) => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .maybeSingle()
-    if (error) { setProfileLoading(false); return }
-    if (data) { setProfile(data); setProfileLoading(false); return }
-    // Row doesn't exist yet — create it with whatever we know from Clerk
-    const email = clerkUser?.primaryEmailAddress?.emailAddress || ''
-    const name  = clerkUser?.firstName || clerkUser?.username || ''
-    const { data: created } = await supabase
-      .from('users')
-      .insert({ id: userId, email, name })
-      .select()
-      .single()
-    if (created) setProfile(created)
+    if (!error && data) setProfile(data)
     setProfileLoading(false)
   }, [])
 
   useEffect(() => {
     if (!isLoaded) return
     if (!user) { setProfileLoading(false); return }
-    fetchProfile(user.id, user)
+    fetchProfile(user.id)
   }, [isLoaded, user?.id, fetchProfile])
 
   const updateProfile = useCallback(async (updates) => {

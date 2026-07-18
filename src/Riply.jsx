@@ -2346,11 +2346,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
     const newVotes = { ...pollVotes, [optIdx]: ((pollVotes[optIdx] || 0) + 1) };
     setPollVotes(newVotes);
     setMyVote(optIdx);
-    // Read current voter list and append
-    const { data: cur } = await supabase.from('posts').select('poll_voter_ids').eq('id', pid).single();
-    const voters = cur?.poll_voter_ids || [];
-    voters.push({ uid: currentUser.userId, opt: optIdx });
-    await supabase.from('posts').update({ poll_votes: newVotes, poll_voter_ids: voters }).eq('id', pid);
+    // Cast via RPC: posts.update() is owner-only now, so voting (a non-owner
+    // write) goes through a security-definer function that only ever touches
+    // poll_votes/poll_voter_ids and enforces one vote per user server-side.
+    const { error } = await supabase.rpc('cast_post_vote', { p_post_id: pid, p_opt_idx: optIdx });
+    if (error) console.error('[castVote] error:', error);
   };
 
   const submitComment = async () => {
@@ -7794,6 +7794,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
             const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
             const { data: event, error } = await supabase.from('events').insert({
+              user_id: currentUser.userId,
               title: title.trim(),
               org: currentUser.name || 'Organizer',
               org_initial: (currentUser.name || 'O')[0].toUpperCase(),
@@ -7847,9 +7848,11 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                 author_initial:     authorName[0]?.toUpperCase() || 'O',
                 author_color:       currentUser?.avatarColor || deriveAvatarColor(currentUser?.userId || ''),
               });
-              // increment event_count on the group
-              const { data: gr } = await supabase.from('groups').select('event_count').eq('id', sourceGroupId).single();
-              await supabase.from('groups').update({ event_count: (gr?.event_count || 0) + 1 }).eq('id', sourceGroupId);
+              // increment event_count via RPC: groups.update() is admin-only
+              // now, so this (a member, not necessarily the admin, posting an
+              // event) goes through a security-definer function scoped to
+              // just this counter.
+              await supabase.rpc('increment_group_event_count', { p_group_id: sourceGroupId });
             }
             setSubmitting(false);
             showToast('Event published! 🎉');

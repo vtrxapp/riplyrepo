@@ -12,8 +12,11 @@ create table if not exists chat_participants (
 alter table chats add column if not exists last_message      text;
 alter table chats add column if not exists last_message_at   timestamptz;
 
--- Disable RLS so Clerk users can read/write freely
-alter table chat_participants disable row level security;
+-- RLS stays enabled -- see sql/rls_policies.sql for the real per-user
+-- policies. (This file used to disable RLS here entirely; caught in review
+-- as a silent trap for any environment that re-runs this bootstrap script
+-- without also re-applying rls_policies.sql afterward.)
+alter table chat_participants enable row level security;
 
 -- ─────────────────────────────────────────────
 -- notifications table
@@ -28,7 +31,9 @@ create table if not exists notifications (
   created_at timestamptz default now()
 );
 
-alter table notifications disable row level security;
+-- RLS stays enabled -- see sql/rls_policies.sql for the real per-user
+-- policies (same reasoning as chat_participants above).
+alter table notifications enable row level security;
 
 -- ─────────────────────────────────────────────
 -- Trigger: notify on post like

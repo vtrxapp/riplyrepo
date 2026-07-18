@@ -28,9 +28,19 @@ function SplashScreen({ onDone }) {
 export default function App() {
   const { isLoaded } = useAuth()
   const [splashDone, setSplashDone] = useState(false)
+  const [clerkTimedOut, setClerkTimedOut] = useState(false)
 
-  // Show splash until both the timer AND Clerk are ready
-  const ready = splashDone && isLoaded
+  // If Clerk's script is blocked or unusually slow, don't spin on the splash
+  // forever — proceed into the app after a generous timeout. Screens that
+  // depend on auth already handle a not-yet-loaded Clerk state gracefully.
+  useEffect(() => {
+    if (isLoaded) return
+    const timer = setTimeout(() => setClerkTimedOut(true), 8000)
+    return () => clearTimeout(timer)
+  }, [isLoaded])
+
+  // Show splash until both the timer AND Clerk are ready (or Clerk timed out)
+  const ready = splashDone && (isLoaded || clerkTimedOut)
 
   if (!ready) return <SplashScreen onDone={() => setSplashDone(true)} />
 

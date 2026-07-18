@@ -1,6 +1,6 @@
 // Riply v1.0
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useSignIn, useSignUp, useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
@@ -685,21 +685,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
           const count = sp.participants + (isJoined?1:0);
           const isFull = count >= (sp.max_spots || sp.max || 10);
           const notifyOn = !!spaceNotify[sp.id];
-          const prog = (() => {
-            const timeStr = sp.time; const dayStr = sp.day;
-            if (!timeStr || !dayStr) return 0;
-            const base = (dayStr === 'today' || dayStr === 'tomorrow') ? new Date() : new Date(dayStr + 'T00:00:00');
-            if (isNaN(base)) return 0;
-            if (dayStr === 'tomorrow') base.setDate(base.getDate() + 1);
-            const mx = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i); if (!mx) return 0;
-            let h = parseInt(mx[1]); const min = parseInt(mx[2]||'0'); const ap = (mx[3]||'').toUpperCase();
-            if (ap==='PM'&&h<12) h+=12; if (ap==='AM'&&h===12) h=0;
-            const startMs = new Date(base.getFullYear(),base.getMonth(),base.getDate(),h,min).getTime();
-            const endMs = startMs + (parseInt(sp.duration)||60)*60000;
-            const nowMs = Date.now();
-            if (nowMs < startMs) return 0;
-            return Math.min(100, Math.round(((nowMs-startMs)/(endMs-startMs))*100));
-          })();
+          const prog = calcSpaceProgress(sp.time, sp.day, sp.duration) ?? 0;
           const isLive = prog > 0;
           const done = prog >= 100;
 
@@ -881,12 +867,17 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
                 </div>
                 <button onClick={async ()=>{
+                  if (!user?.id) { showToast('Sign in to join groups'); return; }
                   const nowJoined = !isJoined;
                   setGroupJoined(j=>({...j,[g.id]:nowJoined}));
                   const isUuid = typeof g.id === 'string' && g.id.includes('-');
-                  if (user?.id && isUuid) {
-                    if (nowJoined) await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role:'member' });
-                    else await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);
+                  if (!isUuid) return;
+                  const { error } = nowJoined
+                    ? await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role:'member' })
+                    : await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);
+                  if (error) {
+                    setGroupJoined(j=>({...j,[g.id]:isJoined}));
+                    showToast((nowJoined ? 'Failed to join: ' : 'Failed to leave: ') + error.message);
                   }
                 }} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
                   {joinLabel}
@@ -1051,6 +1042,17 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const [text,        setText]        = useState('');
   const [imageUrl,    setImageUrl]    = useState(null);
   const [imagePreview,setImagePreview]= useState(null);
+  // Track the live blob URL so we can revoke it when replaced or on unmount —
+  // createObjectURL leaks memory until explicitly released.
+  const imagePreviewUrlRef = useRef(null);
+  const setImagePreviewBlob = (url) => {
+    if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
+    imagePreviewUrlRef.current = url;
+    setImagePreview(url);
+  };
+  useEffect(() => () => {
+    if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
+  }, []);
   const [fileUrl,     setFileUrl]     = useState(null);
   const [fileName,    setFileName]    = useState(null);
   const [hasPoll,     setHasPoll]     = useState(false);
@@ -1270,12 +1272,12 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         {/* Hidden inputs */}
         <input ref={photoInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={async e => {
           const file = e.target.files?.[0]; if (!file) return;
-          setImagePreview(URL.createObjectURL(file));
+          setImagePreviewBlob(URL.createObjectURL(file));
           setUploading(true);
           try {
             const url = await uploadImage(file, 'post-media', `posts/${user?.id}-${Date.now()}.jpg`);
             setImageUrl(url);
-          } catch (err) { showToast('Image upload failed: ' + (err?.message || 'Bucket not found')); setImagePreview(null); }
+          } catch (err) { showToast('Image upload failed: ' + (err?.message || 'Bucket not found')); setImagePreviewBlob(null); }
           setUploading(false);
           e.target.value = '';
         }} />
@@ -1299,7 +1301,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           <div style={{ position:'relative', borderRadius:16, overflow:'hidden', marginTop:8 }}>
             <img src={imagePreview} alt="" style={{ width:'100%', maxHeight:240, objectFit:'cover', display:'block' }} />
             {uploading && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:700 }}>Uploading…</div>}
-            <button onClick={() => { setImageUrl(null); setImagePreview(null); }} style={{
+            <button onClick={() => { setImageUrl(null); setImagePreviewBlob(null); }} style={{
               position:'absolute', top:10, right:10, width:30, height:30, border:'none',
               borderRadius:'50%', background:'rgba(14,23,38,0.6)',
               display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
@@ -2801,23 +2803,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     request:   { bg:'#0E1726',                                  color:'#fff', shadow:'0 8px 20px rgba(14,23,38,0.28)',   label:'Request To Join',     icon:null    },
   };
   const btn = BTN[joinState] || BTN.join;
-
-  const GEVENTS = [
-    { id:1, title:'Annual History Event',     when:'May 5 · 12:00 PM',  day:'5',  mon:'MAY',  grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)', going:56  },
-    { id:2, title:'Archive Walking Tour',     when:'May 18 · 2:00 PM',  day:'18', mon:'MAY',  grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', going:24  },
-    { id:3, title:'Semester Wrap Social',     when:'Apr 25 · 6:00 PM',  day:'25', mon:'APR',  grad:'linear-gradient(135deg,#10B981,#06B6D4)', going:41  },
-  ];
-  const GMEDIA = [
-    {grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)',isVideo:false},
-    {grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)',isVideo:true },
-    {grad:'linear-gradient(135deg,#10B981,#06B6D4)',isVideo:false},
-    {grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)',isVideo:false},
-    {grad:'linear-gradient(135deg,#FF6B6B,#FFB347)',isVideo:true },
-    {grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)',isVideo:false},
-    {grad:'linear-gradient(135deg,#FF8A3D,#FF5A8A)',isVideo:false},
-    {grad:'linear-gradient(135deg,#06B6D4,#0098F0)',isVideo:false},
-    {grad:'linear-gradient(135deg,#10B981,#34D399)',isVideo:true },
-  ];
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
@@ -4505,11 +4490,16 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     }
   })
 
+  const scrollTimerRef = useRef(null);
   const scrollToBottom = () => {
-    setTimeout(() => {
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
       if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, 40);
   };
+  useEffect(() => () => {
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+  }, []);
 
   const send = async () => {
     const t = draft.trim();
@@ -5314,35 +5304,6 @@ const bgWash = {
   background:'radial-gradient(ellipse at 60% 0%,rgba(2,182,254,0.10) 0%,transparent 65%),radial-gradient(ellipse at 20% 100%,rgba(124,92,255,0.08) 0%,transparent 60%)',
 };
 
-function AuthPillInput({ value, onChange, placeholder, type='text', inputMode, icon, right }) {
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:11, background:'#fff',
-                  border:`1.5px solid ${C.border}`, borderRadius:999,
-                  padding:'0 20px', height:54,
-                  boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
-      <input value={value} onChange={onChange} placeholder={placeholder}
-        type={type} inputMode={inputMode}
-        style={{ flex:1, border:'none', background:'none', fontSize:14, fontWeight:600,
-                 color:C.body, outline:'none',
-                 fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
-      {icon && <div style={{ flexShrink:0, display:'flex', alignItems:'center' }}>{icon}</div>}
-      {right}
-    </div>
-  );
-}
-
-function AuthEyeBtn({ show, onToggle }) {
-  return (
-    <button onClick={onToggle} style={{ border:'none', background:'none', cursor:'pointer',
-      padding:0, display:'flex', alignItems:'center', flexShrink:0 }}>
-      {show
-        ? <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="12" r="3" stroke={C.subtle} strokeWidth="1.9"/></svg>
-        : <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M17.9 17.9A10.5 10.5 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.1-6.1M9.9 5.2A9.6 9.6 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.2 3.1M3 3l18 18" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>
-      }
-    </button>
-  );
-}
-
 function AuthBigBtn({ onClick, children, color, loading, fullWidth }) {
   const [pressed, setPressed] = useState(false);
   return (
@@ -5366,20 +5327,6 @@ function AuthBigBtn({ onClick, children, color, loading, fullWidth }) {
       {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite', flexShrink:0 }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
       {children}
     </button>
-  );
-}
-
-function AuthLogo({ size=100 }) {
-  return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-      <div style={{ width:size, height:size, display:'flex', alignItems:'center',
-                    justifyContent:'center' }}>
-        <RiplyMark size={size} />
-      </div>
-      <div style={{ fontSize:26, fontWeight:800, letterSpacing:2, color:C.primary }}>RIPLY</div>
-      <div style={{ fontSize:10, fontWeight:800, letterSpacing:2.5, color:'#7B8499',
-                    textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>
-    </div>
   );
 }
 
@@ -5434,9 +5381,14 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
   const codeRef0=useRef(null),codeRef1=useRef(null),codeRef2=useRef(null),codeRef3=useRef(null),codeRef4=useRef(null),codeRef5=useRef(null);
   const codeRefs=[codeRef0,codeRef1,codeRef2,codeRef3,codeRef4,codeRef5];
   const [loading, setLoading] = useState(false);
+  // Ref mirror of `loading` so a second click landing before the state update
+  // flushes (e.g. a fast double-tap) still sees the in-flight request and bails.
+  const loadingRef = useRef(false);
   const withLoading = (fn) => async (...args) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
-    try { await fn(...args); } finally { setLoading(false); }
+    try { await fn(...args); } finally { loadingRef.current = false; setLoading(false); }
   };
   const go = (s) => { setStep(s); setAnimKey(k => k+1); };
   const { login, signup, verify, completeOnboarding } = useClerkAuth(showToast, setScreen, go);
@@ -5509,7 +5461,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
         </span>
         <div style={{ height:28 }}/>
         {/* Log In button */}
-        <button onClick={withLoading(()=>login(email, password))}
+        <button onClick={withLoading(()=>login(email, password))} disabled={loading}
           style={{ width:'100%', height:54, border:'none', borderRadius:999,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
             fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
@@ -5596,7 +5548,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole }) {
       </div>
       {/* Button + footer — pinned to bottom, never scrolls */}
       <div style={{ position:'relative', flexShrink:0, padding:'16px 28px 32px' }}>
-        <button onClick={withLoading(()=>signup(name, email, password, confirm))}
+        <button onClick={withLoading(()=>signup(name, email, password, confirm))} disabled={loading}
           style={{ width:'100%', height:54, border:'none', borderRadius:999,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
             fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
@@ -9290,6 +9242,7 @@ function CheckInScreen({ eventId, goBack, showToast }) {
   const [recent,  setRecent]  = useState([]);
   const [scanIdx, setScanIdx] = useState(0);
 
+  const resultTimerRef = useRef(null);
   const scan = () => {
     const a = ATTENDEES[scanIdx % ATTENDEES.length];
     setScanIdx(i => i + 1);
@@ -9298,8 +9251,12 @@ function CheckInScreen({ eventId, goBack, showToast }) {
       setCheckedIn(n => Math.min(total, n + 1));
       setRecent(r => [{ ...a, time:'just now' }, ...r].slice(0, 6));
     }
-    setTimeout(() => setResult(null), 1800);
+    if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+    resultTimerRef.current = setTimeout(() => setResult(null), 1800);
   };
+  useEffect(() => () => {
+    if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+  }, []);
 
   const pct = Math.round((checkedIn / total) * 100);
 
@@ -10309,7 +10266,19 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   };
 
   // ── proceed → free RSVP or create Stripe PaymentIntent ─────
+  // Ref guard so a fast double-tap can't fire two concurrent purchases before
+  // the `step` state update (which itself renders the button away) flushes.
+  const proceedingRef = useRef(false);
   const proceed = async () => {
+    if (proceedingRef.current) return;
+    proceedingRef.current = true;
+    try {
+      await proceedImpl();
+    } finally {
+      proceedingRef.current = false;
+    }
+  };
+  const proceedImpl = async () => {
     if (isFree) {
       setStep('processing');
       await saveTicket();
@@ -10751,18 +10720,9 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
 }
 
 export default function RiplyApp() {
-  const { signIn, setActive: setActiveSignIn, isLoaded: signInLoaded } = useSignIn();
-  const { signUp, setActive: setActiveSignUp } = useSignUp();
   const currentUser = useCurrentUser();
   const notifs = useNotifications();
 
-  // Expose to auth screens
-  useEffect(() => {
-    window._clerkSignIn = signIn;
-    window._clerkSignUp = signUp;
-    window._clerkSetActive = setActiveSignIn;
-    window._clerkSetActiveSignUp = setActiveSignUp;
-  }, [signIn, signUp, setActiveSignIn, setActiveSignUp]);
   // Font injection
   useEffect(() => {
     const style = document.createElement('style');

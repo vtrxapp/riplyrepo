@@ -4513,12 +4513,19 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     type: 'dm',
   };
 
-  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId } = useChat(chatId)
+  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound } = useChat(chatId)
   const [draft,    setDraft]    = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef  = useRef(null);
   const inputRef   = useRef(null);
   const fileRef    = useRef(null);
+
+  useEffect(() => {
+    if (notFound) {
+      showToast("Couldn't open that chat");
+      goBack();
+    }
+  }, [notFound]);
 
   // Map Supabase shape → UI shape
   const messages = rawMessages.map(msg => {

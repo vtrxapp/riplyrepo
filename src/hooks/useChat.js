@@ -44,6 +44,7 @@ export function useChat(chatId) {
   const { user } = useUser()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
   const [realChatId, setRealChatId] = useState(null)
   const channelRef = useRef(null)
 
@@ -54,7 +55,7 @@ export function useChat(chatId) {
     const init = async () => {
       const resolved = await resolveChat(chatId, user.id)
       if (cancelled) return
-      if (!resolved) { setLoading(false); return }
+      if (!resolved) { setLoading(false); setNotFound(true); return }
       setRealChatId(resolved)
 
       const { data } = await supabase
@@ -135,5 +136,5 @@ export function useChat(chatId) {
     return sendMessage('', publicUrl)
   }
 
-  return { messages, loading, sendMessage, sendAttachment, currentUserId: user?.id || null }
+  return { messages, loading, notFound, sendMessage, sendAttachment, currentUserId: user?.id || null }
 }

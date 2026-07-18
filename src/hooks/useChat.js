@@ -46,6 +46,7 @@ export function useChat(chatId) {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [resolveError, setResolveError] = useState(null)
+  const [messagesError, setMessagesError] = useState(null)
   const [realChatId, setRealChatId] = useState(null)
   const channelRef = useRef(null)
 
@@ -55,6 +56,7 @@ export function useChat(chatId) {
     setMessages([])
     setNotFound(false)
     setResolveError(null)
+    setMessagesError(null)
     setLoading(true)
     let cancelled = false
 
@@ -65,13 +67,19 @@ export function useChat(chatId) {
       if (!resolved) { setLoading(false); setNotFound(true); return }
       setRealChatId(resolved)
 
-      const { data } = await supabase
+      const { data, error: messagesErr } = await supabase
         .from('messages')
         .select('*')
         .eq('chat_id', resolved)
         .order('created_at', { ascending: true })
 
       if (cancelled) return
+      if (messagesErr) {
+        console.error('useChat: failed to load messages', { chatId: resolved, error: messagesErr })
+        setLoading(false)
+        setMessagesError(messagesErr)
+        return
+      }
       const msgs = data || []
       await fetchSenderProfiles([...new Set(msgs.map(m => m.sender_id).filter(Boolean))])
       if (cancelled) return
@@ -105,7 +113,7 @@ export function useChat(chatId) {
   }, [chatId, user?.id])
 
   const sendMessage = async (content, attachmentUrl = null) => {
-    if (!user?.id) return
+    if (!user?.id) return new Error('Not signed in')
     if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
     const cid = realChatId
     const row = {
@@ -142,8 +150,12 @@ export function useChat(chatId) {
     const { error: upErr } = await supabase.storage.from('attachments').upload(path, file)
     if (upErr) return upErr
     const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(path)
-    return sendMessage('', publicUrl)
+    const sendErr = await sendMessage('', publicUrl)
+    if (sendErr) {
+      await supabase.storage.from('attachments').remove([path])
+    }
+    return sendErr
   }
 
-  return { messages, loading, notFound, resolveError, sendMessage, sendAttachment, currentUserId: user?.id || null }
+  return { messages, loading, notFound, resolveError, messagesError, sendMessage, sendAttachment, currentUserId: user?.id || null }
 }

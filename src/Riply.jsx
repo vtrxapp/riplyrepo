@@ -4513,7 +4513,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     type: 'dm',
   };
 
-  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError } = useChat(chatId)
+  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
   const [draft,    setDraft]    = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollRef  = useRef(null);
@@ -4528,10 +4528,10 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
   }, [notFound]);
 
   useEffect(() => {
-    if (resolveError) {
+    if (resolveError || messagesError) {
       showToast("Couldn't load chat -- check your connection and try again");
     }
-  }, [resolveError]);
+  }, [resolveError, messagesError]);
 
   // Map Supabase shape → UI shape
   const messages = rawMessages.map(msg => {
@@ -4573,8 +4573,13 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     const t = draft.trim();
     if (!t) return;
     setDraft('');
-    const err = await sendMessage(t);
-    if (err) { setDraft(t); showToast("Couldn't send -- try again"); }
+    try {
+      const err = await sendMessage(t);
+      if (err) throw err;
+    } catch {
+      setDraft(current => current || t);
+      showToast("Couldn't send -- try again");
+    }
   };
 
   // Auto-scroll when messages change

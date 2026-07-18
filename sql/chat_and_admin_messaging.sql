@@ -117,6 +117,9 @@ begin
   if p_other_user_id is null or p_other_user_id = v_me then
     raise exception 'invalid recipient';
   end if;
+  if not exists (select 1 from public.users where id = p_other_user_id) then
+    raise exception 'recipient not found';
+  end if;
 
   v_lock_key := hashtextextended(
     least(v_me, p_other_user_id) || '|' || greatest(v_me, p_other_user_id), 0

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUser, useClerk } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 
@@ -24,31 +24,43 @@ export function useCurrentUser() {
   const { signOut } = useClerk()
   const [profile, setProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(true)
+  // Distinct from "no row" — a fetch failure shouldn't be treated as
+  // not-yet-onboarded (the auth guard would otherwise route an already-
+  // onboarded user back into onboarding on a transient network blip).
+  const [profileError, setProfileError] = useState(false)
+  // Tracks which userId the in-flight request is for, so a slow response
+  // that resolves after a newer request has already superseded it can't
+  // clobber that newer state.
+  const requestedIdRef = useRef(null)
 
-  const fetchProfile = useCallback(async (userId, clerkUser) => {
+  // Only reads the profile — never creates one. A signed-in Clerk user with
+  // no `users` row yet (mid-onboarding) is a real, valid state; the auth
+  // guard in Riply.jsx routes that case to the onboarding screen, which is
+  // the only place a row should be written (via upsert in completeOnboarding).
+  const fetchProfile = useCallback(async (userId) => {
+    requestedIdRef.current = userId
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .maybeSingle()
-    if (error) { setProfileLoading(false); return }
-    if (data) { setProfile(data); setProfileLoading(false); return }
-    // Row doesn't exist yet — create it with whatever we know from Clerk
-    const email = clerkUser?.primaryEmailAddress?.emailAddress || ''
-    const name  = clerkUser?.firstName || clerkUser?.username || ''
-    const { data: created } = await supabase
-      .from('users')
-      .insert({ id: userId, email, name })
-      .select()
-      .single()
-    if (created) setProfile(created)
+    if (requestedIdRef.current !== userId) return // superseded by a newer request
+    setProfileError(!!error)
+    // Explicitly clear on no-row/error too, not just set on success — otherwise
+    // a stale profile from a previously signed-in user lingers in state.
+    setProfile(error ? null : data ?? null)
     setProfileLoading(false)
   }, [])
 
   useEffect(() => {
     if (!isLoaded) return
-    if (!user) { setProfileLoading(false); return }
-    fetchProfile(user.id, user)
+    if (!user) { setProfile(null); setProfileError(false); setProfileLoading(false); return }
+    // Reset before the fetch (not just after) so a user switch can't leave
+    // the previous user's profile briefly readable as "loaded".
+    setProfile(null)
+    setProfileError(false)
+    setProfileLoading(true)
+    fetchProfile(user.id)
   }, [isLoaded, user?.id, fetchProfile])
 
   const updateProfile = useCallback(async (updates) => {
@@ -75,6 +87,7 @@ export function useCurrentUser() {
     profile,
     isLoaded,
     profileLoading,
+    profileError,
     isAuthenticated,
     updateProfile,
     logout,

@@ -393,7 +393,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                   festival:  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&q=75',
                 };
                 const cardImg = ev.image_url || ev.imageUrl || ev.cover_url || CARD_IMGS[ev.primary] || CARD_IMGS[ev.category] || CARD_IMGS.social;
-                const isFree = ev.price === 'Free' || ev.price === 0 || ev.price === 'free';
+                const { isFree, amount: priceAmount } = parseEventPrice(ev.price);
                 return (
                   <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ position:'relative', height:172, overflow:'hidden', cursor:'pointer' }}>
                     <img src={cardImg} alt={ev.title}
@@ -411,7 +411,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                       {isFree
                         ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(2,162,240,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
                         : ev.price
-                          ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Paid · {typeof ev.price === 'number' ? `$${ev.price}` : ev.price}</span>
+                          ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Paid · ${priceAmount}</span>
                           : <span/>}
                       {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
                     </div>
@@ -1059,7 +1059,19 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
 function CreatePostScreen({ goBack, groupId, showToast }) {
   const { user } = useUser();
   const currentUser = useCurrentUser();
-  const { events: linkableEvents } = useEvents({});
+  // A plain read-only fetch, not useEvents() — that hook also deletes past
+  // events as a side effect of loading its list, which shouldn't run just
+  // because someone opened the post composer.
+  const [linkableEvents, setLinkableEvents] = useState([]);
+  useEffect(() => {
+    const todayIso = new Date().toISOString();
+    supabase.from('events').select('id,title,date')
+      .gte('date', todayIso)
+      .or('status.is.null,status.eq.published')
+      .order('date', { ascending: true })
+      .limit(50)
+      .then(({ data }) => setLinkableEvents(data || []));
+  }, []);
   const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => (g.state || "join") === 'joined') || GROUPS[0];
 
   const [text,        setText]        = useState('');
@@ -7772,6 +7784,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           onClick={async () => {
             if (!canPublish) { showToast('Add an event title first'); return; }
             if (!currentUser.userId) { showToast('You must be logged in to publish an event'); return; }
+            if (isPaid && parseEventPrice(price).amount <= 0) { showToast('Enter a valid ticket price'); return; }
             setSubmitting(true);
             const location = [venue, room].filter(Boolean).join(' · ');
             const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
@@ -10343,7 +10356,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
       access:       ticket === 'vip' ? 'VIP Experience' : 'General Admission',
       status:       'ACTIVE',
       date:         ticketDate,
-      time:         ev.timeRange || ev.time_range || ev.date,
+      time:         ev.timeRange || ev.time_range || ev.start_time || null,
       location:     ev.location,
     });
     if (error) {
@@ -10595,7 +10608,17 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme:'stripe' } }}>
           <StripePaymentForm
             total={total}
-            onSuccess={async () => { await saveTicket(); setStep('success'); }}
+            onSuccess={async () => {
+              // Payment already went through via Stripe at this point — unlike
+              // the free path, we can't just send a failed save back to
+              // 'purchase' without risking a second charge. Still show
+              // success (the charge is real) but flag it if the ticket
+              // record itself didn't save, since saveTicket already showed
+              // its own generic toast which doesn't fit a completed payment.
+              const saved = await saveTicket();
+              if (!saved) showToast('Payment received, but we had trouble saving your ticket — contact support if it doesn\'t appear in My Tickets.');
+              setStep('success');
+            }}
             onError={(msg) => { setStripeError(msg); setStep('failed'); }}
           />
         </Elements>

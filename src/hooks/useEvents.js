@@ -166,7 +166,12 @@ export function useEvent(eventId) {
     let cancelled = false
     setLoading(true)
     setError(null)
-    supabase.from('events').select('*').eq('id', eventId).single()
+    // Same published/legacy-NULL status gating as useEvents() — otherwise a
+    // single-event fetch by id could render a draft/pending row that the
+    // list view would have filtered out.
+    supabase.from('events').select('*').eq('id', eventId)
+      .or('status.is.null,status.eq.published')
+      .single()
       .then(async ({ data, error: err }) => {
         if (cancelled) return
         if (err || !data) { setEvent(null); setError(err || null); setLoading(false); return }

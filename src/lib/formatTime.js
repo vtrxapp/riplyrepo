@@ -1,9 +1,14 @@
 // Chat-list style: exact time today, "Yesterday", weekday within a week, else month/day.
+// Compares calendar-day boundaries (midnight to midnight), not raw elapsed
+// hours — a message from 11pm yesterday must read "Yesterday" even if it's
+// only 2 hours old when viewed at 1am today.
 export function formatChatTimestamp(iso) {
   if (!iso) return ''
   const d = new Date(iso)
   const now = new Date()
-  const diffDays = Math.floor((now - d) / 86400000)
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const diffDays = Math.round((startOfToday - startOfDay) / 86400000)
   if (diffDays === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   if (diffDays === 1) return 'Yesterday'
   if (diffDays < 7)  return d.toLocaleDateString([], { weekday: 'short' })

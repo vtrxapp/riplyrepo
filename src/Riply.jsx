@@ -10719,7 +10719,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   );
 }
 
-export default function RiplyApp() {
+export default function RiplyApp({ clerkTimedOut } = {}) {
   const currentUser = useCurrentUser();
   const notifs = useNotifications();
 
@@ -10734,9 +10734,12 @@ export default function RiplyApp() {
   // Navigation stack
   const [navStack, setNavStack] = useState([{ screen: 'loading' }]);
 
-  // Auth guard: once Clerk loads, route to the right place.
+  // Auth guard: once Clerk loads, route to the right place. If Clerk is
+  // blocked/unusually slow, `clerkTimedOut` (from App.jsx) lets us stop
+  // waiting on isLoaded/profileLoading — which would otherwise never resolve
+  // — and fall through to the signed-out path instead of hanging on 'loading'.
   useEffect(() => {
-    if (!currentUser.isLoaded || currentUser.profileLoading) return;
+    if (!clerkTimedOut && (!currentUser.isLoaded || currentUser.profileLoading)) return;
     const current = navStack[navStack.length - 1].screen;
     const authScreens = ['welcome', 'auth', 'loading'];
     if (currentUser.isAuthenticated && currentUser.profile) {
@@ -10745,7 +10748,7 @@ export default function RiplyApp() {
       if (!authScreens.includes(current)) setNavStack([{ screen: 'welcome' }]);
       else if (current === 'loading') setNavStack([{ screen: 'welcome' }]);
     }
-  }, [currentUser.isLoaded, currentUser.profileLoading, currentUser.isAuthenticated, currentUser.profile]);
+  }, [currentUser.isLoaded, currentUser.profileLoading, currentUser.isAuthenticated, currentUser.profile, clerkTimedOut]);
 
   const current = navStack[navStack.length - 1];
   const screen = current.screen;

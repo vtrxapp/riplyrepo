@@ -44,5 +44,5 @@ export default function App() {
 
   if (!ready) return <SplashScreen onDone={() => setSplashDone(true)} />
 
-  return <RiplyApp />
+  return <RiplyApp clerkTimedOut={clerkTimedOut} />
 }

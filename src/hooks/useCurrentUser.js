@@ -35,7 +35,9 @@ export function useCurrentUser() {
       .select('*')
       .eq('id', userId)
       .maybeSingle()
-    if (!error && data) setProfile(data)
+    // Explicitly clear on no-row/error too, not just set on success — otherwise
+    // a stale profile from a previously signed-in user lingers in state.
+    setProfile(error ? null : data ?? null)
     setProfileLoading(false)
   }, [])
 

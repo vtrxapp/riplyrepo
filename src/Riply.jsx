@@ -10774,10 +10774,13 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     const authScreens = ['welcome', 'auth', 'loading'];
     if (currentUser.isAuthenticated && currentUser.profile) {
       if (authScreens.includes(current)) setNavStack([{ screen: 'home' }]);
-    } else if (currentUser.isAuthenticated && !currentUser.profile) {
+    } else if (currentUser.isAuthenticated && !currentUser.profile && !currentUser.profileLoading) {
       // Signed in via Clerk but no completed users row (e.g. reopened the app
       // mid-onboarding, or verified in a previous session) — send them to
-      // finish onboarding instead of leaving them stuck on 'loading'.
+      // finish onboarding instead of leaving them stuck on 'loading'. Guarded
+      // on !profileLoading too: clerkTimedOut can let this effect run before
+      // the profile fetch resolves, and profile is null during that window
+      // regardless of whether a row actually exists.
       if (current !== 'auth') setNavStack([{ screen: 'auth', initialStep: 'onboard' }]);
     } else if (!currentUser.isAuthenticated) {
       if (!authScreens.includes(current)) setNavStack([{ screen: 'welcome' }]);

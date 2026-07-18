@@ -105,13 +105,14 @@ export function useClerkAuth(showToast, setScreen, go, refetchProfile) {
         showToast('Profile save failed: ' + (error.message || 'unknown error'))
         return
       }
-      // The profile row now exists in the DB; refetch so currentUser.profile
-      // reflects it immediately instead of staying null until next reload.
-      refetchProfile?.()
+      // Await so currentUser.profile is populated before we navigate — the
+      // auth guard treats "authenticated with no profile" as still-onboarding
+      // and would otherwise immediately route straight back here.
+      await refetchProfile?.()
+      setScreen('home')
     } catch(e) {
       console.error('[onboarding] error:', e)
     }
-    setScreen('home')
   }
 
   return { login, signup, verify, completeOnboarding }

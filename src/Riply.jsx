@@ -6,7 +6,8 @@ import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
 import { useChat } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
-import { useEvents } from "./hooks/useEvents";
+import { useEvents, useEvent } from "./hooks/useEvents";
+import { parseEventPrice } from "./lib/eventPrice";
 import { useUserInteractions } from "./hooks/useUserInteractions";
 import { usePosts } from "./hooks/usePosts";
 import { useComments } from "./hooks/useComments";
@@ -392,7 +393,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                   festival:  'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&q=75',
                 };
                 const cardImg = ev.image_url || ev.imageUrl || ev.cover_url || CARD_IMGS[ev.primary] || CARD_IMGS[ev.category] || CARD_IMGS.social;
-                const isFree = ev.price === 'Free' || ev.price === 0 || ev.price === 'free';
+                const { isFree, amount: priceAmount } = parseEventPrice(ev.price);
                 return (
                   <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ position:'relative', height:172, overflow:'hidden', cursor:'pointer' }}>
                     <img src={cardImg} alt={ev.title}
@@ -410,7 +411,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                       {isFree
                         ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(2,162,240,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
                         : ev.price
-                          ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Paid · {typeof ev.price === 'number' ? `$${ev.price}` : ev.price}</span>
+                          ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Paid · ${priceAmount}</span>
                           : <span/>}
                       {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
                     </div>
@@ -1058,6 +1059,23 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
 function CreatePostScreen({ goBack, groupId, showToast }) {
   const { user } = useUser();
   const currentUser = useCurrentUser();
+  // A plain read-only fetch, not useEvents() — that hook also deletes past
+  // events as a side effect of loading its list, which shouldn't run just
+  // because someone opened the post composer.
+  const [linkableEvents, setLinkableEvents] = useState([]);
+  useEffect(() => {
+    // events.date is stored as a plain YYYY-MM-DD string; comparing it
+    // against a full ISO timestamp would exclude today's events (the
+    // date-only string sorts before any same-day timestamp).
+    const now = new Date();
+    const todayStr = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+    supabase.from('events').select('id,title,date')
+      .gte('date', todayStr)
+      .or('status.is.null,status.eq.published')
+      .order('date', { ascending: true })
+      .limit(50)
+      .then(({ data }) => setLinkableEvents(data || []));
+  }, []);
   const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => (g.state || "join") === 'joined') || GROUPS[0];
 
   const [text,        setText]        = useState('');
@@ -1456,9 +1474,9 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           onClick={() => setEventPickerOpen(false)}>
           <div onClick={e => e.stopPropagation()} style={{ width:'100%', background:'#fff', borderRadius:'22px 22px 0 0', padding:'20px 16px 40px', maxHeight:'60vh', overflowY:'auto' }}>
             <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:14 }}>Link an Event</div>
-            {EVENTS.length === 0
+            {linkableEvents.length === 0
               ? <div style={{ color:C.subtle, fontSize:13, textAlign:'center', padding:24 }}>No events available</div>
-              : EVENTS.map(ev => (
+              : linkableEvents.map(ev => (
                 <div key={ev.id} onClick={() => { setLinkedEvent(ev); setEventPickerOpen(false); }}
                   style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 0', borderBottom:`1px solid ${C.divider}`, cursor:'pointer' }}>
                   <div style={{ width:42, height:42, borderRadius:12, background:'linear-gradient(135deg,#19BFFF,#0098F0)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -3686,7 +3704,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
 
           {/* Price */}
           {(() => {
-            const isFreeEv = ev.price === 'Free' || ev.price === 0 || ev.price === 'free' || !ev.price;
+            const { isFree: isFreeEv, amount: evPriceAmount } = parseEventPrice(ev.price);
             return (
               <div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 0' }}>
                 <div style={{ width:36, height:36, borderRadius:10, flexShrink:0,
@@ -3708,7 +3726,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                                 textTransform:'uppercase', color:C.subtle }}>Price</div>
                   <div style={{ fontSize:13, fontWeight:800, marginTop:3,
                                 color: isFreeEv ? '#10B981' : '#F59E0B' }}>
-                    {isFreeEv ? 'Free for students' : `$${ev.price}`}
+                    {isFreeEv ? 'Free for students' : `$${evPriceAmount}`}
                   </div>
                 </div>
                 <span style={{ fontSize:10, fontWeight:800,
@@ -3887,7 +3905,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow:'0 10px 28px rgba(2,162,240,0.45)',
           }}>
-            {ev.price === 'Free' || ev.price === 0 || !ev.price ? 'Reserve Spot' : 'Buy Ticket'}
+            {parseEventPrice(ev.price).isFree ? 'Reserve Spot' : 'Buy Ticket'}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
         )}
@@ -4889,7 +4907,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   useEffect(() => {
     if (!cu?.userId) return;
     Promise.all([
-      supabase.from('event_rsvps').select('event_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
+      supabase.from('tickets').select('event_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
       supabase.from('group_members').select('group_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
       supabase.from('space_participants').select('space_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
     ]).then(([rsvps, grps, spaces]) => {
@@ -6082,31 +6100,38 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
 
   useEffect(() => {
     if (!user?.id) { setLoading(false); return; }
+    // Read from `tickets` — the table TicketsScreen actually writes purchases
+    // and free RSVPs into. Ticket rows are self-contained (title/access/date/
+    // time/location captured at purchase time), so no join is needed.
     supabase
-      .from('event_rsvps')
-      .select('id, event_id, created_at, events(id, title, date, location, price, category)')
+      .from('tickets')
+      .select('id, event_id, event_title, access, location, date, time, status, purchased_at')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        const mapped = (data || []).map(r => {
-          const ev = r.events || {};
-          const evDate = ev.date ? new Date(ev.date) : null;
-          const isPast = evDate ? evDate < new Date() : false;
+      .order('purchased_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) { console.error('[MyTickets] fetch error:', error); setLoading(false); return; }
+        const mapped = (data || []).map(t => {
+          const evDate = t.date ? new Date(t.date) : null;
+          const dateValid = evDate && !isNaN(evDate);
+          // Compare calendar days, not exact timestamps — otherwise an event
+          // happening later today gets marked USED the moment midnight passes.
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const evDayStart = dateValid ? new Date(evDate.getFullYear(), evDate.getMonth(), evDate.getDate()) : null;
+          const isPast = evDayStart ? evDayStart < today : false;
           return {
-            id: r.id,
-            title: ev.title || 'Event',
-            access: ev.price === 0 || !ev.price ? 'Free Admission' : `$${ev.price} Ticket`,
-            status: isPast ? 'USED' : 'ACTIVE',
-            date: evDate ? evDate.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : '–',
-            time: evDate ? evDate.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '–',
-            location: ev.location || '–',
+            id: t.id,
+            title: t.event_title || 'Event',
+            access: t.access || 'General Admission',
+            status: isPast ? 'USED' : (t.status || 'ACTIVE'),
+            date: dateValid ? evDate.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : (t.date || '–'),
+            time: t.time || '–',
+            location: t.location || '–',
             isPast,
           };
         });
         setTickets(mapped);
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      });
   }, [user?.id]);
 
   const allTickets = tickets;
@@ -7763,6 +7788,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           onClick={async () => {
             if (!canPublish) { showToast('Add an event title first'); return; }
             if (!currentUser.userId) { showToast('You must be logged in to publish an event'); return; }
+            if (isPaid && parseEventPrice(price).amount <= 0) { showToast('Enter a valid ticket price'); return; }
             setSubmitting(true);
             const location = [venue, room].filter(Boolean).join(' · ');
             const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
@@ -7784,7 +7810,12 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               time_range: timeRange || null,
               repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
               image_url: coverUrl || null,
-              price: isPaid ? `$${price}` : 'Free',
+              // Store a clean numeric string, not a raw `$`-prefixed user
+              // string — every read site parses this defensively, but no
+              // need to bake a display artifact into the stored value.
+              // parseEventPrice (not a bare parseFloat) so a user who typed
+              // "$15" into the field doesn't silently become a free event.
+              price: isPaid ? String(parseEventPrice(price).amount) : 'Free',
               capacity: unlimited ? null : capacity,
               attendee_count: 0,
               likes: 0,
@@ -9255,8 +9286,14 @@ function GroupEditScreen({ groupId, editTab, goBack, navigate, showToast }) {
 // SCREEN: CHECK-IN
 // ─────────────────────────────────────────────────────────────
 function CheckInScreen({ eventId, goBack, showToast }) {
-  const ev = EVENTS.find(e => e.id === eventId) || EVENTS[0];
+  const { event: dbEvent, loading: eventLoading } = useEvent(eventId);
+  const mockEv = EVENTS.find(e => e.id === eventId);
+  const eventTitle = eventLoading ? 'Loading…' : ((dbEvent || mockEv)?.title || 'Event');
 
+  // NOTE: attendee list and check-in counts below are still a UI mock — this
+  // fix only resolves the real event so the header shows the right title
+  // instead of always "Karaoke Night". Wiring live ticket-holder data and a
+  // real check-in write path is a larger follow-up, not attempted here.
   const ATTENDEES = [
     { name:'Maya Robinson',  initial:'MR', ticket:'General', color:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', valid:true  },
     { name:'Liam Kowalski',  initial:'LK', ticket:'VIP',     color:'linear-gradient(135deg,#2F6BFF,#6C4DF2)', valid:true  },
@@ -9323,7 +9360,7 @@ function CheckInScreen({ eventId, goBack, showToast }) {
             Check-In
           </div>
           <div style={{ fontSize:12, color:'rgba(255,255,255,0.55)', marginTop:1 }}>
-            {ev.title} · Organizer
+            {eventTitle} · Organizer
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(34,197,94,0.18)',
@@ -10252,26 +10289,58 @@ function StripePaymentForm({ total, onSuccess, onError }) {
 
 function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   const { user } = useUser();
-  const ev = EVENTS.find(e => e.id === eventId) || EVENTS[0];
-
-  const VIP_PRICE = 49.99;
-  const FEE_PER   = 2.50;
-  const TAX_RATE  = 0.05;
-
-  const TICKET_TYPES = [
-    { id:'general', name:'General Admission', desc:'Standing room · general access',     price:0 },
-    { id:'vip',     name:'VIP Experience',    desc:'Premium seating · backstage access', price:VIP_PRICE },
-  ];
+  const { event: dbEvent, loading: eventLoading } = useEvent(eventId);
+  // No mock fallback here — this screen writes real ticket rows and takes
+  // real payments, so a failed/missing Supabase lookup must show the
+  // not-found state below rather than silently checking out against fake
+  // event data.
+  const ev = dbEvent || null;
 
   const [step,          setStep]          = useState('purchase'); // purchase | stripe | processing | success | failed
   const [ticket,        setTicket]        = useState('general');
   const [qty,           setQty]           = useState(1);
   const [clientSecret,  setClientSecret]  = useState(null);
   const [stripeError,   setStripeError]   = useState(null);
+  // Ref guard so a fast double-tap can't fire two concurrent purchases before
+  // the `step` state update (which itself renders the button away) flushes.
+  const proceedingRef = useRef(false);
+
+  // ── LOADING / NOT FOUND ──────────────────────────────────────
+  if (eventLoading) return (
+    <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center',
+                  background:C.pageBg }}>
+      <div style={{ width:40, height:40, borderRadius:'50%', border:'4px solid #E1E6EE',
+                    borderTopColor:C.primary, animation:'riplySpin .9s linear infinite' }}/>
+      <style>{`@keyframes riplySpin{to{transform:rotate(360deg);}}`}</style>
+    </div>
+  );
+  if (!ev) return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                  justifyContent:'center', gap:14, padding:24, textAlign:'center',
+                  background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>Event not found</div>
+      <button onClick={goBack} style={{ height:44, padding:'0 22px', border:'none', borderRadius:14,
+        background:C.grad, color:'#fff', fontSize:13.5, fontWeight:800, cursor:'pointer',
+        fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Go Back</button>
+    </div>
+  );
+
+  const { isFree: eventIsFree, amount: eventPrice } = parseEventPrice(ev.price);
+  const FEE_PER   = 2.50;
+  const TAX_RATE  = 0.05;
+
+  // VIP costs a premium over the event's listed price; General pays that
+  // listed price outright (previously General was hardcoded free, which let
+  // anyone skip payment on a paid event by picking that tier).
+  const VIP_MULTIPLIER = 1.5;
+  const TICKET_TYPES = [
+    { id:'general', name:'General Admission', desc:'Standing room · general access',     price: eventIsFree ? 0 : eventPrice },
+    { id:'vip',     name:'VIP Experience',    desc:'Premium seating · backstage access', price: eventIsFree ? 0 : +(eventPrice * VIP_MULTIPLIER).toFixed(2) },
+  ];
 
   // ── pricing helpers ─────────────────────────────────────────
-  const isFree    = ticket === 'general' || ev.price === 'Free' || ev.price === 0;
-  const unitPrice = isFree ? 0 : VIP_PRICE;
+  const isFree    = eventIsFree;
+  const unitPrice = isFree ? 0 : (ticket === 'vip' ? eventPrice * VIP_MULTIPLIER : eventPrice);
   const subtotal  = unitPrice * qty;
   const fee       = isFree ? 0 : FEE_PER * qty;
   const tax       = isFree ? 0 : +((subtotal + fee) * TAX_RATE).toFixed(2);
@@ -10280,25 +10349,40 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   const totalLabel = isFree ? 'Free' : money(total);
 
   // ── save ticket to Supabase after success ──────────────────
-  const saveTicket = async () => {
-    if (!user?.id) return;
-    await supabase.from('tickets').insert({
-      user_id:   user.id,
-      event_id:  ev.id,
-      title:     ev.title,
-      access:    ticket === 'vip' ? 'VIP Experience' : 'General Admission',
-      price:     total,
-      status:    'ACTIVE',
-      date:      ev.fullDate || ev.date,
-      time:      ev.timeRange || ev.date,
-      location:  ev.location,
-    });
+  // Returns whether the save succeeded so proceedImpl can avoid showing a
+  // false "confirmed" screen when the write actually failed.
+  // `silent` lets the paid (Stripe) path show its own context-specific
+  // message instead of stacking this generic one on top of it.
+  const saveTicket = async (silent = false) => {
+    if (!user?.id) return false;
+    // Store an ISO date when the event's date field parses cleanly, so
+    // MyTicketsScreen's ACTIVE/USED comparison doesn't depend on the
+    // event's display-formatted string surviving a round trip through
+    // `new Date(...)`. Falls back to the raw string if it doesn't parse.
+    const rawDate = ev.fullDate || ev.full_date || ev.date;
+    const parsedDate = rawDate ? new Date(rawDate) : null;
+    const ticketDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toISOString() : rawDate;
+    try {
+      const { error } = await supabase.from('tickets').insert({
+        user_id:      user.id,
+        event_id:     ev.id,
+        event_title:  ev.title,
+        access:       ticket === 'vip' ? 'VIP Experience' : 'General Admission',
+        status:       'ACTIVE',
+        date:         ticketDate,
+        time:         ev.timeRange || ev.time_range || ev.start_time || null,
+        location:     ev.location,
+      });
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.error('[tickets] save error:', err);
+      if (!silent) showToast('Could not save your ticket. Please try again.');
+      return false;
+    }
   };
 
   // ── proceed → free RSVP or create Stripe PaymentIntent ─────
-  // Ref guard so a fast double-tap can't fire two concurrent purchases before
-  // the `step` state update (which itself renders the button away) flushes.
-  const proceedingRef = useRef(false);
   const proceed = async () => {
     if (proceedingRef.current) return;
     proceedingRef.current = true;
@@ -10311,8 +10395,8 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   const proceedImpl = async () => {
     if (isFree) {
       setStep('processing');
-      await saveTicket();
-      setStep('success');
+      const saved = await saveTicket();
+      setStep(saved ? 'success' : 'purchase');
       return;
     }
     setStep('processing');
@@ -10330,7 +10414,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   };
 
   // ── event gradient ──────────────────────────────────────────
-  const th = THEME[ev.primary] || THEME.social;
+  const th = THEME[ev.primary || ev.category] || THEME.social;
 
   // ── PROCESSING ──────────────────────────────────────────────
   if (step === 'processing') return (
@@ -10397,7 +10481,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>{ev.title}</div>
                 <div style={{ fontSize:12, fontWeight:600, color:C.primary, marginTop:3 }}>
-                  {ev.fullDate}
+                  {ev.fullDate || ev.full_date || ev.date}
                 </div>
                 <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
                   {ev.venue} · {ev.room}
@@ -10539,7 +10623,17 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme:'stripe' } }}>
           <StripePaymentForm
             total={total}
-            onSuccess={async () => { await saveTicket(); setStep('success'); }}
+            onSuccess={async () => {
+              // Payment already went through via Stripe at this point — unlike
+              // the free path, we can't just send a failed save back to
+              // 'purchase' without risking a second charge. Still show
+              // success (the charge is real) but flag it if the ticket
+              // record itself didn't save, since saveTicket already showed
+              // its own generic toast which doesn't fit a completed payment.
+              const saved = await saveTicket(true);
+              if (!saved) showToast('Payment received, but we had trouble saving your ticket — contact support if it doesn\'t appear in My Tickets.');
+              setStep('success');
+            }}
             onError={(msg) => { setStripeError(msg); setStep('failed'); }}
           />
         </Elements>
@@ -10619,7 +10713,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               <div style={{ fontSize:16, fontWeight:800, color:C.ink,
                             letterSpacing:-0.3 }}>{ev.title}</div>
               <div style={{ fontSize:12.5, fontWeight:600, color:C.primary,
-                            marginTop:4 }}>{ev.fullDate}</div>
+                            marginTop:4 }}>{ev.fullDate || ev.full_date || ev.date}</div>
               <div style={{ fontSize:12, color:C.subtle, marginTop:2 }}>
                 {ev.venue}
               </div>

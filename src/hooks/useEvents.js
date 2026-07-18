@@ -153,3 +153,42 @@ export function useEvents({ category, search, filters } = {}) {
 
   return { events, loading, error }
 }
+
+// Fetch a single event by id — for screens (tickets, check-in) that need one
+// specific event rather than a filtered list.
+export function useEvent(eventId) {
+  const [event, setEvent] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!eventId) { setEvent(null); setError(null); setLoading(false); return }
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    // Same published/legacy-NULL status gating as useEvents() — otherwise a
+    // single-event fetch by id could render a draft/pending row that the
+    // list view would have filtered out.
+    supabase.from('events').select('*').eq('id', eventId)
+      .or('status.is.null,status.eq.published')
+      .single()
+      .then(async ({ data, error: err }) => {
+        if (cancelled) return
+        if (err || !data) { setEvent(null); setError(err || null); setLoading(false); return }
+        const [enriched] = await attachUserProfiles([data])
+        if (cancelled) return
+        setEvent(enriched)
+        setLoading(false)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        console.error('[useEvent] fetch error:', err)
+        setEvent(null)
+        setError(err)
+        setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [eventId])
+
+  return { event, loading, error }
+}

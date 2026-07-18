@@ -34,11 +34,14 @@ drop policy if exists analytics_snapshots_delete on public.analytics_snapshots;
 
 -- ─────────────────────────────────────────────────────────────
 -- groups
--- update stays authenticated-only (not admin_id-only): CreateEventScreen
--- increments groups.event_count from any signed-in member posting an event
--- to the group, not just the admin. Tightening that further would need to
--- move the counter update behind a security-definer RPC — left as a
--- follow-up, not attempted here.
+-- update is admin-only. The one legitimate cross-user write (any member,
+-- not just the admin, incrementing event_count when posting an event to
+-- the group) goes through increment_group_event_count() below instead of a
+-- direct update, so a non-admin can bump the counter without gaining
+-- update rights to the rest of the row (admin_id, privacy, archived, ...).
+-- (First cut of this policy was authenticated-only for any update, which
+-- review correctly flagged as letting any signed-in user rewrite any
+-- group's admin_id/archived/etc.)
 -- ─────────────────────────────────────────────────────────────
 drop policy if exists groups_select on public.groups;
 drop policy if exists groups_insert on public.groups;
@@ -49,9 +52,29 @@ create policy groups_select on public.groups for select using (true);
 create policy groups_insert on public.groups for insert
   with check (current_user_id() = admin_id);
 create policy groups_update on public.groups for update
-  using (current_user_id() is not null) with check (current_user_id() is not null);
+  using (current_user_id() = admin_id) with check (current_user_id() = admin_id);
 create policy groups_delete on public.groups for delete
   using (current_user_id() = admin_id);
+
+create or replace function public.increment_group_event_count(p_group_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+  if not exists (
+    select 1 from public.group_members
+    where group_id = p_group_id and user_id = current_user_id()
+  ) then
+    raise exception 'not a member of this group';
+  end if;
+  update public.groups set event_count = coalesce(event_count, 0) + 1 where id = p_group_id;
+end;
+$$;
 
 -- ─────────────────────────────────────────────────────────────
 -- events
@@ -183,10 +206,13 @@ create policy group_members_delete on public.group_members for delete
 
 -- ─────────────────────────────────────────────────────────────
 -- posts
--- Update stays authenticated-only (not owner-only): poll voting
--- (poll_votes/poll_voter_ids) is done via a plain posts.update() by
--- whoever's voting, not the post's author. Tightening this further would
--- need column-level checks via a trigger — left as a follow-up.
+-- Update is owner-only. Poll voting (poll_votes/poll_voter_ids), done by
+-- whoever's voting rather than the post's author, goes through
+-- cast_post_vote() below instead of a direct update, so a non-owner can
+-- vote without gaining update rights to the rest of the post.
+-- (First cut of this policy was authenticated-only for any update, which
+-- review correctly flagged as letting any signed-in user overwrite anyone
+-- else's post content.)
 -- ─────────────────────────────────────────────────────────────
 drop policy if exists posts_select on public.posts;
 drop policy if exists posts_insert on public.posts;
@@ -197,9 +223,54 @@ create policy posts_select on public.posts for select using (true);
 create policy posts_insert on public.posts for insert
   with check (current_user_id() = user_id);
 create policy posts_update on public.posts for update
-  using (current_user_id() is not null) with check (current_user_id() is not null);
+  using (current_user_id() = user_id) with check (current_user_id() = user_id);
 create policy posts_delete on public.posts for delete
   using (current_user_id() = user_id);
+
+create or replace function public.cast_post_vote(p_post_id uuid, p_opt_idx int)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  voters jsonb;
+  votes  jsonb;
+  already_voted boolean;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in to vote';
+  end if;
+
+  select coalesce(poll_voter_ids, '[]'::jsonb), coalesce(poll_votes, '{}'::jsonb)
+    into voters, votes
+  from public.posts where id = p_post_id
+  for update;
+
+  if not found then
+    raise exception 'post not found';
+  end if;
+
+  select exists (
+    select 1 from jsonb_array_elements(voters) v
+    where v->>'uid' = current_user_id()
+  ) into already_voted;
+
+  if already_voted then
+    raise exception 'already voted';
+  end if;
+
+  voters := voters || jsonb_build_array(jsonb_build_object('uid', current_user_id(), 'opt', p_opt_idx));
+  votes := jsonb_set(
+    votes,
+    array[p_opt_idx::text],
+    to_jsonb(coalesce((votes->>(p_opt_idx::text))::int, 0) + 1),
+    true
+  );
+
+  update public.posts set poll_voter_ids = voters, poll_votes = votes where id = p_post_id;
+end;
+$$;
 
 -- ─────────────────────────────────────────────────────────────
 -- post_comments
@@ -285,7 +356,15 @@ create policy messages_delete on public.messages for delete
 
 -- ─────────────────────────────────────────────────────────────
 -- chat_participants — each user manages their own membership row; select
--- left public (low sensitivity, needed for the chat-membership checks above).
+-- left public (low sensitivity, needed for the chat-membership checks
+-- above). Insert additionally requires that the chat doesn't already have
+-- a *different* participant, so self-enrolling into an existing chat you
+-- weren't part of (e.g. by guessing/learning its UUID) is blocked, while
+-- bootstrapping a brand-new chat as its first participant -- the only
+-- pattern useChat.js's resolveChat() actually exercises today -- still
+-- works. (First cut allowed self-insert into any chat_id unconditionally,
+-- which review correctly flagged as letting any signed-in user join any
+-- chat and read its messages.)
 -- ─────────────────────────────────────────────────────────────
 drop policy if exists chat_participants_select on public.chat_participants;
 drop policy if exists chat_participants_insert on public.chat_participants;
@@ -294,17 +373,27 @@ drop policy if exists chat_participants_delete on public.chat_participants;
 
 create policy chat_participants_select on public.chat_participants for select using (true);
 create policy chat_participants_insert on public.chat_participants for insert
-  with check (current_user_id() = user_id);
+  with check (
+    current_user_id() = user_id
+    and not exists (
+      select 1 from public.chat_participants existing
+      where existing.chat_id = chat_participants.chat_id
+        and existing.user_id <> current_user_id()
+    )
+  );
 create policy chat_participants_update on public.chat_participants for update
   using (current_user_id() = user_id) with check (current_user_id() = user_id);
 create policy chat_participants_delete on public.chat_participants for delete
   using (current_user_id() = user_id);
 
 -- ─────────────────────────────────────────────────────────────
--- notifications — strictly personal to read/update/delete. Insert stays
--- authenticated-only (not owner-only): join-request "fanout" notifications
--- are written by the requesting user but targeted at group admins, not the
--- inserting user themselves.
+-- notifications — strictly personal to read/update/delete. Insert allows
+-- notifying someone else only when they're an admin/owner of a group the
+-- inserting user is also a member of -- the one real cross-user pattern
+-- (join-request fanout to group admins), everything else must target
+-- yourself. (First cut was authenticated-only for any target user_id,
+-- which review correctly flagged as a spam/phishing vector: any signed-in
+-- user could write notification content into anyone else's feed.)
 -- ─────────────────────────────────────────────────────────────
 drop policy if exists notifications_select on public.notifications;
 drop policy if exists notifications_insert on public.notifications;
@@ -314,7 +403,18 @@ drop policy if exists notifications_delete on public.notifications;
 create policy notifications_select on public.notifications for select
   using (current_user_id() = user_id);
 create policy notifications_insert on public.notifications for insert
-  with check (current_user_id() is not null);
+  with check (
+    current_user_id() = user_id
+    or exists (
+      select 1
+      from public.group_members gm_target
+      join public.group_members gm_self
+        on gm_self.group_id = gm_target.group_id
+      where gm_target.user_id = notifications.user_id
+        and gm_target.role in ('admin', 'owner')
+        and gm_self.user_id = current_user_id()
+    )
+  );
 create policy notifications_update on public.notifications for update
   using (current_user_id() = user_id) with check (current_user_id() = user_id);
 create policy notifications_delete on public.notifications for delete

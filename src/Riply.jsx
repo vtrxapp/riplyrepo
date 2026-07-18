@@ -803,6 +803,11 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   const { user } = useUser();
   const TABS = [{id:'all',label:'All'},{id:'popular',label:'Popular'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
   const [discoverQuery, setDiscoverQuery] = useState('');
+  // groupJoined only tracks "has a group_members row" — it can't by itself
+  // distinguish an approved membership from a pending request, so track
+  // pending state separately to avoid the button reading "Joined ✓" right
+  // after sending a request to a request-only group.
+  const [pendingRequests, setPendingRequests] = useState({});
 
   const { groups: liveGroups, loading: groupsLoading } = useGroups();
   const groupData = groupsLoading ? [] : liveGroups;
@@ -832,12 +837,15 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
         {groupsLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>}
         {list.map(g => {
           const localJoined = !!groupJoined[g.id];
-          const isJoined = (g.state || "join") === 'joined' || localJoined;
-          const isReq = (g.state || "join") === 'request' && !localJoined;
+          const isPending = !!pendingRequests[g.id];
+          const isJoined = ((g.state || "join") === 'joined' || localJoined) && !isPending;
+          const isReq = (g.state || "join") === 'request' && !localJoined && !isPending;
+          const hasEntry = isJoined || isPending;
 
           let joinLabel;
           let joinStyle = {};
-          if(isReq) { joinLabel='Request'; joinStyle={ border:'1.6px solid #E3E7EE', background:'#fff', color:'#5B6473' }; }
+          if(isPending) { joinLabel='Requested · Pending'; joinStyle={ border:`1.6px solid ${C.border}`, background:'#fff', color:'#7B8499' }; }
+          else if(isReq) { joinLabel='Request'; joinStyle={ border:'1.6px solid #E3E7EE', background:'#fff', color:'#5B6473' }; }
           else if(isJoined) { joinLabel='Joined ✓'; joinStyle={ border:'1.6px solid #10B981', background:'#E6F8F0', color:'#0E9F6E' }; }
           else { joinLabel='Join'; joinStyle={ border:'none', background:C.primary, color:'#fff', boxShadow:'0 4px 10px rgba(2,162,240,0.3)' }; }
 
@@ -853,7 +861,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <span style={{ fontSize:14, fontWeight:800, letterSpacing:-0.3, color:C.ink, lineHeight:1.2 }}>{g.name}</span>
-                    {isReq && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><rect x="5" y="11" width="14" height="9" rx="2.2" stroke={C.subtle} strokeWidth="1.9"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke={C.subtle} strokeWidth="1.9"/></svg>}
+                    {(isReq || isPending) && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><rect x="5" y="11" width="14" height="9" rx="2.2" stroke={C.subtle} strokeWidth="1.9"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke={C.subtle} strokeWidth="1.9"/></svg>}
                   </div>
                   <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{g.desc || g.description || ""}</div>
                 </div>
@@ -870,17 +878,20 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                   if (!user?.id) { showToast('Sign in to join groups'); return; }
                   const isUuid = typeof g.id === 'string' && g.id.includes('-');
                   if (!isUuid) return;
-                  const nowJoined = !isJoined;
+                  const wasReq = isReq;
+                  const nowJoined = !hasEntry;
                   setGroupJoined(j=>({...j,[g.id]:nowJoined}));
+                  setPendingRequests(p=>({...p,[g.id]: nowJoined && wasReq}));
                   // Request-only groups need approval — write a pending row,
                   // not an instant membership, so this button matches its
                   // own "Request" label instead of silently joining outright.
                   const { error } = nowJoined
-                    ? await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role: isReq ? 'pending' : 'member' })
+                    ? await supabase.from('group_members').upsert({ group_id: g.id, user_id: user.id, role: wasReq ? 'pending' : 'member' })
                     : await supabase.from('group_members').delete().eq('group_id', g.id).eq('user_id', user.id);
                   if (error) {
-                    setGroupJoined(j=>({...j,[g.id]:isJoined}));
-                    showToast((nowJoined ? (isReq ? 'Failed to send request: ' : 'Failed to join: ') : 'Failed to leave: ') + error.message);
+                    setGroupJoined(j=>({...j,[g.id]:hasEntry}));
+                    setPendingRequests(p=>({...p,[g.id]: isPending}));
+                    showToast((nowJoined ? (wasReq ? 'Failed to send request: ' : 'Failed to join: ') : 'Failed to leave: ') + error.message);
                   }
                 }} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
                   {joinLabel}

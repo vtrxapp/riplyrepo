@@ -3394,7 +3394,9 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   const [dbEvent, setDbEvent] = useState(null);
   useEffect(() => {
     if (!eventId) return;
-    supabase.from('events').select('*').eq('id', eventId).single()
+    supabase.from('events').select('*').eq('id', eventId)
+      .or('status.is.null,status.eq.published')
+      .single()
       .then(async ({ data }) => {
         if (!data) return;
         if (data.user_id) {
@@ -5951,6 +5953,7 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
     if (missing.length === 0) return;
     setLoading(true);
     supabase.from('events').select('*').in('id', missing)
+      .or('status.is.null,status.eq.published')
       .then(({ data }) => {
         if (data?.length) setDbEvents(prev => { const n = { ...prev }; data.forEach(ev => { n[String(ev.id)] = ev; }); return n; });
         setLoading(false);

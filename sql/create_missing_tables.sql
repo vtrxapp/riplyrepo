@@ -85,6 +85,10 @@ alter table groups add column if not exists archived      boolean default false;
 -- Add group/visibility fields to events table
 alter table events add column if not exists group_id  uuid;
 alter table events add column if not exists is_public boolean default true;
+-- Shared with the admin dashboard, which writes 'pending'/'draft'/'published'.
+-- Left nullable (no default) so pre-existing rows keep showing to regular
+-- users, who are only shown status IS NULL OR status = 'published'.
+alter table events add column if not exists status text;
 
 -- space_participants table (for SpaceDetailsScreen join)
 create table if not exists space_participants (

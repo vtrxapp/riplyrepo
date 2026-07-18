@@ -73,6 +73,10 @@ export function useEvents({ category, search, filters } = {}) {
 
       let q = supabase.from('events').select('*')
         .gte('date', todayIso)
+        // The admin dashboard writes draft/pending events with a status
+        // column; only published (or legacy rows with no status yet) should
+        // reach normal users here.
+        .or('status.is.null,status.eq.published')
         .order('date', { ascending: true })
 
       // Category filter

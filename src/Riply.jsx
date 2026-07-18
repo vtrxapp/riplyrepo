@@ -2617,6 +2617,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     supabase.from('posts').select('*', { count:'exact', head:true }).eq('group_id', groupId)
       .then(({ count }) => { if (!isStale()) setLivePosts2(count ?? 0); });
     supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId)
+      .or('status.is.null,status.eq.published')
       .then(({ count }) => { if (!isStale()) setLiveEvents2(count ?? 0); });
   };
 
@@ -2641,7 +2642,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     setLiveEvents2(null);
 
     refreshCounts(isStale);
-    supabase.from('events').select('*').eq('group_id', groupId).order('created_at', { ascending: false }).limit(10)
+    supabase.from('events').select('*').eq('group_id', groupId)
+      .or('status.is.null,status.eq.published')
+      .order('created_at', { ascending: false }).limit(10)
       .then(({ data }) => { if (!isStale()) setGroupEvents(data || []); });
 
     (async () => {
@@ -3391,7 +3394,9 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   const [dbEvent, setDbEvent] = useState(null);
   useEffect(() => {
     if (!eventId) return;
-    supabase.from('events').select('*').eq('id', eventId).single()
+    supabase.from('events').select('*').eq('id', eventId)
+      .or('status.is.null,status.eq.published')
+      .single()
       .then(async ({ data }) => {
         if (!data) return;
         if (data.user_id) {
@@ -5948,6 +5953,7 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
     if (missing.length === 0) return;
     setLoading(true);
     supabase.from('events').select('*').in('id', missing)
+      .or('status.is.null,status.eq.published')
       .then(({ data }) => {
         if (data?.length) setDbEvents(prev => { const n = { ...prev }; data.forEach(ev => { n[String(ev.id)] = ev; }); return n; });
         setLoading(false);

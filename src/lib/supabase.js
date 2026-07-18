@@ -12,7 +12,7 @@ const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   accessToken: async () => {
     try {
-      return (await window.Clerk?.session?.getToken()) ?? null
+      return (typeof window !== 'undefined' ? await window.Clerk?.session?.getToken() : null) ?? null
     } catch {
       return null
     }

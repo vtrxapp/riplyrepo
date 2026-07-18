@@ -58,6 +58,11 @@ create policy groups_delete on public.groups for delete
 -- Select mirrors the client's own existing filter convention
 -- (.or('status.is.null,status.eq.published')) so draft/pending events are
 -- only visible to their creator instead of to anyone with the anon key.
+-- Also respects is_public: CreateEventScreen writes is_public: false for
+-- group-only events (sourceGroupId set, isPublic unchecked), so a published
+-- group-only event is only visible to its creator or a member of that
+-- group -- not to every anon-key holder (caught in review: the first cut
+-- of this policy checked status but ignored is_public entirely).
 -- Requires events.user_id to actually be populated on insert — see the
 -- companion fix in Riply.jsx (CreateEventScreen was never setting it).
 -- Note: useEvents.js's "delete past events on load" cleanup will now only
@@ -71,7 +76,19 @@ drop policy if exists events_update on public.events;
 drop policy if exists events_delete on public.events;
 
 create policy events_select on public.events for select
-  using (status is null or status = 'published' or current_user_id() = user_id);
+  using (
+    current_user_id() = user_id
+    or (
+      (status is null or status = 'published')
+      and (
+        coalesce(is_public, true)
+        or exists (
+          select 1 from public.group_members gm
+          where gm.group_id = events.group_id and gm.user_id = current_user_id()
+        )
+      )
+    )
+  );
 create policy events_insert on public.events for insert
   with check (current_user_id() = user_id);
 create policy events_update on public.events for update
@@ -128,6 +145,11 @@ create policy group_members_insert on public.group_members for insert
     )
   );
 
+-- with check's self-branch requires role in ('member','pending') -- not just
+-- current_user_id() = user_id -- so a plain member can't grant themselves
+-- admin/owner by updating their own row (caught in review: the first cut
+-- let a self-update through unconditionally, mirroring group_members_insert's
+-- self-escalation guard would have prevented on insert but not on update).
 create policy group_members_update on public.group_members for update
   using (
     current_user_id() = user_id
@@ -139,7 +161,7 @@ create policy group_members_update on public.group_members for update
     )
   )
   with check (
-    current_user_id() = user_id
+    (current_user_id() = user_id and role in ('member', 'pending'))
     or exists (
       select 1 from public.group_members gm2
       where gm2.group_id = group_members.group_id

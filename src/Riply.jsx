@@ -62,6 +62,15 @@ function addToCalendar({ title, location, description, dateStr, timeStr, duratio
   }
 }
 
+// Format any parseable date value as "13 Jan 2026" (the app-wide default),
+// falling back to the raw value if it isn't a real date.
+function fmtDate(raw) {
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (isNaN(d)) return raw;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 // Convert "HH:MM" (24-hr) to "H:MM AM/PM". Passes through anything else.
 function fmt12(t) {
   if (!t) return t;
@@ -431,7 +440,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
                   <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>
-                    {(() => { const raw = ev.fullDate || ev.full_date || ev.date; if (!raw) return '-'; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); })()}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
+                    {fmtDate(ev.fullDate || ev.full_date || ev.date)}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
                   </span>
                 </div>
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
@@ -2322,13 +2331,15 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
   const handleDeletePost = async () => {
     setShowOptions(false);
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
-    const { error } = await deletePost?.(pid) || {};
+    if (!deletePost) { showToast('Post actions are unavailable right now'); return; }
+    const { error } = await deletePost(pid);
     showToast(error ? 'Could not delete post: ' + error.message : 'Post deleted');
   };
 
   const handleTogglePin = async () => {
     setShowOptions(false);
-    const { error } = await togglePinPost?.(pid, !p.is_pinned) || {};
+    if (!togglePinPost) { showToast('Post actions are unavailable right now'); return; }
+    const { error } = await togglePinPost(pid, !p.is_pinned);
     showToast(error ? 'Could not update post: ' + error.message : (p.is_pinned ? 'Post unpinned' : 'Post pinned to top'));
   };
 
@@ -2791,7 +2802,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     })();
   }, [groupId, user?.id, userLoaded]);
   const g = dbGroup || staticG;
-  const { posts: livePosts, loading: postsLoading, createPost, deletePost, togglePinPost } = usePosts(groupId);
+  const { posts: livePosts, loading: postsLoading, deletePost, togglePinPost } = usePosts(groupId);
 
 
   const [joinState,  setJoinState]  = useState(staticG.state || "join");
@@ -3364,7 +3375,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                         </div>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25 }}>{ev.title}</div>
-                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{ev.date || ''}</div>
+                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{fmtDate(ev.full_date || ev.date)}</div>
                           <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                               <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
@@ -3549,7 +3560,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
         <HeaderBtn onClick={async () => {
           const shareData = {
             title: ev.title,
-            text: `${ev.title} — ${ev.fullDate || ev.full_date || ev.date || ''}${ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}`,
+            text: `${ev.title} — ${fmtDate(ev.fullDate || ev.full_date || ev.date)}${ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}`,
             url: window.location.href,
           };
           let didShare = false;
@@ -3677,7 +3688,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             <div style={{ flex:1 }}>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Date &amp; Time</div>
-              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{(() => { const raw = ev.fullDate || ev.full_date || ev.date; if (!raw) return ''; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); })()}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{fmtDate(ev.fullDate || ev.full_date || ev.date)}</div>
               <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtRange(ev.timeRange || ev.time_range)}</div>
               <button onClick={() => addToCalendar({ title: ev.title, location: ev.venue || ev.location, description: ev.description, dateStr: ev.fullDate || ev.full_date || ev.date, timeStr: ev.start_time, durationMins: 90 })} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
@@ -6629,6 +6640,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 
   const [cat,      setCat]      = useState('culture');
   const [coverUrl,  setCoverUrl]  = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [name,     setName]     = useState('');
@@ -6724,23 +6736,44 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
         </button>
 
         {/* Group avatar preview */}
-        <button onClick={() => showToast('Tap to upload a group logo')} style={{
+        <button onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+              const url = await uploadImage(file, 'post-media', Date.now() + '.jpg');
+              setAvatarUrl(url);
+              showToast('Group icon uploaded ✓');
+            } catch(err) {
+              showToast('Upload failed. Try again.');
+            }
+            input.value = '';
+          };
+          input.click();
+        }} style={{
           display:'flex', alignItems:'center', gap:13, width:'100%', background:C.card,
           border:`1.5px solid ${C.border}`, borderRadius:16, padding:12, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:12, textAlign:'left',
         }}>
           <div style={{ width:54, height:54, borderRadius:16, flexShrink:0,
-                        background:coverGrad, position:'relative', overflow:'hidden',
+                        background: avatarUrl ? 'transparent' : coverGrad, position:'relative', overflow:'hidden',
                         display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <div style={{ position:'absolute', inset:0, background:
-              'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)' }}/>
-            <span style={{ position:'relative', fontSize:22, fontWeight:800, color:'#fff' }}>
-              {initial}
-            </span>
+            {avatarUrl
+              ? <img src={avatarUrl} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+              : <>
+                  <div style={{ position:'absolute', inset:0, background:
+                    'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)' }}/>
+                  <span style={{ position:'relative', fontSize:22, fontWeight:800, color:'#fff' }}>
+                    {initial}
+                  </span>
+                </>}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Group icon</div>
-            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>Tap to upload a logo</div>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{avatarUrl ? 'Tap to change logo' : 'Tap to upload a logo'}</div>
           </div>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
@@ -6964,6 +6997,8 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             post_count: 0,
             event_count: 0,
             rules,
+            cover_url: coverUrl || null,
+            avatar_url: avatarUrl || null,
           }).select().single();
           if (error) { setSubmitting(false); showToast('Failed to create group: ' + error.message); return; }
           // Add creator as first member with admin role
@@ -10303,9 +10338,9 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
           const salesLabel = isFree ? 'Free' : `$${(amount * e.sold).toLocaleString()}`;
           const d = new Date(e.full_date || e.date || '');
           const day = !isNaN(d) ? String(d.getDate()).padStart(2, '0') : '—';
-          const mon = !isNaN(d) ? d.toLocaleDateString([], { month: 'short' }).toUpperCase() : 'TBD';
+          const mon = !isNaN(d) ? d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase() : 'TBD';
           const when = !isNaN(d)
-            ? d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + (e.start_time ? ` · ${e.start_time}` : '')
+            ? fmtDate(e.full_date || e.date) + (e.start_time ? ` · ${e.start_time}` : '')
             : 'Not scheduled';
           return (
             <div key={e.id} style={{ background:'#fff', borderRadius:20,
@@ -10883,7 +10918,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>{ev.title}</div>
                 <div style={{ fontSize:12, fontWeight:600, color:C.primary, marginTop:3 }}>
-                  {ev.fullDate || ev.full_date || ev.date}
+                  {fmtDate(ev.fullDate || ev.full_date || ev.date)}
                 </div>
                 <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
                   {ev.venue} · {ev.room}
@@ -11115,7 +11150,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               <div style={{ fontSize:16, fontWeight:800, color:C.ink,
                             letterSpacing:-0.3 }}>{ev.title}</div>
               <div style={{ fontSize:12.5, fontWeight:600, color:C.primary,
-                            marginTop:4 }}>{ev.fullDate || ev.full_date || ev.date}</div>
+                            marginTop:4 }}>{fmtDate(ev.fullDate || ev.full_date || ev.date)}</div>
               <div style={{ fontSize:12, color:C.subtle, marginTop:2 }}>
                 {ev.venue}
               </div>

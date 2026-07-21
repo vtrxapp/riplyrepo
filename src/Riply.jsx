@@ -6711,13 +6711,18 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           };
           input.click();
         }} style={{
-          width:'100%', height:140, borderRadius:20, border:'2px dashed #C7D2E0',
-          background:coverGrad, position:'relative', overflow:'hidden', cursor:'pointer',
+          width:'100%', height:140, borderRadius:20,
+          border: coverUrl ? 'none' : '2px dashed #C7D2E0',
+          background: coverUrl ? '#000' : coverGrad, position:'relative', overflow:'hidden', cursor:'pointer',
           display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
           gap:7, fontFamily:"'Montserrat',-apple-system,sans-serif",
         }}>
-          <div style={{ position:'absolute', inset:0, background:
-            'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 16px)' }}/>
+          {coverUrl && (
+            <img src={coverUrl} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+          )}
+          <div style={{ position:'absolute', inset:0, background: coverUrl
+            ? 'linear-gradient(to top,rgba(14,23,38,0.55) 0%,rgba(14,23,38,0.1) 60%,transparent 100%)'
+            : 'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 16px)' }}/>
           <div style={{ width:42, height:42, borderRadius:13, background:'rgba(255,255,255,0.92)',
                         display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
@@ -6727,12 +6732,14 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             </svg>
           </div>
           <span style={{ fontSize:12, fontWeight:800, color:'#fff', position:'relative' }}>
-            Add cover photo
+            {coverUrl ? 'Change cover photo' : 'Add cover photo'}
           </span>
-          <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
-                         color:'rgba(255,255,255,0.82)', position:'relative' }}>
-            Recommended 1200×400
-          </span>
+          {!coverUrl && (
+            <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
+                           color:'rgba(255,255,255,0.82)', position:'relative' }}>
+              Recommended 1200×400
+            </span>
+          )}
         </button>
 
         {/* Group avatar preview */}

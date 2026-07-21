@@ -10043,11 +10043,11 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
   const [deleting, setDeleting] = useState({});
 
   useEffect(() => {
-    const userId = currentUser?.userId;
-    if (!userId) { setLoading(false); return; }
     let cancelled = false;
 
     const load = async () => {
+      const userId = currentUser?.userId;
+      if (!userId) { if (!cancelled) setLoading(false); return; }
       setLoading(true);
       const { data: myEvents, error } = await supabase
         .from('events').select('*').eq('user_id', userId)

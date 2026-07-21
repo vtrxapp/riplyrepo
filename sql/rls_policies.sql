@@ -251,16 +251,19 @@ create or replace function public.enforce_post_moderation_scope() returns trigge
 language plpgsql as $$
 begin
   if current_user_id() is distinct from OLD.user_id then
+    -- Deliberately excludes likes/likes_count/comments/comment_count and
+    -- poll_votes/poll_voter_ids: cast_post_vote() and increment_comment_count()
+    -- legitimately update those columns on someone else's post as the acting
+    -- (non-author) user, and neither is a moderation/content-integrity risk.
     if NEW.user_id             is distinct from OLD.user_id
        or NEW.group_id         is distinct from OLD.group_id
+       or NEW.created_at       is distinct from OLD.created_at
        or NEW.text             is distinct from OLD.text
        or NEW.content          is distinct from OLD.content
        or NEW.image_url        is distinct from OLD.image_url
        or NEW.file_url         is distinct from OLD.file_url
        or NEW.file_name        is distinct from OLD.file_name
        or NEW.poll_options     is distinct from OLD.poll_options
-       or NEW.poll_votes       is distinct from OLD.poll_votes
-       or NEW.poll_voter_ids   is distinct from OLD.poll_voter_ids
        or NEW.linked_event_id  is distinct from OLD.linked_event_id
        or NEW.linked_event_title is distinct from OLD.linked_event_title
        or NEW.author_id        is distinct from OLD.author_id
@@ -268,10 +271,6 @@ begin
        or NEW.author_initial   is distinct from OLD.author_initial
        or NEW.author_color     is distinct from OLD.author_color
        or NEW.avatar_url       is distinct from OLD.avatar_url
-       or NEW.likes            is distinct from OLD.likes
-       or NEW.likes_count      is distinct from OLD.likes_count
-       or NEW.comments         is distinct from OLD.comments
-       or NEW.comment_count    is distinct from OLD.comment_count
     then
       raise exception 'group admins may only pin/unpin posts, not edit their content';
     end if;

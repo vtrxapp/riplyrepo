@@ -10067,10 +10067,12 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
       let ticketCounts = {};
       let likeCounts = {};
       if (ids.length) {
-        const [{ data: ticketRows }, { data: likeRows }] = await Promise.all([
+        const [{ data: ticketRows, error: ticketErr }, { data: likeRows, error: likeErr }] = await Promise.all([
           supabase.from('tickets').select('event_id').in('event_id', ids),
           supabase.from('event_likes').select('event_id').in('event_id', ids),
         ]);
+        if (ticketErr) console.error('[event-manager] failed to load ticket counts:', ticketErr);
+        if (likeErr) console.error('[event-manager] failed to load like counts:', likeErr);
         (ticketRows || []).forEach(t => { ticketCounts[t.event_id] = (ticketCounts[t.event_id] || 0) + 1; });
         (likeRows || []).forEach(l => { likeCounts[l.event_id] = (likeCounts[l.event_id] || 0) + 1; });
       }

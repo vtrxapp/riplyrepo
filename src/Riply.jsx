@@ -10114,6 +10114,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
   const fmtCount = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
   const handleDelete = async (ev) => {
+    if (!window.confirm(`Delete "${ev.title}"? This cannot be undone.`)) return;
     setDeleting(s => ({ ...s, [ev.id]: true }));
     const { error } = await supabase.from('events').delete().eq('id', ev.id);
     if (error) {

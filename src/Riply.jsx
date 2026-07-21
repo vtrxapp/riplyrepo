@@ -2458,7 +2458,8 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         {p.is_pinned && (
           <div style={{ display:'flex', alignItems:'center', gap:4, marginRight:6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span style={{ fontSize:10.5, fontWeight:800, color:C.primary }}>Pinned</span>
           </div>
@@ -2730,7 +2731,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             {[
               ...(isGroupAdmin ? [{
                 label: p.is_pinned ? 'Unpin Post' : 'Pin Post',
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="12" y1="17" x2="12" y2="22" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
                 action: handleTogglePin,
               }] : []),
               ...(canModerate ? [{
@@ -3302,7 +3303,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 )}
               </div>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
           );
@@ -3488,7 +3490,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                                           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
                             {ev.is_pinned && (
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                                <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                                <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+                                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             )}
                           </div>
@@ -3506,7 +3509,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                             background: ev.is_pinned ? '#EAF6FF' : C.chip, display:'flex', alignItems:'center',
                             justifyContent:'center', cursor:'pointer', flexShrink:0, alignSelf:'flex-start' }}>
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                              <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                              <line x1="12" y1="17" x2="12" y2="22" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
+                              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </button>
                         )}

@@ -3274,6 +3274,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           const mon = !isNaN(d) ? d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase() : '';
           const when = pinnedEvent.time_range ? fmtRange(pinnedEvent.time_range)
             : pinnedEvent.start_time ? fmt12(pinnedEvent.start_time) : '';
+          const location = [pinnedEvent.location, pinnedEvent.venue]
+            .map(value => typeof value === 'string' ? value.trim() : '')
+            .find(Boolean) || '';
           return (
             <div onClick={() => navigate('event-details', { eventId: pinnedEvent.id })}
               style={{ margin:'16px 16px 0', display:'flex', alignItems:'center', gap:13,
@@ -3293,9 +3296,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 <div style={{ fontSize:15, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {pinnedEvent.title}
                 </div>
-                {(pinnedEvent.location || pinnedEvent.venue) && (
+                {location && (
                   <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, whiteSpace:'normal', overflowWrap:'anywhere' }}>
-                    {pinnedEvent.location || pinnedEvent.venue}
+                    {location}
                   </div>
                 )}
                 {when && (
@@ -3507,7 +3510,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                           </div>
                         </div>
                         {isGroupAdmin && (
-                          <button onClick={togglePinEvent} style={{ width:32, height:32, border:'none', borderRadius:10,
+                          <button onClick={togglePinEvent} aria-label={ev.is_pinned ? 'Unpin event' : 'Pin event'} aria-pressed={!!ev.is_pinned} style={{ width:32, height:32, border:'none', borderRadius:10,
                             background: ev.is_pinned ? '#EAF6FF' : C.chip, display:'flex', alignItems:'center',
                             justifyContent:'center', cursor:'pointer', flexShrink:0, alignSelf:'flex-start' }}>
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">

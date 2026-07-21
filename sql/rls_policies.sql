@@ -222,10 +222,31 @@ drop policy if exists posts_delete on public.posts;
 create policy posts_select on public.posts for select using (true);
 create policy posts_insert on public.posts for insert
   with check (current_user_id() = user_id);
+-- Update/delete are also allowed for a group admin/owner of the post's group
+-- (not just the author) so group admins can pin/unpin and moderate posts.
 create policy posts_update on public.posts for update
-  using (current_user_id() = user_id) with check (current_user_id() = user_id);
+  using (
+    current_user_id() = user_id
+    or exists (
+      select 1 from public.group_members gm
+      where gm.group_id = posts.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
+    )
+  )
+  with check (
+    current_user_id() = user_id
+    or exists (
+      select 1 from public.group_members gm
+      where gm.group_id = posts.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
+    )
+  );
 create policy posts_delete on public.posts for delete
-  using (current_user_id() = user_id);
+  using (
+    current_user_id() = user_id
+    or exists (
+      select 1 from public.group_members gm
+      where gm.group_id = posts.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
+    )
+  );
 
 create or replace function public.cast_post_vote(p_post_id uuid, p_opt_idx int)
 returns void
@@ -289,14 +310,21 @@ create policy post_comments_delete on public.post_comments for delete
   using (current_user_id() = user_id);
 
 -- ─────────────────────────────────────────────────────────────
--- tickets — purchase records, private to their owner. No public select.
+-- tickets — purchase records, private to their owner, plus read-only
+-- access for the organizer of the event the ticket is for (needed for the
+-- Manage Events sales/RSVP dashboard and event check-in).
 -- ─────────────────────────────────────────────────────────────
 drop policy if exists tickets_select on public.tickets;
 drop policy if exists tickets_insert on public.tickets;
 drop policy if exists tickets_update on public.tickets;
 drop policy if exists tickets_delete on public.tickets;
 
-create policy tickets_select on public.tickets for select using (current_user_id() = user_id);
+create policy tickets_select on public.tickets for select using (
+  current_user_id() = user_id
+  or exists (
+    select 1 from public.events e where e.id = tickets.event_id and e.user_id = current_user_id()
+  )
+);
 create policy tickets_insert on public.tickets for insert with check (current_user_id() = user_id);
 create policy tickets_update on public.tickets for update
   using (current_user_id() = user_id) with check (current_user_id() = user_id);

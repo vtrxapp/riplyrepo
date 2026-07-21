@@ -2305,7 +2305,7 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 // ─────────────────────────────────────────────────────────────
 // POST CARD (extracts useComments per post)
 // ─────────────────────────────────────────────────────────────
-function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
+function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, navigate, isGroupAdmin, deletePost, togglePinPost }) {
   const pid = p.id;
   const liked = !!postLiked[pid];
   const { comments, addComment, likeComment } = useComments(pid);
@@ -2313,7 +2313,24 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
   const [draft, setDraft] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [likedComments, setLikedComments] = useState({});
+  const [showOptions, setShowOptions] = useState(false);
   const inputRef = useRef(null);
+
+  const isOwner = !!(currentUser?.userId && p.user_id === currentUser.userId);
+  const canModerate = isOwner || isGroupAdmin;
+
+  const handleDeletePost = async () => {
+    setShowOptions(false);
+    if (!window.confirm('Delete this post? This cannot be undone.')) return;
+    const { error } = await deletePost?.(pid) || {};
+    showToast(error ? 'Could not delete post: ' + error.message : 'Post deleted');
+  };
+
+  const handleTogglePin = async () => {
+    setShowOptions(false);
+    const { error } = await togglePinPost?.(pid, !p.is_pinned) || {};
+    showToast(error ? 'Could not update post: ' + error.message : (p.is_pinned ? 'Post unpinned' : 'Post pinned to top'));
+  };
 
   const startReply = (c) => {
     setReplyTo({ id: c.id, author: c.author });
@@ -2396,7 +2413,15 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
           </div>
           <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{p.time}</div>
         </div>
-        <button onClick={() => showToast('Post options')} style={{ width:30, height:30, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+        {p.is_pinned && (
+          <div style={{ display:'flex', alignItems:'center', gap:4, marginRight:6 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ fontSize:10.5, fontWeight:800, color:C.primary }}>Pinned</span>
+          </div>
+        )}
+        <button onClick={() => setShowOptions(true)} style={{ width:30, height:30, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="5"  cy="12" r="1.7" fill={C.subtle}/>
             <circle cx="12" cy="12" r="1.7" fill={C.subtle}/>
@@ -2508,32 +2533,33 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
 
       {/* Linked event chip */}
       {p.linked_event_title && (
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10,
-                      background:'rgba(2,162,240,0.08)', borderRadius:12, padding:'9px 12px' }}>
+        <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
+          style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, width:'100%',
+                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:12, padding:'9px 12px', cursor:'pointer' }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
             <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
             <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontSize:12.5, fontWeight:800, color:C.primary, flex:1 }}>{p.linked_event_title}</span>
-          <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}>View event →</span>
-        </div>
+          <span style={{ fontSize:12.5, fontWeight:800, color:C.primary, flex:1, textAlign:'left' }}>{p.linked_event_title}</span>
+          <span style={{ fontSize:11, fontWeight:600, color:C.subtle, whiteSpace:'nowrap' }}>View event →</span>
+        </button>
       )}
 
       {/* Like / Comment / Share */}
-      <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13, paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13 }}>
         <button onClick={() => togglePostLike(pid)}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0 }}>
-          <svg width="19" height="19" viewBox="0 0 24 24">
-            <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
-                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"
+                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span style={{ fontSize:13, fontWeight:700, color:liked?'#FF3B6B':'#7B8499' }}>{(p.likes||0)+(liked?1:0)}</span>
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z"
-                  stroke={cOpen?C.primary:C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"
+                  stroke={cOpen?C.primary:C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
         </button>
@@ -2545,9 +2571,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
             try { await navigator.clipboard.writeText(shareText); showToast('Copied to clipboard'); } catch { showToast('Post shared'); }
           }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-                  stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <circle cx="18" cy="5" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
+            <circle cx="6" cy="12" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
+            <circle cx="18" cy="19" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
+            <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
         </button>
       </div>
@@ -2637,6 +2665,46 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
           </div>
         </div>
       )}
+
+      {/* Post options sheet */}
+      {showOptions && (
+        <div onClick={() => setShowOptions(false)} style={{
+          position:'fixed', inset:0, zIndex:50,
+          background:'rgba(14,23,38,0.45)', display:'flex', alignItems:'flex-end',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width:'100%', background:'#fff', borderRadius:'22px 22px 0 0',
+            padding:'10px 0 40px', fontFamily:"'Montserrat',-apple-system,sans-serif",
+          }}>
+            <div style={{ width:38, height:4, borderRadius:99, background:'#D1D8E4', margin:'0 auto 18px' }}/>
+            {[
+              ...(isGroupAdmin ? [{
+                label: p.is_pinned ? 'Unpin Post' : 'Pin Post',
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                action: handleTogglePin,
+              }] : []),
+              ...(canModerate ? [{
+                label: 'Delete Post', danger: true,
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                action: handleDeletePost,
+              }] : []),
+              { label:'Report Post', danger:true,
+                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="#C2493D" strokeWidth="2" strokeLinecap="round"/><path d="M10.3 3.5 2 20h20L13.7 3.5a2 2 0 0 0-3.4 0Z" stroke="#C2493D" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
+                action: () => { setShowOptions(false); showToast('Report submitted'); } },
+            ].map((opt, i) => (
+              <button key={i} onClick={opt.action} style={{
+                width:'100%', display:'flex', alignItems:'center', gap:15,
+                padding:'15px 20px', border:'none', background:'none', cursor:'pointer',
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                borderTop:`1px solid ${C.divider}`,
+              }}>
+                {opt.icon}
+                <span style={{ fontSize:14, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2723,7 +2791,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     })();
   }, [groupId, user?.id, userLoaded]);
   const g = dbGroup || staticG;
-  const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
+  const { posts: livePosts, loading: postsLoading, createPost, deletePost, togglePinPost } = usePosts(groupId);
 
 
   const [joinState,  setJoinState]  = useState(staticG.state || "join");
@@ -3252,7 +3320,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 ) : livePosts.length === 0 ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
                 ) : livePosts.map((p) => (
-                  <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} currentUser={currentUser} showToast={showToast} />
+                  <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} currentUser={currentUser} showToast={showToast}
+                    navigate={navigate} isGroupAdmin={isGroupAdmin} deletePost={deletePost} togglePinPost={togglePinPost} />
                 ))}
                 </>
               )}
@@ -7988,7 +8057,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             // If created from a group, also create a post so it appears in the Posts tab
             if (sourceGroupId && event) {
               const authorName = currentUser.name || 'Organizer';
-              const eventPostText = `📅 New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
+              // No emoji prefix -- the linked-event chip below already renders a
+              // calendar icon, so a text emoji here would just be a redundant,
+              // platform-inconsistent glyph (e.g. iOS renders 📅 as a live date).
+              const eventPostText = `New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
               await supabase.from('posts').insert({
                 group_id:           sourceGroupId,
                 user_id:            currentUser.userId,
@@ -10026,19 +10098,106 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT MANAGER
 // ─────────────────────────────────────────────────────────────
-function EventManagerScreen({ goBack, navigate, showToast }) {
-  const TABS   = ['live','draft','past'];
-  const MY_EVENTS = [
-    { id:1, status:'live',  title:'Spring Career Fair 2026', when:'Jan 22 · 10:00 AM', day:'22', mon:'JAN', grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)', sales:'$12,800', rsvps:'1,280', views:'8.4K', sold:1280, cap:1500 },
-    { id:2, status:'live',  title:'Karaoke Night',           when:'Jan 15 · 8:00 PM',  day:'15', mon:'JAN', grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', sales:'Free',    rsvps:'540',   views:'3.1K', sold:540,  cap:600  },
-    { id:3, status:'live',  title:'Founders Networking Mixer', when:'Jan 20 · 6:00 PM', day:'20', mon:'JAN', grad:'linear-gradient(135deg,#0EA5E9,#0E84E0)', sales:'$2,350',  rsvps:'180',   views:'1.6K', sold:180,  cap:200  },
-    { id:4, status:'draft', title:'Spoken Word Open Mic',    when:'Not scheduled',      day:'—',  mon:'TBD', grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)', sales:'—',      rsvps:'—',    views:'—',    sold:0,    cap:0    },
-    { id:5, status:'past',  title:'Winter Welcome Social',   when:'Dec 4 · 7:00 PM',   day:'04', mon:'DEC', grad:'linear-gradient(135deg,#10B981,#06B6D4)', sales:'Free',    rsvps:'920',   views:'6.2K', sold:880,  cap:900  },
-  ];
+const EVENT_MANAGER_GRADIENTS = [
+  'linear-gradient(135deg,#2F6BFF,#6C4DF2)',
+  'linear-gradient(135deg,#FF5A8A,#FF8A3D)',
+  'linear-gradient(135deg,#0EA5E9,#0E84E0)',
+  'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+  'linear-gradient(135deg,#10B981,#06B6D4)',
+];
 
-  const [tab,     setTab]     = useState('live');
-  const [deleted, setDeleted] = useState({});
-  const list = MY_EVENTS.filter(e => e.status === tab && !deleted[e.id]);
+function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
+  const TABS = ['live','draft','past'];
+
+  const [tab,      setTab]      = useState('live');
+  const [events,   setEvents]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [deleting, setDeleting] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      const userId = currentUser?.userId;
+      if (!userId) { if (!cancelled) setLoading(false); return; }
+      setLoading(true);
+      const { data: myEvents, error } = await supabase
+        .from('events').select('*').eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (cancelled) return;
+      if (error) {
+        console.error('[event-manager] failed to load events:', error);
+        showToast('Could not load your events');
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
+
+      const rows = myEvents || [];
+      const ids = rows.map(e => e.id);
+      let ticketCounts = {};
+      let likeCounts = {};
+      if (ids.length) {
+        const [{ data: ticketRows, error: ticketErr }, { data: likeRows, error: likeErr }] = await Promise.all([
+          supabase.from('tickets').select('event_id').in('event_id', ids),
+          supabase.from('event_likes').select('event_id').in('event_id', ids),
+        ]);
+        if (ticketErr) console.error('[event-manager] failed to load ticket counts:', ticketErr);
+        if (likeErr) console.error('[event-manager] failed to load like counts:', likeErr);
+        (ticketRows || []).forEach(t => { ticketCounts[t.event_id] = (ticketCounts[t.event_id] || 0) + 1; });
+        (likeRows || []).forEach(l => { likeCounts[l.event_id] = (likeCounts[l.event_id] || 0) + 1; });
+      }
+
+      if (!cancelled) {
+        setEvents(rows.map((ev, i) => ({
+          ...ev,
+          sold: ticketCounts[ev.id] || 0,
+          likeCount: likeCounts[ev.id] || 0,
+          grad: EVENT_MANAGER_GRADIENTS[i % EVENT_MANAGER_GRADIENTS.length],
+        })));
+        setLoading(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [currentUser?.userId]);
+
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const eventTab = (ev) => {
+    if (ev.status === 'draft') return 'draft';
+    const d = new Date(ev.full_date || ev.date || '');
+    if (!isNaN(d) && d < todayStart) return 'past';
+    return 'live';
+  };
+
+  const list = events.filter(e => eventTab(e) === tab && !deleting[e.id]);
+
+  const totals = events.reduce((acc, e) => {
+    const { isFree, amount } = parseEventPrice(e.price);
+    acc.revenue += isFree ? 0 : amount * e.sold;
+    acc.rsvps   += e.sold;
+    acc.likes   += e.likeCount;
+    return acc;
+  }, { revenue: 0, rsvps: 0, likes: 0 });
+
+  const fmtMoney = (n) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n}`;
+  const fmtCount = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
+
+  const handleDelete = async (ev) => {
+    if (!window.confirm(`Delete "${ev.title}"? This cannot be undone.`)) return;
+    setDeleting(s => ({ ...s, [ev.id]: true }));
+    const { error } = await supabase.from('events').delete().eq('id', ev.id);
+    if (error) {
+      console.error('[event-manager] failed to delete event:', error);
+      showToast('Could not delete event: ' + error.message);
+      setDeleting(s => { const n = { ...s }; delete n[ev.id]; return n; });
+      return;
+    }
+    setEvents(prev => prev.filter(e => e.id !== ev.id));
+    setDeleting(s => { const n = { ...s }; delete n[ev.id]; return n; });
+  };
 
   const STATUS = {
     live:  { bg:'#E4F7EC', color:'#15A34A', text:'● Live'  },
@@ -10080,7 +10239,7 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
       {/* Summary band */}
       <div style={{ flexShrink:0, padding:'14px 16px 0' }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
-          {[{v:'$15.2K',label:'Ticket revenue'},{v:'2,000',label:'Total RSVPs'},{v:'13.1K',label:'Total views'}].map(s => (
+          {[{v:fmtMoney(totals.revenue),label:'Ticket revenue'},{v:fmtCount(totals.rsvps),label:'Total RSVPs'},{v:fmtCount(totals.likes),label:'Total likes'}].map(s => (
             <div key={s.label} style={{ background:'#fff', borderRadius:16,
                                          boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
                                          padding:'13px 8px', textAlign:'center' }}>
@@ -10111,7 +10270,13 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'10px 16px 30px',
                     display:'flex', flexDirection:'column', gap:14 }}>
 
-        {list.length === 0 && (
+        {loading && (
+          <div style={{ textAlign:'center', padding:'50px 30px', color:C.subtle, fontSize:13, fontWeight:600 }}>
+            Loading your events…
+          </div>
+        )}
+
+        {!loading && list.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                         textAlign:'center', padding:'50px 30px' }}>
             <div style={{ width:74, height:74, borderRadius:22, background:'#EAF1F8',
@@ -10130,9 +10295,18 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
           </div>
         )}
 
-        {list.map(e => {
-          const sm  = STATUS[e.status];
-          const pct = e.cap > 0 ? Math.round((e.sold / e.cap) * 100) : 0;
+        {!loading && list.map(e => {
+          const sm = STATUS[tab];
+          const cap = e.capacity > 0 ? e.capacity : 0;
+          const pct = cap > 0 ? Math.round((e.sold / cap) * 100) : 0;
+          const { isFree, amount } = parseEventPrice(e.price);
+          const salesLabel = isFree ? 'Free' : `$${(amount * e.sold).toLocaleString()}`;
+          const d = new Date(e.full_date || e.date || '');
+          const day = !isNaN(d) ? String(d.getDate()).padStart(2, '0') : '—';
+          const mon = !isNaN(d) ? d.toLocaleDateString([], { month: 'short' }).toUpperCase() : 'TBD';
+          const when = !isNaN(d)
+            ? d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + (e.start_time ? ` · ${e.start_time}` : '')
+            : 'Not scheduled';
           return (
             <div key={e.id} style={{ background:'#fff', borderRadius:20,
                                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
@@ -10146,10 +10320,10 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
                   <div style={{ position:'absolute', inset:0, background:
                     'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
                   <span style={{ position:'relative', fontSize:19, fontWeight:800, lineHeight:1 }}>
-                    {e.day}
+                    {day}
                   </span>
                   <span style={{ position:'relative', fontSize:10, fontWeight:700,
-                                 letterSpacing:0.5, marginTop:2 }}>{e.mon}</span>
+                                 letterSpacing:0.5, marginTop:2 }}>{mon}</span>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:7 }}>
@@ -10161,17 +10335,17 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
                   </div>
                   <div style={{ fontSize:14.5, fontWeight:800, color:C.ink,
                                 marginTop:5, lineHeight:1.2 }}>{e.title}</div>
-                  <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{e.when}</div>
+                  <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{when}</div>
                 </div>
               </div>
 
               {/* Metrics */}
-              {e.cap > 0 && (
+              {cap > 0 && (
                 <div style={{ padding:'0 14px 10px' }}>
                   <div style={{ display:'flex', justifyContent:'space-between',
                                 marginBottom:5 }}>
                     <span style={{ fontSize:11, fontWeight:700, color:C.subtle }}>
-                      {e.sold}/{e.cap} tickets
+                      {e.sold}/{cap} tickets
                     </span>
                     <span style={{ fontSize:11, fontWeight:700, color:C.primary }}>
                       {pct}%
@@ -10188,7 +10362,7 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
 
               {/* Stats row */}
               <div style={{ display:'flex', gap:0, padding:'0 14px 10px' }}>
-                {[{l:'Sales',v:e.sales},{l:'RSVPs',v:e.rsvps},{l:'Views',v:e.views}].map((s,i) => (
+                {[{l:'Sales',v:salesLabel},{l:'RSVPs',v:String(e.sold)},{l:'Likes',v:String(e.likeCount)}].map((s,i) => (
                   <div key={s.l} style={{ flex:1, textAlign:'center',
                                           borderRight: i<2 ? `1px solid ${C.divider}` : 'none',
                                           padding:'4px 0' }}>
@@ -10201,7 +10375,7 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
 
               {/* Action row */}
               <div style={{ display:'flex', gap:9, padding:'0 14px 14px' }}>
-                {e.status === 'live' && (
+                {tab === 'live' && (
                   <button onClick={() => navigate('check-in', {eventId: e.id})} style={{
                     flex:1, height:40, border:'none', borderRadius:12,
                     background:'#E9F6FF', color:C.primary,
@@ -10229,7 +10403,7 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
                   </svg>
                   Edit
                 </button>
-                <button onClick={() => setDeleted(s => ({ ...s, [e.id]: true }))} style={{
+                <button onClick={() => handleDelete(e)} style={{
                   width:40, height:40, border:'none', borderRadius:12, flexShrink:0,
                   background:'#FFF1ED', display:'flex', alignItems:'center',
                   justifyContent:'center', cursor:'pointer',
@@ -11229,7 +11403,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'review-reports':   return <ReviewReportsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
     }

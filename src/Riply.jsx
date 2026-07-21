@@ -2993,25 +2993,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   // social links, for every visitor, regardless of tab) -- pinning itself
   // is admin-only, enforced by the pin toggle in the Events tab.
   const pinnedEvent = groupEvents.find(e => e.is_pinned) || null;
-  const [pinnedStats, setPinnedStats] = useState({ going: 0, interested: 0 });
-  useEffect(() => {
-    if (!pinnedEvent?.id) { setPinnedStats({ going: 0, interested: 0 }); return; }
-    let cancelled = false;
-    Promise.all([
-      supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('event_id', pinnedEvent.id),
-      supabase.from('event_likes').select('*', { count: 'exact', head: true }).eq('event_id', pinnedEvent.id),
-    ]).then(([tickets, likes]) => {
-      if (cancelled) return;
-      if (tickets.error) console.error('[pinned-event] failed to load going count:', tickets.error);
-      if (likes.error) console.error('[pinned-event] failed to load interested count:', likes.error);
-      setPinnedStats({ going: tickets.count || 0, interested: likes.count || 0 });
-    }).catch(err => {
-      if (cancelled) return;
-      console.error('[pinned-event] failed to load stats:', err);
-      setPinnedStats({ going: 0, interested: 0 });
-    });
-    return () => { cancelled = true; };
-  }, [pinnedEvent?.id]);
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
@@ -3312,11 +3293,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                   {pinnedEvent.title}
                 </div>
                 <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {[pinnedEvent.location || pinnedEvent.venue, when].filter(Boolean).join(' · ')}
+                  {pinnedEvent.location || pinnedEvent.venue}
                 </div>
-                <div style={{ fontSize:12.5, color:C.primary, fontWeight:700, marginTop:5 }}>
-                  {pinnedStats.going} going · {pinnedStats.interested} interested
-                </div>
+                {when && (
+                  <div style={{ fontSize:12.5, color:C.primary, fontWeight:700, marginTop:5 }}>
+                    {when}
+                  </div>
+                )}
               </div>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
                 <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>

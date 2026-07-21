@@ -5761,7 +5761,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
       const v = e.target.value.replace(/\D/g,'').slice(-1);
       const nc=[...code]; nc[i]=v; setCode(nc);
       if(v&&i<5) codeRefs[i+1].current?.focus();
-      if(!v&&i>0&&e.nativeEvent.inputType==='deleteContentBackward') codeRefs[i-1].current?.focus();
+      if(!v&&i>0) codeRefs[i-1].current?.focus();
     };
     const handlePaste = (e) => {
       const digits = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6).split('');
@@ -5846,7 +5846,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
           {canResend && (
             <div style={{ fontSize:13, color:'#7B8499', marginTop:24 }}>
               Didn't receive the code?{' '}
-              <span onClick={resendSecondFactor}
+              <span onClick={withLoading(resendSecondFactor)}
                 style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>Resend</span>
             </div>
           )}

@@ -1086,22 +1086,35 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       .limit(50)
       .then(({ data }) => setLinkableEvents(data || []));
   }, []);
-  const defaultGroup = GROUPS.find(g => g.id === groupId) || GROUPS.find(g => (g.state || "join") === 'joined') || GROUPS[0];
+  // Real groups the user is an approved member of, not the static mock
+  // GROUPS array -- that never matched a real DB groupId, so this always
+  // silently fell back to whatever mock group happened to be first
+  // ("History Club") regardless of which group the user actually opened
+  // the composer from.
+  const [myGroups, setMyGroups] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState(groupId || null);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    supabase.from('group_members').select('group_id, groups(id, name, initial, logo_color, avatar_url)')
+      .eq('user_id', user.id).in('role', ['member', 'admin', 'owner'])
+      .then(({ data }) => {
+        if (cancelled) return;
+        const groups = (data || []).map(r => r.groups).filter(Boolean);
+        setMyGroups(groups);
+        setSelectedGroupId(prev => prev || groupId || groups[0]?.id || null);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id, groupId]);
+  const selectedGroup = myGroups.find(g => g.id === selectedGroupId) || null;
 
   const [text,        setText]        = useState('');
-  const [imageUrl,    setImageUrl]    = useState(null);
-  const [imagePreview,setImagePreview]= useState(null);
-  // Track the live blob URL so we can revoke it when replaced or on unmount —
-  // createObjectURL leaks memory until explicitly released.
-  const imagePreviewUrlRef = useRef(null);
-  const setImagePreviewBlob = (url) => {
-    if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
-    imagePreviewUrlRef.current = url;
-    setImagePreview(url);
-  };
+  // Multiple photos: each entry is { id, previewUrl (blob, revoked on removal/
+  // unmount), url (uploaded Supabase URL, null while still uploading) }.
+  const [images,      setImages]      = useState([]);
   useEffect(() => () => {
-    if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
-  }, []);
+    images.forEach(img => URL.revokeObjectURL(img.previewUrl));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- unmount-only cleanup, re-running per images change would revoke URLs still in use
   const [fileUrl,     setFileUrl]     = useState(null);
   const [fileName,    setFileName]    = useState(null);
   const [hasPoll,     setHasPoll]     = useState(false);
@@ -1114,14 +1127,11 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const [uploading,   setUploading]   = useState(false);
   const photoInputRef = useRef(null);
   const fileInputRef  = useRef(null);
-  // Bumped on every photo pick so a slower, superseded upload can't clobber
-  // state (imageUrl/preview/uploading) once a newer photo has been selected.
-  const photoUploadGenRef = useRef(0);
 
-  const joinedGroups = GROUPS.filter(g => (g.state || "join") === 'joined');
-
-  const hasPhoto = !!imageUrl;
+  const uploadedImageUrls = images.map(img => img.url).filter(Boolean);
+  const hasPhoto = images.length > 0;
   const hasFile  = !!fileUrl;
+  const photosUploading = images.some(img => !img.url);
 
   const canPost = hasPoll
     ? text.trim().length > 0 && pollOpts.filter(o => o.trim()).length >= 2
@@ -1132,8 +1142,9 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       showToast(hasPoll ? 'Write a question and add at least 2 options' : 'Write something or add a photo, file, or event');
       return;
     }
+    if (!selectedGroupId) { showToast('Select a group to post to'); return; }
+    if (photosUploading) { showToast('Photos are still uploading'); return; }
     setPosting(true);
-    const matchedGroup = GROUPS.find(g => g.name === group);
     const authorName = currentUser.name || user?.username || 'Member';
 
     // Build insert payload — only include extra columns if we have values,
@@ -1141,7 +1152,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     const payload = {
       content:        text || '',
       text:           text || '',
-      group_id:       groupId || (matchedGroup?.id && String(matchedGroup.id).includes('-') ? matchedGroup.id : null),
+      group_id:       selectedGroupId,
       user_id:        user?.id,
       likes_count:    0,
       comment_count:  0,
@@ -1150,7 +1161,10 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       author_color:   currentUser?.avatarColor || deriveAvatarColor(user?.id || ''),
       avatar_url:     currentUser?.avatarUrl || null,
     };
-    if (imageUrl)          payload.image_url         = imageUrl;
+    if (uploadedImageUrls.length) {
+      payload.image_url = uploadedImageUrls[0];
+      payload.images    = uploadedImageUrls;
+    }
     if (fileUrl)           payload.file_url          = fileUrl;
     if (fileName)          payload.file_name         = fileName;
     if (linkedEvent?.id)   payload.linked_event_id   = linkedEvent.id;
@@ -1163,7 +1177,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     const { error } = await supabase.from('posts').insert(payload);
     setPosting(false);
     if (error) { showToast('Failed to post: ' + error.message); return; }
-    showToast(`Posted to ${group}`);
+    showToast(`Posted to ${selectedGroup?.name || 'group'}`);
     goBack();
   };
 
@@ -1265,7 +1279,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                   <path d="M4 18c0-2 1.5-3 4-3M20 18c0-2-1.5-3-4-3"
                         stroke={C.muted} strokeWidth="1.8" strokeLinecap="round"/>
                 </svg>
-                <span style={{ fontSize:11.5, fontWeight:700, color:C.body }}>{group}</span>
+                <span style={{ fontSize:11.5, fontWeight:700, color:C.body }}>{selectedGroup?.name || 'Select a group'}</span>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                   <path d="m6 9 6 6 6-6" stroke={C.subtle} strokeWidth="2"
                         strokeLinecap="round" strokeLinejoin="round"/>
@@ -1276,26 +1290,33 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
               {pickerOpen && (
                 <div style={{ position:'absolute', top:32, left:0, background:'#fff',
                               borderRadius:14, boxShadow:'0 6px 20px rgba(16,24,40,0.14)',
-                              overflow:'hidden', zIndex:20, minWidth:200 }}>
-                  {joinedGroups.map(g => (
-                    <div key={g.id} onClick={() => { setGroup(g.name); setPickerOpen(false); }}
+                              overflow:'hidden', zIndex:20, minWidth:200, maxHeight:280, overflowY:'auto' }}>
+                  {myGroups.length === 0 && (
+                    <div style={{ padding:'14px', fontSize:12.5, color:C.subtle }}>You haven't joined any groups yet</div>
+                  )}
+                  {myGroups.map(g => (
+                    <div key={g.id} onClick={() => { setSelectedGroupId(g.id); setPickerOpen(false); }}
                       style={{ display:'flex', alignItems:'center', gap:10, padding:'11px 14px',
-                               cursor:'pointer', background: group===g.name ? '#EAF6FF' : '#fff',
+                               cursor:'pointer', background: selectedGroupId===g.id ? '#EAF6FF' : '#fff',
                                borderBottom:`1px solid ${C.divider}` }}>
                       <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
-                                    background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
+                                    background: g.avatar_url ? 'transparent' : (g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)"), display:'flex', alignItems:'center',
                                     justifyContent:'center', color:'#fff',
                                     fontSize:11, fontWeight:800, position:'relative',
                                     overflow:'hidden' }}>
-                        <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
-                        <div style={{ position:'absolute', inset:0, background:
-                          'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 8px)'}}/>
+                        {g.avatar_url
+                          ? <img src={g.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                          : <>
+                              <span>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
+                              <div style={{ position:'absolute', inset:0, background:
+                                'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 8px)'}}/>
+                            </>}
                       </div>
                       <span style={{ fontSize:13, fontWeight:700,
-                                     color: group===g.name ? C.primary : C.body }}>
+                                     color: selectedGroupId===g.id ? C.primary : C.body }}>
                         {g.name}
                       </span>
-                      {group===g.name && (
+                      {selectedGroupId===g.id && (
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                           style={{ marginLeft:'auto', flexShrink:0 }}>
                           <path d="m5 12.5 4 4L19 7" stroke={C.primary} strokeWidth="2.4"
@@ -1322,22 +1343,24 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         />
 
         {/* Hidden inputs */}
-        <input ref={photoInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={async e => {
-          const file = e.target.files?.[0]; if (!file) return;
-          const gen = ++photoUploadGenRef.current;
-          setImagePreviewBlob(URL.createObjectURL(file));
-          setUploading(true);
-          try {
-            const url = await uploadImage(file, 'post-media', `posts/${user?.id}-${Date.now()}.jpg`);
-            if (gen === photoUploadGenRef.current) setImageUrl(url);
-          } catch (err) {
-            if (gen === photoUploadGenRef.current) {
-              showToast('Image upload failed: ' + (err?.message || 'Bucket not found'));
-              setImagePreviewBlob(null);
-            }
-          }
-          if (gen === photoUploadGenRef.current) setUploading(false);
+        <input ref={photoInputRef} type="file" accept="image/*" multiple style={{ display:'none' }} onChange={e => {
+          const files = Array.from(e.target.files || []);
           e.target.value = '';
+          if (!files.length) return;
+          const entries = files.map(file => ({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, previewUrl: URL.createObjectURL(file), url: null }));
+          setImages(prev => [...prev, ...entries]);
+          entries.forEach((entry, i) => {
+            uploadImage(files[i], 'post-media', `posts/${user?.id}-${Date.now()}-${i}.jpg`)
+              .then(url => setImages(prev => prev.map(img => img.id === entry.id ? { ...img, url } : img)))
+              .catch(err => {
+                showToast('Image upload failed: ' + (err?.message || 'Bucket not found'));
+                setImages(prev => {
+                  const target = prev.find(img => img.id === entry.id);
+                  if (target) URL.revokeObjectURL(target.previewUrl);
+                  return prev.filter(img => img.id !== entry.id);
+                });
+              });
+          });
         }} />
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style={{ display:'none' }} onChange={async e => {
           const file = e.target.files?.[0]; if (!file) return;
@@ -1354,17 +1377,25 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           e.target.value = '';
         }} />
 
-        {/* Photo preview */}
-        {imagePreview && (
-          <div style={{ position:'relative', borderRadius:16, overflow:'hidden', marginTop:8 }}>
-            <img src={imagePreview} alt="" style={{ width:'100%', maxHeight:240, objectFit:'cover', display:'block' }} />
-            {uploading && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:700 }}>Uploading…</div>}
-            <button onClick={() => { photoUploadGenRef.current++; setImageUrl(null); setImagePreviewBlob(null); }} style={{
-              position:'absolute', top:10, right:10, width:30, height:30, border:'none',
-              borderRadius:'50%', background:'rgba(14,23,38,0.6)',
-              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/></svg>
-            </button>
+        {/* Photo previews — horizontally scrollable, matches multi-photo pattern */}
+        {images.length > 0 && (
+          <div style={{ display:'flex', gap:8, overflowX:'auto', marginTop:8, paddingBottom:2 }}>
+            {images.map(img => (
+              <div key={img.id} style={{ position:'relative', width:120, height:120, flexShrink:0, borderRadius:14, overflow:'hidden' }}>
+                <img src={img.previewUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                {!img.url && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:11, fontWeight:700 }}>Uploading…</div>}
+                <button onClick={() => setImages(prev => {
+                  const target = prev.find(x => x.id === img.id);
+                  if (target) URL.revokeObjectURL(target.previewUrl);
+                  return prev.filter(x => x.id !== img.id);
+                })} style={{
+                  position:'absolute', top:6, right:6, width:24, height:24, border:'none',
+                  borderRadius:'50%', background:'rgba(14,23,38,0.6)',
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -2503,8 +2534,16 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         );
       })()}
 
-      {/* Image */}
-      {p.image_url && (
+      {/* Image(s) — multiple photos scroll horizontally, a single photo fills the width */}
+      {Array.isArray(p.images) && p.images.length > 1 ? (
+        <div style={{ display:'flex', gap:8, overflowX:'auto', marginTop:11, paddingBottom:2 }}>
+          {p.images.map((url, i) => (
+            <div key={i} style={{ borderRadius:14, overflow:'hidden', flexShrink:0, width:220, height:220 }}>
+              <img src={url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
+            </div>
+          ))}
+        </div>
+      ) : p.image_url && (
         <div style={{ borderRadius:14, overflow:'hidden', marginTop:11 }}>
           <img src={p.image_url} alt="" style={{ width:'100%', display:'block', objectFit:'cover', maxHeight:240 }} />
         </div>
@@ -3369,11 +3408,19 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 )}
                 {groupEvents.length === 0
                   ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No upcoming events</div>
-                  : groupEvents.map(ev => {
+                  : [...groupEvents].sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0)).map(ev => {
                     const d = ev.date ? new Date(ev.date) : null;
                     const day = d ? d.getDate().toString() : '';
                     const mon = d ? d.toLocaleString('en',{month:'short'}).toUpperCase() : '';
                     const grad = THEME[ev.category || ev.primary]?.grad || 'linear-gradient(135deg,#7C5CFF,#02B6FE)';
+                    const togglePinEvent = async (e) => {
+                      e.stopPropagation();
+                      const nextPinned = !ev.is_pinned;
+                      const { error } = await supabase.from('events').update({ is_pinned: nextPinned }).eq('id', ev.id);
+                      if (error) { showToast('Could not update pin: ' + error.message); return; }
+                      setGroupEvents(prev => prev.map(x => x.id === ev.id ? { ...x, is_pinned: nextPinned } : x));
+                      showToast(nextPinned ? 'Event pinned to top' : 'Event unpinned');
+                    };
                     return (
                       <div key={ev.id} onClick={() => navigate('event-details',{eventId:ev.id})}
                         style={{ display:'flex', gap:13, background:'#fff', borderRadius:18,
@@ -3382,13 +3429,23 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                                       background:grad, position:'relative', overflow:'hidden',
                                       display:'flex', flexDirection:'column', alignItems:'center',
                                       justifyContent:'center', color:'#fff' }}>
-                          <div style={{ position:'absolute', inset:0, background:
-                            'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
+                          {ev.image_url
+                            ? <img src={ev.image_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+                            : <div style={{ position:'absolute', inset:0, background:
+                                'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>}
                           <span style={{ position:'relative', fontSize:18, fontWeight:800, lineHeight:1 }}>{day}</span>
                           <span style={{ position:'relative', fontSize:9.5, fontWeight:700, letterSpacing:0.5, marginTop:2 }}>{mon}</span>
                         </div>
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25 }}>{ev.title}</div>
+                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                            <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25, flex:1, minWidth:0,
+                                          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
+                            {ev.is_pinned && (
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                                <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </div>
                           <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{fmtDate(ev.full_date || ev.date)}</div>
                           <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -3398,6 +3455,15 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                             <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{ev.attendees_count || ev.going || 0} going</span>
                           </div>
                         </div>
+                        {isGroupAdmin && (
+                          <button onClick={togglePinEvent} style={{ width:32, height:32, border:'none', borderRadius:10,
+                            background: ev.is_pinned ? '#EAF6FF' : C.chip, display:'flex', alignItems:'center',
+                            justifyContent:'center', cursor:'pointer', flexShrink:0, alignSelf:'flex-start' }}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                              <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     );
                   })
@@ -6670,7 +6736,8 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
   const [cat,      setCat]      = useState('culture');
   const [coverUrl,  setCoverUrl]  = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [name,     setName]     = useState('');
   const [privacy,  setPrivacy]  = useState('public');
@@ -6730,7 +6797,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            setUploading(true);
+            setUploadingCover(true);
             try {
               const ext = file.name.split('.').pop() || 'jpg';
               const url = await uploadImage(file, 'post-media', Date.now() + '.' + ext);
@@ -6739,7 +6806,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             } catch {
               showToast('Upload failed. Try again.');
             }
-            setUploading(false);
+            setUploadingCover(false);
             input.value = '';
           };
           input.click();
@@ -6765,9 +6832,9 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             </svg>
           </div>
           <span style={{ fontSize:12, fontWeight:800, color:'#fff', position:'relative' }}>
-            {uploading ? 'Uploading…' : coverUrl ? 'Change cover photo' : 'Add cover photo'}
+            {uploadingCover ? 'Uploading…' : coverUrl ? 'Change cover photo' : 'Add cover photo'}
           </span>
-          {!coverUrl && !uploading && (
+          {!coverUrl && !uploadingCover && (
             <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
                            color:'rgba(255,255,255,0.82)', position:'relative' }}>
               Recommended 1200×400
@@ -6783,7 +6850,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            setUploading(true);
+            setUploadingAvatar(true);
             try {
               const ext = file.name.split('.').pop() || 'jpg';
               const url = await uploadImage(file, 'post-media', Date.now() + '.' + ext);
@@ -6792,7 +6859,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             } catch {
               showToast('Upload failed. Try again.');
             }
-            setUploading(false);
+            setUploadingAvatar(false);
             input.value = '';
           };
           input.click();
@@ -6816,7 +6883,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Group icon</div>
-            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{uploading ? 'Uploading…' : avatarUrl ? 'Tap to change logo' : 'Tap to upload a logo'}</div>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{uploadingAvatar ? 'Uploading…' : avatarUrl ? 'Tap to change logo' : 'Tap to upload a logo'}</div>
           </div>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
@@ -8516,11 +8583,20 @@ function ReviewReportsScreen({ groupId, goBack, showToast }) {
   const resolve = async (r, action) => {
     setDismissed(s => ({ ...s, [r.id]: true }));
     if (action === 'remove' && r.postId) {
-      await supabase.from('posts').delete().eq('id', r.postId);
+      const { error: deleteError } = await supabase.from('posts').delete().eq('id', r.postId);
+      if (deleteError) {
+        setDismissed(s => { const n = { ...s }; delete n[r.id]; return n; });
+        showToast('Failed to remove content: ' + deleteError.message);
+        return;
+      }
     }
     const { error } = await supabase.from('post_reports')
       .update({ status: action === 'remove' ? 'removed' : 'dismissed' }).eq('id', r.id);
-    if (error) console.error('[review-reports] resolve failed:', error);
+    if (error) {
+      setDismissed(s => { const n = { ...s }; delete n[r.id]; return n; });
+      showToast('Failed to update report: ' + error.message);
+      return;
+    }
     showToast(action === 'remove' ? 'Content removed' : 'Report dismissed');
   };
 
@@ -8653,7 +8729,11 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
     setDone(s => { const n = { ...s }; targets.forEach(r => { n[r.userId] = true; }); return n; });
     const { error } = await supabase.from('group_members').update({ role: 'member' })
       .eq('group_id', groupId).eq('role', 'pending');
-    if (error) { showToast('Failed to accept all: ' + error.message); return; }
+    if (error) {
+      setDone(s => { const n = { ...s }; targets.forEach(r => { delete n[r.userId]; }); return n; });
+      showToast('Failed to accept all: ' + error.message);
+      return;
+    }
     showToast('All requests accepted');
   };
 

@@ -640,3 +640,12 @@ create policy post_reports_update on public.post_reports for update using (
 alter table public.group_members add column if not exists ban_reason text;
 alter table public.group_members add column if not exists banned_by text;
 alter table public.group_members add column if not exists banned_at timestamptz;
+
+-- posts.images (jsonb array of URLs) — Create Post now supports selecting
+-- multiple photos at once; image_url stays populated with the first photo
+-- for every existing read site that only ever expected a single image.
+alter table public.posts add column if not exists images jsonb;
+
+-- events.is_pinned — lets a group admin pin an event to the top of the
+-- group's Events tab, independent of the existing per-post pin feature.
+alter table public.events add column if not exists is_pinned boolean not null default false;

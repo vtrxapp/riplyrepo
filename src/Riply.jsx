@@ -5464,15 +5464,15 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
     setLoading(true);
     try { await fn(...args); } finally { loadingRef.current = false; setLoading(false); }
   };
-  const go = (s) => { setStep(s); setAnimKey(k => k+1); };
-  const { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
   const [backupCode, setBackupCode] = useState('');
-
-  // Reset OTP state whenever a fresh code-entry step is entered, so leftover
-  // digits from a previous step (or a previous login attempt) don't linger.
-  useEffect(() => {
-    if (step === 'second-factor') { setCode(['','','','','','']); setBackupCode(''); }
-  }, [step]);
+  // Reset OTP/backup-code state synchronously on transitions into a fresh
+  // code-entry step, so leftover digits from a previous attempt don't
+  // briefly flash before clearing.
+  const go = (s) => {
+    if (s === 'second-factor') { setCode(['','','','','','']); setBackupCode(''); }
+    setStep(s); setAnimKey(k => k+1);
+  };
+  const { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
 
   // ── field state ───────────────────────────────────────────
   const [name,     setName]     = useState('');

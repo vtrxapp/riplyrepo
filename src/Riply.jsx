@@ -2458,7 +2458,8 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         {p.is_pinned && (
           <div style={{ display:'flex', alignItems:'center', gap:4, marginRight:6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span style={{ fontSize:10.5, fontWeight:800, color:C.primary }}>Pinned</span>
           </div>
@@ -2730,7 +2731,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             {[
               ...(isGroupAdmin ? [{
                 label: p.is_pinned ? 'Unpin Post' : 'Pin Post',
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="12" y1="17" x2="12" y2="22" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
                 action: handleTogglePin,
               }] : []),
               ...(canModerate ? [{
@@ -2993,25 +2994,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
   // social links, for every visitor, regardless of tab) -- pinning itself
   // is admin-only, enforced by the pin toggle in the Events tab.
   const pinnedEvent = groupEvents.find(e => e.is_pinned) || null;
-  const [pinnedStats, setPinnedStats] = useState({ going: 0, interested: 0 });
-  useEffect(() => {
-    if (!pinnedEvent?.id) { setPinnedStats({ going: 0, interested: 0 }); return; }
-    let cancelled = false;
-    Promise.all([
-      supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('event_id', pinnedEvent.id),
-      supabase.from('event_likes').select('*', { count: 'exact', head: true }).eq('event_id', pinnedEvent.id),
-    ]).then(([tickets, likes]) => {
-      if (cancelled) return;
-      if (tickets.error) console.error('[pinned-event] failed to load going count:', tickets.error);
-      if (likes.error) console.error('[pinned-event] failed to load interested count:', likes.error);
-      setPinnedStats({ going: tickets.count || 0, interested: likes.count || 0 });
-    }).catch(err => {
-      if (cancelled) return;
-      console.error('[pinned-event] failed to load stats:', err);
-      setPinnedStats({ going: 0, interested: 0 });
-    });
-    return () => { cancelled = true; };
-  }, [pinnedEvent?.id]);
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
@@ -3292,6 +3274,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           const mon = !isNaN(d) ? d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase() : '';
           const when = pinnedEvent.time_range ? fmtRange(pinnedEvent.time_range)
             : pinnedEvent.start_time ? fmt12(pinnedEvent.start_time) : '';
+          const location = [pinnedEvent.location, pinnedEvent.venue]
+            .map(value => typeof value === 'string' ? value.trim() : '')
+            .find(Boolean) || '';
           return (
             <div onClick={() => navigate('event-details', { eventId: pinnedEvent.id })}
               style={{ margin:'16px 16px 0', display:'flex', alignItems:'center', gap:13,
@@ -3311,15 +3296,20 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 <div style={{ fontSize:15, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {pinnedEvent.title}
                 </div>
-                <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {[pinnedEvent.location || pinnedEvent.venue, when].filter(Boolean).join(' · ')}
-                </div>
-                <div style={{ fontSize:12.5, color:C.primary, fontWeight:700, marginTop:5 }}>
-                  {pinnedStats.going} going · {pinnedStats.interested} interested
-                </div>
+                {location && (
+                  <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, whiteSpace:'normal', overflowWrap:'anywhere' }}>
+                    {location}
+                  </div>
+                )}
+                {when && (
+                  <div style={{ fontSize:12.5, color:C.primary, fontWeight:700, marginTop:5 }}>
+                    {when}
+                  </div>
+                )}
               </div>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
           );
@@ -3505,7 +3495,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                                           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
                             {ev.is_pinned && (
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-                                <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                                <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+                                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             )}
                           </div>
@@ -3519,11 +3510,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                           </div>
                         </div>
                         {isGroupAdmin && (
-                          <button onClick={togglePinEvent} style={{ width:32, height:32, border:'none', borderRadius:10,
+                          <button onClick={togglePinEvent} aria-label={ev.is_pinned ? 'Unpin event' : 'Pin event'} aria-pressed={!!ev.is_pinned} style={{ width:32, height:32, border:'none', borderRadius:10,
                             background: ev.is_pinned ? '#EAF6FF' : C.chip, display:'flex', alignItems:'center',
                             justifyContent:'center', cursor:'pointer', flexShrink:0, alignSelf:'flex-start' }}>
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                              <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                              <line x1="12" y1="17" x2="12" y2="22" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
+                              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </button>
                         )}

@@ -3293,9 +3293,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 <div style={{ fontSize:15, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {pinnedEvent.title}
                 </div>
-                <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                  {pinnedEvent.location || pinnedEvent.venue}
-                </div>
+                {(pinnedEvent.location || pinnedEvent.venue) && (
+                  <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, whiteSpace:'normal', overflowWrap:'anywhere' }}>
+                    {pinnedEvent.location || pinnedEvent.venue}
+                  </div>
+                )}
                 {when && (
                   <div style={{ fontSize:12.5, color:C.primary, fontWeight:700, marginTop:5 }}>
                     {when}

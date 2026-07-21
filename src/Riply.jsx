@@ -2996,7 +2996,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
       supabase.from('event_likes').select('*', { count: 'exact', head: true }).eq('event_id', pinnedEvent.id),
     ]).then(([tickets, likes]) => {
       if (cancelled) return;
+      if (tickets.error) console.error('[pinned-event] failed to load going count:', tickets.error);
+      if (likes.error) console.error('[pinned-event] failed to load interested count:', likes.error);
       setPinnedStats({ going: tickets.count || 0, interested: likes.count || 0 });
+    }).catch(err => {
+      if (cancelled) return;
+      console.error('[pinned-event] failed to load stats:', err);
+      setPinnedStats({ going: 0, interested: 0 });
     });
     return () => { cancelled = true; };
   }, [pinnedEvent?.id]);

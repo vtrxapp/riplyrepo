@@ -3,8 +3,10 @@ import { useSignIn, useSignUp, useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 
 // Preference order when Clerk offers more than one second-factor option --
-// TOTP/backup codes need nothing sent, so they complete fastest; phone and
-// email codes need an outbound send first.
+// TOTP needs nothing sent, so it's fastest and comes first; phone/email
+// codes are the normal recurring second factor after that. Backup codes are
+// a scarce break-glass mechanism (each one is single-use) so they're last
+// even though, like TOTP, they need no outbound send.
 const SECOND_FACTOR_PRIORITY = ['totp', 'phone_code', 'email_code', 'backup_code']
 
 export function useClerkAuth(showToast, setScreen, go, refetchProfile) {

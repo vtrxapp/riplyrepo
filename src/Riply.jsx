@@ -62,6 +62,15 @@ function addToCalendar({ title, location, description, dateStr, timeStr, duratio
   }
 }
 
+// Format any parseable date value as "13 Jan 2026" (the app-wide default),
+// falling back to the raw value if it isn't a real date.
+function fmtDate(raw) {
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (isNaN(d)) return raw;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 // Convert "HH:MM" (24-hr) to "H:MM AM/PM". Passes through anything else.
 function fmt12(t) {
   if (!t) return t;
@@ -431,7 +440,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
                   <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>
-                    {(() => { const raw = ev.fullDate || ev.full_date || ev.date; if (!raw) return '-'; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); })()}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
+                    {fmtDate(ev.fullDate || ev.full_date || ev.date)}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
                   </span>
                 </div>
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
@@ -3364,7 +3373,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                         </div>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25 }}>{ev.title}</div>
-                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{ev.date || ''}</div>
+                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{fmtDate(ev.full_date || ev.date)}</div>
                           <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                               <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
@@ -3549,7 +3558,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
         <HeaderBtn onClick={async () => {
           const shareData = {
             title: ev.title,
-            text: `${ev.title} — ${ev.fullDate || ev.full_date || ev.date || ''}${ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}`,
+            text: `${ev.title} — ${fmtDate(ev.fullDate || ev.full_date || ev.date)}${ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}`,
             url: window.location.href,
           };
           let didShare = false;
@@ -3677,7 +3686,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             <div style={{ flex:1 }}>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Date &amp; Time</div>
-              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{(() => { const raw = ev.fullDate || ev.full_date || ev.date; if (!raw) return ''; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); })()}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{fmtDate(ev.fullDate || ev.full_date || ev.date)}</div>
               <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtRange(ev.timeRange || ev.time_range)}</div>
               <button onClick={() => addToCalendar({ title: ev.title, location: ev.venue || ev.location, description: ev.description, dateStr: ev.fullDate || ev.full_date || ev.date, timeStr: ev.start_time, durationMins: 90 })} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
@@ -10883,7 +10892,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>{ev.title}</div>
                 <div style={{ fontSize:12, fontWeight:600, color:C.primary, marginTop:3 }}>
-                  {ev.fullDate || ev.full_date || ev.date}
+                  {fmtDate(ev.fullDate || ev.full_date || ev.date)}
                 </div>
                 <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
                   {ev.venue} · {ev.room}
@@ -11115,7 +11124,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
               <div style={{ fontSize:16, fontWeight:800, color:C.ink,
                             letterSpacing:-0.3 }}>{ev.title}</div>
               <div style={{ fontSize:12.5, fontWeight:600, color:C.primary,
-                            marginTop:4 }}>{ev.fullDate || ev.full_date || ev.date}</div>
+                            marginTop:4 }}>{fmtDate(ev.fullDate || ev.full_date || ev.date)}</div>
               <div style={{ fontSize:12, color:C.subtle, marginTop:2 }}>
                 {ev.venue}
               </div>

@@ -63,9 +63,10 @@ function addToCalendar({ title, location, description, dateStr, timeStr, duratio
 }
 
 // Format any parseable date value as "13 Jan 2026" (the app-wide default),
-// falling back to the raw value if it isn't a real date.
-function fmtDate(raw) {
-  if (!raw) return '';
+// falling back to the raw value if it isn't a real date, or to `empty` (a
+// caller-supplied placeholder, "" by default) if there's no value at all.
+function fmtDate(raw, empty = '') {
+  if (!raw) return empty;
   const d = new Date(raw);
   if (isNaN(d)) return raw;
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -440,7 +441,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
                   <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>
-                    {fmtDate(ev.fullDate || ev.full_date || ev.date)}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
+                    {fmtDate(ev.fullDate || ev.full_date || ev.date, '-')}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
                   </span>
                 </div>
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
@@ -6700,24 +6701,33 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           input.accept = 'image/*';
           input.onchange = async (e) => {
             const file = e.target.files[0];
+            if (!file) return;
+            setUploading(true);
             try {
-              const url = await uploadImage(file, 'post-media', Date.now() + '.jpg');
+              const ext = file.name.split('.').pop() || 'jpg';
+              const url = await uploadImage(file, 'post-media', Date.now() + '.' + ext);
               setCoverUrl(url);
               showToast('Cover photo uploaded ✓');
-            } catch(err) {
+            } catch {
               showToast('Upload failed. Try again.');
             }
+            setUploading(false);
             input.value = '';
           };
           input.click();
         }} style={{
-          width:'100%', height:140, borderRadius:20, border:'2px dashed #C7D2E0',
-          background:coverGrad, position:'relative', overflow:'hidden', cursor:'pointer',
+          width:'100%', height:140, borderRadius:20,
+          border: coverUrl ? 'none' : '2px dashed #C7D2E0',
+          background: coverUrl ? '#000' : coverGrad, position:'relative', overflow:'hidden', cursor:'pointer',
           display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
           gap:7, fontFamily:"'Montserrat',-apple-system,sans-serif",
         }}>
-          <div style={{ position:'absolute', inset:0, background:
-            'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 16px)' }}/>
+          {coverUrl && (
+            <img src={coverUrl} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+          )}
+          <div style={{ position:'absolute', inset:0, background: coverUrl
+            ? 'linear-gradient(to top,rgba(14,23,38,0.55) 0%,rgba(14,23,38,0.1) 60%,transparent 100%)'
+            : 'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 16px)' }}/>
           <div style={{ width:42, height:42, borderRadius:13, background:'rgba(255,255,255,0.92)',
                         display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
@@ -6727,12 +6737,14 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             </svg>
           </div>
           <span style={{ fontSize:12, fontWeight:800, color:'#fff', position:'relative' }}>
-            Add cover photo
+            {uploading ? 'Uploading…' : coverUrl ? 'Change cover photo' : 'Add cover photo'}
           </span>
-          <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
-                         color:'rgba(255,255,255,0.82)', position:'relative' }}>
-            Recommended 1200×400
-          </span>
+          {!coverUrl && !uploading && (
+            <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
+                           color:'rgba(255,255,255,0.82)', position:'relative' }}>
+              Recommended 1200×400
+            </span>
+          )}
         </button>
 
         {/* Group avatar preview */}
@@ -6743,13 +6755,16 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            setUploading(true);
             try {
-              const url = await uploadImage(file, 'post-media', Date.now() + '.jpg');
+              const ext = file.name.split('.').pop() || 'jpg';
+              const url = await uploadImage(file, 'post-media', Date.now() + '.' + ext);
               setAvatarUrl(url);
               showToast('Group icon uploaded ✓');
-            } catch(err) {
+            } catch {
               showToast('Upload failed. Try again.');
             }
+            setUploading(false);
             input.value = '';
           };
           input.click();
@@ -6773,7 +6788,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Group icon</div>
-            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{avatarUrl ? 'Tap to change logo' : 'Tap to upload a logo'}</div>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{uploading ? 'Uploading…' : avatarUrl ? 'Tap to change logo' : 'Tap to upload a logo'}</div>
           </div>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
@@ -7140,7 +7155,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
               const url = await uploadImage(file, 'post-media', Date.now() + '.jpg');
               setCoverUrl(url);
               showToast('Cover photo uploaded ✓');
-            } catch(err) {
+            } catch {
               showToast('Upload failed. Try again.');
             }
             setUploading(false);
@@ -7670,7 +7685,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               const url = await uploadImage(file, 'post-media', `${Date.now()}.jpg`);
               setCoverUrl(url);
               showToast('Cover photo uploaded ✓');
-            } catch(err) {
+            } catch {
               showToast('Upload failed. Try again.');
             }
            setUploading(false);

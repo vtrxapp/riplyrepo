@@ -598,3 +598,45 @@ create policy feedback_insert on public.feedback for insert
 create policy feedback_update on public.feedback for update
   using (current_user_id() = user_id) with check (current_user_id() = user_id);
 create policy feedback_delete on public.feedback for delete using (current_user_id() = user_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- post_reports — real backing for the group "Review Reports" screen and the
+-- PostCard "Report Post" action (both were previously hardcoded UI over no
+-- actual data).
+-- ─────────────────────────────────────────────────────────────
+create table if not exists public.post_reports (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  group_id uuid references public.groups(id) on delete cascade,
+  reporter_id text not null,
+  reason text,
+  status text not null default 'open' check (status in ('open','dismissed','removed')),
+  created_at timestamptz not null default now()
+);
+alter table public.post_reports enable row level security;
+
+drop policy if exists post_reports_select on public.post_reports;
+drop policy if exists post_reports_insert on public.post_reports;
+drop policy if exists post_reports_update on public.post_reports;
+
+create policy post_reports_select on public.post_reports for select using (
+  reporter_id = current_user_id()
+  or exists (
+    select 1 from public.group_members gm
+    where gm.group_id = post_reports.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
+  )
+);
+create policy post_reports_insert on public.post_reports for insert with check (reporter_id = current_user_id());
+create policy post_reports_update on public.post_reports for update using (
+  exists (
+    select 1 from public.group_members gm
+    where gm.group_id = post_reports.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
+  )
+);
+
+-- Real backing for "Banned Members" / the new "Ban" member action (group_members
+-- already had a `status` column, default 'approved' -- reused here as 'banned'
+-- rather than overloading `role`, which drives admin/member/pending semantics).
+alter table public.group_members add column if not exists ban_reason text;
+alter table public.group_members add column if not exists banned_by text;
+alter table public.group_members add column if not exists banned_at timestamptz;

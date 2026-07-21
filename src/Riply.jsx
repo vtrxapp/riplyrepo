@@ -10026,19 +10026,103 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT MANAGER
 // ─────────────────────────────────────────────────────────────
-function EventManagerScreen({ goBack, navigate, showToast }) {
-  const TABS   = ['live','draft','past'];
-  const MY_EVENTS = [
-    { id:1, status:'live',  title:'Spring Career Fair 2026', when:'Jan 22 · 10:00 AM', day:'22', mon:'JAN', grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)', sales:'$12,800', rsvps:'1,280', views:'8.4K', sold:1280, cap:1500 },
-    { id:2, status:'live',  title:'Karaoke Night',           when:'Jan 15 · 8:00 PM',  day:'15', mon:'JAN', grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', sales:'Free',    rsvps:'540',   views:'3.1K', sold:540,  cap:600  },
-    { id:3, status:'live',  title:'Founders Networking Mixer', when:'Jan 20 · 6:00 PM', day:'20', mon:'JAN', grad:'linear-gradient(135deg,#0EA5E9,#0E84E0)', sales:'$2,350',  rsvps:'180',   views:'1.6K', sold:180,  cap:200  },
-    { id:4, status:'draft', title:'Spoken Word Open Mic',    when:'Not scheduled',      day:'—',  mon:'TBD', grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)', sales:'—',      rsvps:'—',    views:'—',    sold:0,    cap:0    },
-    { id:5, status:'past',  title:'Winter Welcome Social',   when:'Dec 4 · 7:00 PM',   day:'04', mon:'DEC', grad:'linear-gradient(135deg,#10B981,#06B6D4)', sales:'Free',    rsvps:'920',   views:'6.2K', sold:880,  cap:900  },
-  ];
+const EVENT_MANAGER_GRADIENTS = [
+  'linear-gradient(135deg,#2F6BFF,#6C4DF2)',
+  'linear-gradient(135deg,#FF5A8A,#FF8A3D)',
+  'linear-gradient(135deg,#0EA5E9,#0E84E0)',
+  'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+  'linear-gradient(135deg,#10B981,#06B6D4)',
+];
 
-  const [tab,     setTab]     = useState('live');
-  const [deleted, setDeleted] = useState({});
-  const list = MY_EVENTS.filter(e => e.status === tab && !deleted[e.id]);
+function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
+  const TABS = ['live','draft','past'];
+
+  const [tab,      setTab]      = useState('live');
+  const [events,   setEvents]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [deleting, setDeleting] = useState({});
+
+  useEffect(() => {
+    const userId = currentUser?.userId;
+    if (!userId) { setLoading(false); return; }
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      const { data: myEvents, error } = await supabase
+        .from('events').select('*').eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (cancelled) return;
+      if (error) {
+        console.error('[event-manager] failed to load events:', error);
+        showToast('Could not load your events');
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
+
+      const rows = myEvents || [];
+      const ids = rows.map(e => e.id);
+      let ticketCounts = {};
+      let likeCounts = {};
+      if (ids.length) {
+        const [{ data: ticketRows }, { data: likeRows }] = await Promise.all([
+          supabase.from('tickets').select('event_id').in('event_id', ids),
+          supabase.from('event_likes').select('event_id').in('event_id', ids),
+        ]);
+        (ticketRows || []).forEach(t => { ticketCounts[t.event_id] = (ticketCounts[t.event_id] || 0) + 1; });
+        (likeRows || []).forEach(l => { likeCounts[l.event_id] = (likeCounts[l.event_id] || 0) + 1; });
+      }
+
+      if (!cancelled) {
+        setEvents(rows.map((ev, i) => ({
+          ...ev,
+          sold: ticketCounts[ev.id] || 0,
+          likeCount: likeCounts[ev.id] || 0,
+          grad: EVENT_MANAGER_GRADIENTS[i % EVENT_MANAGER_GRADIENTS.length],
+        })));
+        setLoading(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [currentUser?.userId]);
+
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const eventTab = (ev) => {
+    if (ev.status === 'draft') return 'draft';
+    const d = new Date(ev.full_date || ev.date || '');
+    if (!isNaN(d) && d < todayStart) return 'past';
+    return 'live';
+  };
+
+  const list = events.filter(e => eventTab(e) === tab && !deleting[e.id]);
+
+  const totals = events.reduce((acc, e) => {
+    const { isFree, amount } = parseEventPrice(e.price);
+    acc.revenue += isFree ? 0 : amount * e.sold;
+    acc.rsvps   += e.sold;
+    acc.likes   += e.likeCount;
+    return acc;
+  }, { revenue: 0, rsvps: 0, likes: 0 });
+
+  const fmtMoney = (n) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n}`;
+  const fmtCount = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
+
+  const handleDelete = async (ev) => {
+    setDeleting(s => ({ ...s, [ev.id]: true }));
+    const { error } = await supabase.from('events').delete().eq('id', ev.id);
+    if (error) {
+      console.error('[event-manager] failed to delete event:', error);
+      showToast('Could not delete event: ' + error.message);
+      setDeleting(s => { const n = { ...s }; delete n[ev.id]; return n; });
+      return;
+    }
+    setEvents(prev => prev.filter(e => e.id !== ev.id));
+    setDeleting(s => { const n = { ...s }; delete n[ev.id]; return n; });
+  };
 
   const STATUS = {
     live:  { bg:'#E4F7EC', color:'#15A34A', text:'● Live'  },
@@ -10080,7 +10164,7 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
       {/* Summary band */}
       <div style={{ flexShrink:0, padding:'14px 16px 0' }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
-          {[{v:'$15.2K',label:'Ticket revenue'},{v:'2,000',label:'Total RSVPs'},{v:'13.1K',label:'Total views'}].map(s => (
+          {[{v:fmtMoney(totals.revenue),label:'Ticket revenue'},{v:fmtCount(totals.rsvps),label:'Total RSVPs'},{v:fmtCount(totals.likes),label:'Total likes'}].map(s => (
             <div key={s.label} style={{ background:'#fff', borderRadius:16,
                                          boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
                                          padding:'13px 8px', textAlign:'center' }}>
@@ -10111,7 +10195,13 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'10px 16px 30px',
                     display:'flex', flexDirection:'column', gap:14 }}>
 
-        {list.length === 0 && (
+        {loading && (
+          <div style={{ textAlign:'center', padding:'50px 30px', color:C.subtle, fontSize:13, fontWeight:600 }}>
+            Loading your events…
+          </div>
+        )}
+
+        {!loading && list.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                         textAlign:'center', padding:'50px 30px' }}>
             <div style={{ width:74, height:74, borderRadius:22, background:'#EAF1F8',
@@ -10130,9 +10220,18 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
           </div>
         )}
 
-        {list.map(e => {
-          const sm  = STATUS[e.status];
-          const pct = e.cap > 0 ? Math.round((e.sold / e.cap) * 100) : 0;
+        {!loading && list.map(e => {
+          const sm = STATUS[tab];
+          const cap = e.capacity > 0 ? e.capacity : 0;
+          const pct = cap > 0 ? Math.round((e.sold / cap) * 100) : 0;
+          const { isFree, amount } = parseEventPrice(e.price);
+          const salesLabel = isFree ? 'Free' : `$${(amount * e.sold).toLocaleString()}`;
+          const d = new Date(e.full_date || e.date || '');
+          const day = !isNaN(d) ? String(d.getDate()).padStart(2, '0') : '—';
+          const mon = !isNaN(d) ? d.toLocaleDateString([], { month: 'short' }).toUpperCase() : 'TBD';
+          const when = !isNaN(d)
+            ? d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + (e.start_time ? ` · ${e.start_time}` : '')
+            : 'Not scheduled';
           return (
             <div key={e.id} style={{ background:'#fff', borderRadius:20,
                                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
@@ -10146,10 +10245,10 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
                   <div style={{ position:'absolute', inset:0, background:
                     'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
                   <span style={{ position:'relative', fontSize:19, fontWeight:800, lineHeight:1 }}>
-                    {e.day}
+                    {day}
                   </span>
                   <span style={{ position:'relative', fontSize:10, fontWeight:700,
-                                 letterSpacing:0.5, marginTop:2 }}>{e.mon}</span>
+                                 letterSpacing:0.5, marginTop:2 }}>{mon}</span>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:7 }}>
@@ -10161,17 +10260,17 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
                   </div>
                   <div style={{ fontSize:14.5, fontWeight:800, color:C.ink,
                                 marginTop:5, lineHeight:1.2 }}>{e.title}</div>
-                  <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{e.when}</div>
+                  <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{when}</div>
                 </div>
               </div>
 
               {/* Metrics */}
-              {e.cap > 0 && (
+              {cap > 0 && (
                 <div style={{ padding:'0 14px 10px' }}>
                   <div style={{ display:'flex', justifyContent:'space-between',
                                 marginBottom:5 }}>
                     <span style={{ fontSize:11, fontWeight:700, color:C.subtle }}>
-                      {e.sold}/{e.cap} tickets
+                      {e.sold}/{cap} tickets
                     </span>
                     <span style={{ fontSize:11, fontWeight:700, color:C.primary }}>
                       {pct}%
@@ -10188,7 +10287,7 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
 
               {/* Stats row */}
               <div style={{ display:'flex', gap:0, padding:'0 14px 10px' }}>
-                {[{l:'Sales',v:e.sales},{l:'RSVPs',v:e.rsvps},{l:'Views',v:e.views}].map((s,i) => (
+                {[{l:'Sales',v:salesLabel},{l:'RSVPs',v:String(e.sold)},{l:'Likes',v:String(e.likeCount)}].map((s,i) => (
                   <div key={s.l} style={{ flex:1, textAlign:'center',
                                           borderRight: i<2 ? `1px solid ${C.divider}` : 'none',
                                           padding:'4px 0' }}>
@@ -10201,7 +10300,7 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
 
               {/* Action row */}
               <div style={{ display:'flex', gap:9, padding:'0 14px 14px' }}>
-                {e.status === 'live' && (
+                {tab === 'live' && (
                   <button onClick={() => navigate('check-in', {eventId: e.id})} style={{
                     flex:1, height:40, border:'none', borderRadius:12,
                     background:'#E9F6FF', color:C.primary,
@@ -10229,7 +10328,7 @@ function EventManagerScreen({ goBack, navigate, showToast }) {
                   </svg>
                   Edit
                 </button>
-                <button onClick={() => setDeleted(s => ({ ...s, [e.id]: true }))} style={{
+                <button onClick={() => handleDelete(e)} style={{
                   width:40, height:40, border:'none', borderRadius:12, flexShrink:0,
                   background:'#FFF1ED', display:'flex', alignItems:'center',
                   justifyContent:'center', cursor:'pointer',
@@ -11229,7 +11328,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'review-reports':   return <ReviewReportsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} />;
       case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
+      case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
     }

@@ -2535,7 +2535,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
 
       {/* Image(s) — multiple photos scroll horizontally, a single photo fills the width */}
       {Array.isArray(p.images) && p.images.length > 1 ? (
-        <div style={{ display:'flex', gap:8, overflowX:'auto', marginTop:11, paddingBottom:2 }}>
+        <div data-hscroll="true" style={{ display:'flex', gap:8, overflowX:'auto', marginTop:11, paddingBottom:2 }}>
           {p.images.map((url, i) => (
             <div key={i} style={{ borderRadius:14, overflow:'hidden', flexShrink:0, width:220, height:220 }}>
               <img src={url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
@@ -2891,7 +2891,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
   // Swipe between group tabs
   const swipeTouchStart = useRef(null);
-  const handleTabTouchStart = (e) => { swipeTouchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const handleTabTouchStart = (e) => {
+    // Don't arm the tab-swipe gesture if the touch starts inside a
+    // horizontally-scrollable element (e.g. a post's multi-photo strip) --
+    // otherwise scrolling through photos also drags the tab underneath it.
+    if (e.target.closest?.('[data-hscroll]')) { swipeTouchStart.current = null; return; }
+    swipeTouchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
   const handleTabTouchEnd = (e) => {
     if (!swipeTouchStart.current) return;
     const dx = e.changedTouches[0].clientX - swipeTouchStart.current.x;

@@ -3059,9 +3059,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           transform: `translateY(${lerp(6, 0)}px) scale(${lerp(0.94, 1)})`,
           zIndex:2, pointerEvents: avatarProgress > 0.5 ? 'auto' : 'none',
         }}>
-          {/* gradient ring around the mini avatar */}
+          {/* gradient ring around the mini avatar — theme blue, not the group's own color */}
           <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, padding:2,
-                        background: g.logoColor || g.logo_color || C.grad }}>
+                        background: C.grad }}>
             <div style={{ width:'100%', height:'100%', borderRadius:'50%',
                           background: g.logoColor || g.logo_color || C.grad,
                           display:'flex', alignItems:'center', justifyContent:'center',
@@ -3077,10 +3077,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                         maxWidth:170, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             {g.name || 'Group'}
           </span>
-          {/* accent underline draws in from center */}
-          <div style={{ position:'absolute', bottom:6, left:'50%', width: lerp(0, 44), height:2,
-                        borderRadius:999, background:C.grad, opacity:0.5,
-                        transform:'translateX(-50%)' }}/>
         </div>
       </div>
 

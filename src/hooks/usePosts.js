@@ -33,6 +33,12 @@ export function usePosts(groupId) {
     reactions: p.comment_count || 0,
   })
 
+  // Pinned posts first, otherwise newest first.
+  const sortPosts = (list) => [...list].sort((a, b) => {
+    if (!!b.is_pinned !== !!a.is_pinned) return (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0)
+    return new Date(b.created_at) - new Date(a.created_at)
+  })
+
   useEffect(() => {
     if (!groupId) { setLoading(false); return }
 
@@ -42,7 +48,7 @@ export function usePosts(groupId) {
       .eq('group_id', groupId)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        setPosts((data || []).map(normalize))
+        setPosts(sortPosts((data || []).map(normalize)))
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -55,12 +61,24 @@ export function usePosts(groupId) {
         table: 'posts',
         filter: `group_id=eq.${groupId}`,
       }, (payload) => {
-        setPosts(prev => [normalize(payload.new), ...prev])
+        setPosts(prev => sortPosts([normalize(payload.new), ...prev]))
       })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
   }, [groupId])
+
+  const deletePost = useCallback(async (postId) => {
+    const { error } = await supabase.from('posts').delete().eq('id', postId)
+    if (!error) setPosts(prev => prev.filter(p => p.id !== postId))
+    return { error }
+  }, [])
+
+  const togglePinPost = useCallback(async (postId, pinned) => {
+    const { error } = await supabase.from('posts').update({ is_pinned: pinned }).eq('id', postId)
+    if (!error) setPosts(prev => sortPosts(prev.map(p => p.id === postId ? { ...p, is_pinned: pinned } : p)))
+    return { error }
+  }, [])
 
   const createPost = useCallback(async ({ content, imageUrl, currentUser }) => {
     if (!user?.id || !groupId || !content?.trim()) return { error: 'Missing fields' }
@@ -85,5 +103,5 @@ export function usePosts(groupId) {
     return { data, error }
   }, [user?.id, groupId])
 
-  return { posts, loading, createPost }
+  return { posts, loading, createPost, deletePost, togglePinPost }
 }

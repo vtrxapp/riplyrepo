@@ -2305,7 +2305,7 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 // ─────────────────────────────────────────────────────────────
 // POST CARD (extracts useComments per post)
 // ─────────────────────────────────────────────────────────────
-function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
+function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, navigate, isGroupAdmin, deletePost, togglePinPost }) {
   const pid = p.id;
   const liked = !!postLiked[pid];
   const { comments, addComment, likeComment } = useComments(pid);
@@ -2313,7 +2313,24 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
   const [draft, setDraft] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [likedComments, setLikedComments] = useState({});
+  const [showOptions, setShowOptions] = useState(false);
   const inputRef = useRef(null);
+
+  const isOwner = !!(currentUser?.userId && p.user_id === currentUser.userId);
+  const canModerate = isOwner || isGroupAdmin;
+
+  const handleDeletePost = async () => {
+    setShowOptions(false);
+    if (!window.confirm('Delete this post? This cannot be undone.')) return;
+    const { error } = await deletePost?.(pid) || {};
+    showToast(error ? 'Could not delete post: ' + error.message : 'Post deleted');
+  };
+
+  const handleTogglePin = async () => {
+    setShowOptions(false);
+    const { error } = await togglePinPost?.(pid, !p.is_pinned) || {};
+    showToast(error ? 'Could not update post: ' + error.message : (p.is_pinned ? 'Post unpinned' : 'Post pinned to top'));
+  };
 
   const startReply = (c) => {
     setReplyTo({ id: c.id, author: c.author });
@@ -2396,7 +2413,15 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
           </div>
           <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{p.time}</div>
         </div>
-        <button onClick={() => showToast('Post options')} style={{ width:30, height:30, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+        {p.is_pinned && (
+          <div style={{ display:'flex', alignItems:'center', gap:4, marginRight:6 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ fontSize:10.5, fontWeight:800, color:C.primary }}>Pinned</span>
+          </div>
+        )}
+        <button onClick={() => setShowOptions(true)} style={{ width:30, height:30, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="5"  cy="12" r="1.7" fill={C.subtle}/>
             <circle cx="12" cy="12" r="1.7" fill={C.subtle}/>
@@ -2508,32 +2533,33 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
 
       {/* Linked event chip */}
       {p.linked_event_title && (
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:10,
-                      background:'rgba(2,162,240,0.08)', borderRadius:12, padding:'9px 12px' }}>
+        <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
+          style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, width:'100%',
+                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:12, padding:'9px 12px', cursor:'pointer' }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
             <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
             <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontSize:12.5, fontWeight:800, color:C.primary, flex:1 }}>{p.linked_event_title}</span>
-          <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}>View event →</span>
-        </div>
+          <span style={{ fontSize:12.5, fontWeight:800, color:C.primary, flex:1, textAlign:'left' }}>{p.linked_event_title}</span>
+          <span style={{ fontSize:11, fontWeight:600, color:C.subtle, whiteSpace:'nowrap' }}>View event →</span>
+        </button>
       )}
 
       {/* Like / Comment / Share */}
-      <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13, paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13 }}>
         <button onClick={() => togglePostLike(pid)}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0 }}>
-          <svg width="19" height="19" viewBox="0 0 24 24">
-            <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
-                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"
+                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span style={{ fontSize:13, fontWeight:700, color:liked?'#FF3B6B':'#7B8499' }}>{(p.likes||0)+(liked?1:0)}</span>
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z"
-                  stroke={cOpen?C.primary:C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"
+                  stroke={cOpen?C.primary:C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
         </button>
@@ -2545,9 +2571,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
             try { await navigator.clipboard.writeText(shareText); showToast('Copied to clipboard'); } catch { showToast('Post shared'); }
           }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-                  stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <circle cx="18" cy="5" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
+            <circle cx="6" cy="12" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
+            <circle cx="18" cy="19" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
+            <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
         </button>
       </div>
@@ -2637,6 +2665,46 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast }) {
           </div>
         </div>
       )}
+
+      {/* Post options sheet */}
+      {showOptions && (
+        <div onClick={() => setShowOptions(false)} style={{
+          position:'fixed', inset:0, zIndex:50,
+          background:'rgba(14,23,38,0.45)', display:'flex', alignItems:'flex-end',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width:'100%', background:'#fff', borderRadius:'22px 22px 0 0',
+            padding:'10px 0 40px', fontFamily:"'Montserrat',-apple-system,sans-serif",
+          }}>
+            <div style={{ width:38, height:4, borderRadius:99, background:'#D1D8E4', margin:'0 auto 18px' }}/>
+            {[
+              ...(isGroupAdmin ? [{
+                label: p.is_pinned ? 'Unpin Post' : 'Pin Post',
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2v6.5M8.5 8.5h7l1.5 6h-10l1.5-6ZM9.5 14.5 7 21M14.5 14.5 17 21" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                action: handleTogglePin,
+              }] : []),
+              ...(canModerate ? [{
+                label: 'Delete Post', danger: true,
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                action: handleDeletePost,
+              }] : []),
+              { label:'Report Post', danger:true,
+                icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="#C2493D" strokeWidth="2" strokeLinecap="round"/><path d="M10.3 3.5 2 20h20L13.7 3.5a2 2 0 0 0-3.4 0Z" stroke="#C2493D" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
+                action: () => { setShowOptions(false); showToast('Report submitted'); } },
+            ].map((opt, i) => (
+              <button key={i} onClick={opt.action} style={{
+                width:'100%', display:'flex', alignItems:'center', gap:15,
+                padding:'15px 20px', border:'none', background:'none', cursor:'pointer',
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                borderTop:`1px solid ${C.divider}`,
+              }}>
+                {opt.icon}
+                <span style={{ fontSize:14, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2723,7 +2791,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     })();
   }, [groupId, user?.id, userLoaded]);
   const g = dbGroup || staticG;
-  const { posts: livePosts, loading: postsLoading, createPost } = usePosts(groupId);
+  const { posts: livePosts, loading: postsLoading, createPost, deletePost, togglePinPost } = usePosts(groupId);
 
 
   const [joinState,  setJoinState]  = useState(staticG.state || "join");
@@ -3252,7 +3320,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 ) : livePosts.length === 0 ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
                 ) : livePosts.map((p) => (
-                  <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} currentUser={currentUser} showToast={showToast} />
+                  <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} currentUser={currentUser} showToast={showToast}
+                    navigate={navigate} isGroupAdmin={isGroupAdmin} deletePost={deletePost} togglePinPost={togglePinPost} />
                 ))}
                 </>
               )}
@@ -7988,7 +8057,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             // If created from a group, also create a post so it appears in the Posts tab
             if (sourceGroupId && event) {
               const authorName = currentUser.name || 'Organizer';
-              const eventPostText = `📅 New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
+              // No emoji prefix -- the linked-event chip below already renders a
+              // calendar icon, so a text emoji here would just be a redundant,
+              // platform-inconsistent glyph (e.g. iOS renders 📅 as a live date).
+              const eventPostText = `New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
               await supabase.from('posts').insert({
                 group_id:           sourceGroupId,
                 user_id:            currentUser.userId,

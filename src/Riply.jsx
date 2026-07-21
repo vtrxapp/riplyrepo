@@ -5846,8 +5846,9 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
           {canResend && (
             <div style={{ fontSize:13, color:'#7B8499', marginTop:24 }}>
               Didn't receive the code?{' '}
-              <span onClick={withLoading(resendSecondFactor)}
-                style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>Resend</span>
+              <button type="button" onClick={withLoading(resendSecondFactor)} disabled={loading}
+                style={{ border:'none', padding:0, background:'none', font:'inherit',
+                         color:C.primary, fontWeight:800, cursor:loading?'default':'pointer' }}>Resend</button>
             </div>
           )}
         </div>

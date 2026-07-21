@@ -1121,7 +1121,6 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const [pollOpts,    setPollOpts]    = useState(['', '']);
   const [linkedEvent, setLinkedEvent] = useState(null);
   const [eventPickerOpen, setEventPickerOpen] = useState(false);
-  const [group,       setGroup]       = useState(defaultGroup?.name || '');
   const [pickerOpen,  setPickerOpen]  = useState(false);
   const [posting,     setPosting]     = useState(false);
   const [uploading,   setUploading]   = useState(false);

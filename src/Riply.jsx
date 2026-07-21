@@ -5449,7 +5449,7 @@ function DarkEyeBtn({ show, onToggle }) {
 // ─────────────────────────────────────────────────────────────
 function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUser }) {
   // ── step machine ──────────────────────────────────────────
-  const [step,    setStep]    = useState(initialStep || 'login');  // login | signup | verify | onboard | role
+  const [step,    setStep]    = useState(initialStep || 'login');  // login | signup | verify | second-factor | onboard | role
   const [animKey, setAnimKey] = useState(0);
   const [code, setCode] = useState(['','','','','','']);
   const codeRef0=useRef(null),codeRef1=useRef(null),codeRef2=useRef(null),codeRef3=useRef(null),codeRef4=useRef(null),codeRef5=useRef(null);
@@ -5465,7 +5465,14 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
     try { await fn(...args); } finally { loadingRef.current = false; setLoading(false); }
   };
   const go = (s) => { setStep(s); setAnimKey(k => k+1); };
-  const { login, signup, verify, completeOnboarding } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
+  const { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
+  const [backupCode, setBackupCode] = useState('');
+
+  // Reset OTP state whenever a fresh code-entry step is entered, so leftover
+  // digits from a previous step (or a previous login attempt) don't linger.
+  useEffect(() => {
+    if (step === 'second-factor') { setCode(['','','','','','']); setBackupCode(''); }
+  }, [step]);
 
   // ── field state ───────────────────────────────────────────
   const [name,     setName]     = useState('');
@@ -5739,6 +5746,115 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </div>
         <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
         <AuthBigBtn onClick={withLoading(()=>verify(code.join('')))} loading={loading} fullWidth>Verify</AuthBigBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // ── SECOND FACTOR (login) ────────────────────────────────
+  if (step === 'second-factor') {
+    const strategy = secondFactor?.strategy;
+    const isBackup = strategy === 'backup_code';
+    const canResend = strategy === 'phone_code' || strategy === 'email_code';
+    const inputs = Array.from({length:6},(_,i)=>i);
+    const handleKey = (i,e) => {
+      const v = e.target.value.replace(/\D/g,'').slice(-1);
+      const nc=[...code]; nc[i]=v; setCode(nc);
+      if(v&&i<5) codeRefs[i+1].current?.focus();
+      if(!v&&i>0&&e.nativeEvent.inputType==='deleteContentBackward') codeRefs[i-1].current?.focus();
+    };
+    const handlePaste = (e) => {
+      const digits = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6).split('');
+      if(!digits.length) return;
+      e.preventDefault();
+      const nc=['','','','','',''];
+      digits.forEach((d,i)=>{ nc[i]=d; });
+      setCode(nc);
+      const focusIdx = Math.min(digits.length, 5);
+      codeRefs[focusIdx].current?.focus();
+    };
+    const title = isBackup ? 'Enter Backup Code' : 'Enter Verification Code';
+    const subtitle = strategy === 'totp'
+      ? 'Open your authenticator app and enter the 6-digit code for Riply.'
+      : strategy === 'phone_code'
+      ? `We've sent a 6-digit code to ${secondFactor?.hint || 'your phone'}. Enter it below to continue.`
+      : strategy === 'email_code'
+      ? `We've sent a 6-digit code to ${secondFactor?.hint || 'your email'}. Enter it below to continue.`
+      : 'Enter one of the backup codes you saved when you set up two-step verification.';
+    return (
+      <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+                    background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                    overflow:'hidden', ...slideStyle }}>
+        <div style={bgWash}/>
+        <div style={{ position:'relative', flexShrink:0, padding:'52px 16px 0',
+                      display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={()=>go('login')} style={{ width:38, height:38, border:'none',
+            borderRadius:999, background:'#fff', boxShadow:`0 2px 8px rgba(16,24,40,0.08)`,
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
+                         letterSpacing:1.5, color:C.ink, marginRight:38 }}>
+            TWO-STEP VERIFICATION
+          </span>
+        </div>
+        <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
+                      alignItems:'center', padding:'40px 32px 0' }}>
+          <div style={{ width:70, height:70, borderRadius:20,
+                        background:'linear-gradient(135deg,#19BFFF,#1499F5)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        boxShadow:'0 10px 26px rgba(2,162,240,0.46)' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <rect x="5" y="10.5" width="14" height="10" rx="2.5" stroke="#fff" strokeWidth="2"/>
+              <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink,
+                        marginTop:24, textAlign:'center' }}>{title}</div>
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+                        marginTop:10, maxWidth:280 }}>
+            {subtitle}
+          </div>
+          {isBackup ? (
+            <input value={backupCode} onChange={e=>setBackupCode(e.target.value)}
+              placeholder="Backup code" autoCapitalize="none" autoCorrect="off"
+              style={{ width:'100%', maxWidth:280, height:54, border:`1.5px solid ${C.border}`,
+                       borderRadius:999, padding:'0 20px', marginTop:28,
+                       fontSize:15, fontWeight:600, color:C.ink, outline:'none',
+                       fontFamily:"'Montserrat',-apple-system,sans-serif", textAlign:'center' }}/>
+          ) : (
+            <div style={{ display:'flex', gap:11, marginTop:28 }}>
+              {inputs.map(i=>(
+                <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                  <div style={{ width:14, height:14, borderRadius:'50%',
+                                background: code[i] ? C.primary : '#E4E8EF',
+                                transition:'background .2s', pointerEvents:'none' }}/>
+                  <input ref={codeRefs[i]} value={code[i]} onChange={e=>handleKey(i,e)}
+                    onPaste={i===0 ? handlePaste : undefined}
+                    maxLength={1} inputMode="numeric"
+                    style={{ width:44, height:44, border:'none',
+                             borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,
+                             background:'none', outline:'none', textAlign:'center',
+                             fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary,
+                             transition:'border-color 0.15s' }}/>
+                </div>
+              ))}
+            </div>
+          )}
+          {canResend && (
+            <div style={{ fontSize:13, color:'#7B8499', marginTop:24 }}>
+              Didn't receive the code?{' '}
+              <span onClick={resendSecondFactor}
+                style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>Resend</span>
+            </div>
+          )}
+        </div>
+        <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
+        <AuthBigBtn
+          onClick={withLoading(()=>verifySecondFactor(isBackup ? backupCode.trim() : code.join('')))}
+          loading={loading} fullWidth>Verify</AuthBigBtn>
         </div>
       </div>
     );

@@ -1,11 +1,20 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useSignIn, useSignUp, useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
+
+// Preference order when Clerk offers more than one second-factor option --
+// TOTP/backup codes need nothing sent, so they complete fastest; phone and
+// email codes need an outbound send first.
+const SECOND_FACTOR_PRIORITY = ['totp', 'phone_code', 'email_code', 'backup_code']
 
 export function useClerkAuth(showToast, setScreen, go, refetchProfile) {
   const { signIn, isLoaded: signInLoaded, setActive: setActiveIn } = useSignIn()
   const { signUp, isLoaded: signUpLoaded, setActive: setActiveUp } = useSignUp()
   const { user, isLoaded: userLoaded } = useUser()
+
+  // { strategy, hint, phoneNumberId?, emailAddressId? } for whichever second
+  // factor Clerk asked us to complete after a password sign-in.
+  const [secondFactor, setSecondFactor] = useState(null)
 
   // Persist signup data across the verify → onboard → role steps,
   // because Clerk clears signUp after setActiveUp() is called.
@@ -27,6 +36,27 @@ export function useClerkAuth(showToast, setScreen, go, refetchProfile) {
       if (result.status === 'complete') {
         await setActiveIn({ session: result.createdSessionId })
         setScreen('home')
+      } else if (result.status === 'needs_second_factor') {
+        const factors = result.supportedSecondFactors || []
+        const chosen = SECOND_FACTOR_PRIORITY
+          .map(strategy => factors.find(f => f.strategy === strategy))
+          .find(Boolean)
+        if (!chosen) {
+          showToast('This account requires a verification method we don’t support yet.')
+          return
+        }
+        if (chosen.strategy === 'phone_code') {
+          await signIn.prepareSecondFactor({ strategy: 'phone_code', phoneNumberId: chosen.phoneNumberId })
+        } else if (chosen.strategy === 'email_code') {
+          await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: chosen.emailAddressId })
+        }
+        setSecondFactor({
+          strategy: chosen.strategy,
+          hint: chosen.safeIdentifier || null,
+          phoneNumberId: chosen.phoneNumberId,
+          emailAddressId: chosen.emailAddressId,
+        })
+        go('second-factor')
       } else {
         showToast('Login incomplete: ' + result.status)
       }
@@ -42,6 +72,39 @@ export function useClerkAuth(showToast, setScreen, go, refetchProfile) {
         return
       }
       showToast(msg || 'Login failed. Try again.')
+    }
+  }
+
+  const verifySecondFactor = async (code) => {
+    if (!signInLoaded || !secondFactor) { showToast('Session expired. Please log in again.'); go('login'); return; }
+    if (!code || (secondFactor.strategy !== 'backup_code' && code.length < 6)) { showToast('Enter the full code'); return; }
+    try {
+      const result = await signIn.attemptSecondFactor({ strategy: secondFactor.strategy, code })
+      if (result.status === 'complete') {
+        await setActiveIn({ session: result.createdSessionId })
+        setSecondFactor(null)
+        setScreen('home')
+      } else {
+        showToast('Verification incomplete: ' + result.status)
+      }
+    } catch(e) {
+      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Invalid code. Try again.')
+    }
+  }
+
+  const resendSecondFactor = async () => {
+    if (!secondFactor) return
+    try {
+      if (secondFactor.strategy === 'phone_code') {
+        await signIn.prepareSecondFactor({ strategy: 'phone_code', phoneNumberId: secondFactor.phoneNumberId })
+      } else if (secondFactor.strategy === 'email_code') {
+        await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: secondFactor.emailAddressId })
+      } else {
+        return
+      }
+      showToast('A new code is on its way')
+    } catch(e) {
+      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Could not resend code.')
     }
   }
 
@@ -115,5 +178,5 @@ export function useClerkAuth(showToast, setScreen, go, refetchProfile) {
     }
   }
 
-  return { login, signup, verify, completeOnboarding }
+  return { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor }
 }

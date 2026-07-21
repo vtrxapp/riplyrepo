@@ -224,15 +224,10 @@ create policy posts_insert on public.posts for insert
   with check (current_user_id() = user_id);
 -- Update/delete are also allowed for a group admin/owner of the post's group
 -- (not just the author) so group admins can pin/unpin and moderate posts.
+-- USING and WITH CHECK are identical here, so WITH CHECK is omitted --
+-- Postgres reuses the USING expression for the check when it isn't given.
 create policy posts_update on public.posts for update
   using (
-    current_user_id() = user_id
-    or exists (
-      select 1 from public.group_members gm
-      where gm.group_id = posts.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
-    )
-  )
-  with check (
     current_user_id() = user_id
     or exists (
       select 1 from public.group_members gm
@@ -247,6 +242,59 @@ create policy posts_delete on public.posts for delete
       where gm.group_id = posts.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
     )
   );
+
+-- RLS alone can't restrict *which* columns a group admin's update touches --
+-- without this trigger an admin could rewrite another member's post
+-- text/author via a crafted update instead of just pinning it. Only
+-- is_pinned may differ when the updater isn't the post's own author.
+create or replace function public.enforce_post_moderation_scope() returns trigger
+language plpgsql as $$
+begin
+  if current_user_id() is distinct from OLD.user_id then
+    if NEW.user_id             is distinct from OLD.user_id
+       or NEW.group_id         is distinct from OLD.group_id
+       or NEW.text             is distinct from OLD.text
+       or NEW.content          is distinct from OLD.content
+       or NEW.image_url        is distinct from OLD.image_url
+       or NEW.file_url         is distinct from OLD.file_url
+       or NEW.file_name        is distinct from OLD.file_name
+       or NEW.poll_options     is distinct from OLD.poll_options
+       or NEW.poll_votes       is distinct from OLD.poll_votes
+       or NEW.poll_voter_ids   is distinct from OLD.poll_voter_ids
+       or NEW.linked_event_id  is distinct from OLD.linked_event_id
+       or NEW.linked_event_title is distinct from OLD.linked_event_title
+       or NEW.author_id        is distinct from OLD.author_id
+       or NEW.author_name      is distinct from OLD.author_name
+       or NEW.author_initial   is distinct from OLD.author_initial
+       or NEW.author_color     is distinct from OLD.author_color
+       or NEW.avatar_url       is distinct from OLD.avatar_url
+       or NEW.likes            is distinct from OLD.likes
+       or NEW.likes_count      is distinct from OLD.likes_count
+       or NEW.comments         is distinct from OLD.comments
+       or NEW.comment_count    is distinct from OLD.comment_count
+    then
+      raise exception 'group admins may only pin/unpin posts, not edit their content';
+    end if;
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists posts_enforce_moderation_scope on public.posts;
+create trigger posts_enforce_moderation_scope before update on public.posts
+  for each row execute function public.enforce_post_moderation_scope();
+
+-- Deleting a post cascades to its likes/comments instead of failing with a
+-- foreign key violation (previously NO ACTION, so any liked/commented post
+-- could never be deleted at all).
+alter table public.post_likes
+  drop constraint if exists post_likes_post_id_fkey,
+  add constraint post_likes_post_id_fkey foreign key (post_id) references public.posts(id) on delete cascade;
+alter table public.post_comments
+  drop constraint if exists post_comments_post_id_fkey,
+  add constraint post_comments_post_id_fkey foreign key (post_id) references public.posts(id) on delete cascade,
+  drop constraint if exists post_comments_reply_to_id_fkey,
+  add constraint post_comments_reply_to_id_fkey foreign key (reply_to_id) references public.post_comments(id) on delete cascade;
 
 create or replace function public.cast_post_vote(p_post_id uuid, p_opt_idx int)
 returns void

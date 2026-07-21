@@ -2331,13 +2331,15 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
   const handleDeletePost = async () => {
     setShowOptions(false);
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
-    const { error } = await deletePost?.(pid) || {};
+    if (!deletePost) { showToast('Post actions are unavailable right now'); return; }
+    const { error } = await deletePost(pid);
     showToast(error ? 'Could not delete post: ' + error.message : 'Post deleted');
   };
 
   const handleTogglePin = async () => {
     setShowOptions(false);
-    const { error } = await togglePinPost?.(pid, !p.is_pinned) || {};
+    if (!togglePinPost) { showToast('Post actions are unavailable right now'); return; }
+    const { error } = await togglePinPost(pid, !p.is_pinned);
     showToast(error ? 'Could not update post: ' + error.message : (p.is_pinned ? 'Post unpinned' : 'Post pinned to top'));
   };
 
@@ -6638,6 +6640,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 
   const [cat,      setCat]      = useState('culture');
   const [coverUrl,  setCoverUrl]  = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [name,     setName]     = useState('');
@@ -6733,23 +6736,44 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
         </button>
 
         {/* Group avatar preview */}
-        <button onClick={() => showToast('Tap to upload a group logo')} style={{
+        <button onClick={() => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+              const url = await uploadImage(file, 'post-media', Date.now() + '.jpg');
+              setAvatarUrl(url);
+              showToast('Group icon uploaded ✓');
+            } catch(err) {
+              showToast('Upload failed. Try again.');
+            }
+            input.value = '';
+          };
+          input.click();
+        }} style={{
           display:'flex', alignItems:'center', gap:13, width:'100%', background:C.card,
           border:`1.5px solid ${C.border}`, borderRadius:16, padding:12, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:12, textAlign:'left',
         }}>
           <div style={{ width:54, height:54, borderRadius:16, flexShrink:0,
-                        background:coverGrad, position:'relative', overflow:'hidden',
+                        background: avatarUrl ? 'transparent' : coverGrad, position:'relative', overflow:'hidden',
                         display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <div style={{ position:'absolute', inset:0, background:
-              'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)' }}/>
-            <span style={{ position:'relative', fontSize:22, fontWeight:800, color:'#fff' }}>
-              {initial}
-            </span>
+            {avatarUrl
+              ? <img src={avatarUrl} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+              : <>
+                  <div style={{ position:'absolute', inset:0, background:
+                    'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)' }}/>
+                  <span style={{ position:'relative', fontSize:22, fontWeight:800, color:'#fff' }}>
+                    {initial}
+                  </span>
+                </>}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Group icon</div>
-            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>Tap to upload a logo</div>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{avatarUrl ? 'Tap to change logo' : 'Tap to upload a logo'}</div>
           </div>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
@@ -6973,6 +6997,8 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             post_count: 0,
             event_count: 0,
             rules,
+            cover_url: coverUrl || null,
+            avatar_url: avatarUrl || null,
           }).select().single();
           if (error) { setSubmitting(false); showToast('Failed to create group: ' + error.message); return; }
           // Add creator as first member with admin role
@@ -10312,9 +10338,9 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
           const salesLabel = isFree ? 'Free' : `$${(amount * e.sold).toLocaleString()}`;
           const d = new Date(e.full_date || e.date || '');
           const day = !isNaN(d) ? String(d.getDate()).padStart(2, '0') : '—';
-          const mon = !isNaN(d) ? d.toLocaleDateString([], { month: 'short' }).toUpperCase() : 'TBD';
+          const mon = !isNaN(d) ? d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase() : 'TBD';
           const when = !isNaN(d)
-            ? d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + (e.start_time ? ` · ${e.start_time}` : '')
+            ? fmtDate(e.full_date || e.date) + (e.start_time ? ` · ${e.start_time}` : '')
             : 'Not scheduled';
           return (
             <div key={e.id} style={{ background:'#fff', borderRadius:20,

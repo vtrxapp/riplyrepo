@@ -61,7 +61,26 @@ export function usePosts(groupId) {
         table: 'posts',
         filter: `group_id=eq.${groupId}`,
       }, (payload) => {
-        setPosts(prev => sortPosts([normalize(payload.new), ...prev]))
+        setPosts(prev => {
+          if (prev.find(p => p.id === payload.new.id)) return prev
+          return sortPosts([normalize(payload.new), ...prev])
+        })
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'posts',
+        filter: `group_id=eq.${groupId}`,
+      }, (payload) => {
+        setPosts(prev => sortPosts(prev.map(p => p.id === payload.new.id ? normalize(payload.new) : p)))
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'posts',
+        filter: `group_id=eq.${groupId}`,
+      }, (payload) => {
+        setPosts(prev => prev.filter(p => p.id !== payload.old.id))
       })
       .subscribe()
 

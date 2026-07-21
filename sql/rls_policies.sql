@@ -649,3 +649,24 @@ alter table public.posts add column if not exists images jsonb;
 -- events.is_pinned — lets a group admin pin an event to the top of the
 -- group's Events tab, independent of the existing per-post pin feature.
 alter table public.events add column if not exists is_pinned boolean not null default false;
+
+-- Server-side enforcement of group bans: the client already blocks a banned
+-- user's join button, but the join upsert's RLS only checks
+-- current_user_id()/role, not status -- a banned user could otherwise
+-- restore their own membership row directly against the API.
+create or replace function public.enforce_group_ban() returns trigger
+language plpgsql as $$
+begin
+  if exists (
+    select 1 from public.group_members
+    where group_id = NEW.group_id and user_id = NEW.user_id and status = 'banned'
+  ) and NEW.status is distinct from 'banned' and current_user_id() = NEW.user_id then
+    raise exception 'you have been banned from this group';
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists group_members_enforce_ban on public.group_members;
+create trigger group_members_enforce_ban before insert or update on public.group_members
+  for each row execute function public.enforce_group_ban();

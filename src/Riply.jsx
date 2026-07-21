@@ -3616,7 +3616,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   // event happened to share a tag, regardless of what's actually posted).
   const [similar, setSimilar] = useState([]);
   useEffect(() => {
-    if (!dbEvent?.id) { setSimilar([]); return; }
+    if (!dbEvent?.id) return;
     let cancelled = false;
     supabase.from('events').select('*')
       .eq('category', dbEvent.category).neq('id', dbEvent.id)
@@ -3625,6 +3625,10 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
       .then(({ data }) => { if (!cancelled) setSimilar(data || []); });
     return () => { cancelled = true; };
   }, [dbEvent?.id, dbEvent?.category]);
+  // Derived at render time rather than reset in the effect above -- avoids a
+  // second synchronous setState-in-effect for what's really just "there's no
+  // real event yet, so there's nothing to recommend".
+  const similarEvents = dbEvent?.id ? similar : [];
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,
@@ -4017,13 +4021,13 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
         )}
 
         {/* You may also like */}
-        {similar.length > 0 && (
+        {similarEvents.length > 0 && (
           <div style={{ marginTop:18 }}>
             <div style={{ fontSize:14, fontWeight:800, color:C.ink, marginBottom:11 }}>
               You May Also Like
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              {similar.map(e2 => (
+              {similarEvents.map(e2 => (
                 <div key={e2.id} onClick={() => navigate('event-details', {eventId:e2.id})}
                   style={{ display:'flex', gap:11, background:C.card, borderRadius:14,
                            boxShadow:'0 4px 14px rgba(16,24,40,0.06)', padding:10,
@@ -8295,7 +8299,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
 
       const [membersRes, postsRes, reportsRes, pendingRes] = await Promise.all([
         supabase.from('group_members').select('*', { count: 'exact', head: true })
-          .eq('group_id', groupId).gte('joined_at', dayAgo),
+          .eq('group_id', groupId).in('role', ['member', 'admin', 'owner']).gte('joined_at', dayAgo),
         supabase.from('posts').select('id').eq('group_id', groupId),
         supabase.from('post_reports').select('*', { count: 'exact', head: true })
           .eq('group_id', groupId).eq('status', 'open'),

@@ -2802,7 +2802,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
     })();
   }, [groupId, user?.id, userLoaded]);
   const g = dbGroup || staticG;
-  const { posts: livePosts, loading: postsLoading, createPost, deletePost, togglePinPost } = usePosts(groupId);
+  const { posts: livePosts, loading: postsLoading, deletePost, togglePinPost } = usePosts(groupId);
 
 
   const [joinState,  setJoinState]  = useState(staticG.state || "join");

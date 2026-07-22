@@ -122,5 +122,7 @@ export function useChats() {
     return { error }
   }, [userId, load])
 
-  return { chats, loading: userId ? loading : false, deleteChat }
+  const refetch = useCallback(() => load(userId), [userId, load])
+
+  return { chats, loading: userId ? loading : false, deleteChat, refetch }
 }

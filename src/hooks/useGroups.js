@@ -72,5 +72,5 @@ export function useGroups() {
     return () => { supabase.removeChannel(channel) }
   }, [fetchGroups])
 
-  return { groups, loading }
+  return { groups, loading, refetch: fetchGroups }
 }

@@ -93,5 +93,7 @@ export function useNotifications() {
     await supabase.from('notifications').delete().eq('id', id)
   }, [])
 
-  return { notifications, loading, unreadCount, markRead, markAllRead, deleteNotification }
+  const refetch = useCallback(() => { if (user?.id) return load(user.id) }, [user?.id, load])
+
+  return { notifications, loading, unreadCount, markRead, markAllRead, deleteNotification, refetch }
 }

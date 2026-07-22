@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 async function attachUserProfiles(rows, idField = 'host_id') {
@@ -24,26 +24,25 @@ export function useSpaces() {
   const [spaces,  setSpaces]  = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetch = async () => {
-      const today = new Date().toISOString().slice(0, 10)
+  const fetch = useCallback(async () => {
+    setLoading(true)
+    const today = new Date().toISOString().slice(0, 10)
 
-      // Delete past spaces from DB
-      await supabase.from('spaces').delete().lt('day', today)
+    // Delete past spaces from DB
+    await supabase.from('spaces').delete().lt('day', today)
 
-      const { data } = await supabase
-        .from('spaces')
-        .select('*')
-        .gte('day', today)
-        .order('day', { ascending: true })
+    const { data } = await supabase
+      .from('spaces')
+      .select('*')
+      .gte('day', today)
+      .order('day', { ascending: true })
 
-      const enriched = await attachUserProfiles(data || [], 'host_id')
-      setSpaces(enriched)
-      setLoading(false)
-    }
-
-    fetch()
+    const enriched = await attachUserProfiles(data || [], 'host_id')
+    setSpaces(enriched)
+    setLoading(false)
   }, [])
 
-  return { spaces, loading }
+  useEffect(() => { fetch() }, [fetch])
+
+  return { spaces, loading, refetch: fetch }
 }

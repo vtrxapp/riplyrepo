@@ -256,6 +256,64 @@ function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWi
   );
 }
 
+// Pull-to-refresh: IS the scrollable container (not a wrapper around one),
+// so callers just swap their usual `overflowY:'auto'` div for this and pass
+// an async onRefresh. Only starts tracking a pull when the container is
+// already scrolled to the very top, so it never fights a normal scroll
+// gesture partway down the list.
+function PullToRefresh({ onRefresh, style, children, onTouchStart: extraStart, onTouchEnd: extraEnd }) {
+  const [pullY, setPullY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const containerRef = useRef(null);
+  const startYRef = useRef(null);
+  const draggingRef = useRef(false);
+  const THRESHOLD = 64;
+  const MAX_PULL = 96;
+
+  const onTouchStart = (e) => {
+    extraStart?.(e);
+    if (refreshing) return;
+    startYRef.current = (containerRef.current?.scrollTop ?? 0) <= 0 ? e.touches[0].clientY : null;
+  };
+  const onTouchMove = (e) => {
+    if (startYRef.current == null || refreshing) return;
+    if ((containerRef.current?.scrollTop ?? 0) > 0) { setPullY(0); draggingRef.current = false; return; }
+    const dy = e.touches[0].clientY - startYRef.current;
+    if (dy <= 0) { setPullY(0); draggingRef.current = false; return; }
+    draggingRef.current = true;
+    setPullY(Math.min(MAX_PULL, dy * 0.5));
+  };
+  const onTouchEnd = async (e) => {
+    extraEnd?.(e);
+    startYRef.current = null;
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    if (pullY >= THRESHOLD) {
+      setRefreshing(true);
+      setPullY(THRESHOLD);
+      try { await onRefresh?.(); } finally { setRefreshing(false); setPullY(0); }
+    } else {
+      setPullY(0);
+    }
+  };
+
+  return (
+    <div ref={containerRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+      style={{ ...style, overflowY:'auto', overscrollBehavior:'contain' }}>
+      <div style={{ height: refreshing ? THRESHOLD : pullY,
+                    transition: draggingRef.current ? 'none' : 'height .2s ease',
+                    display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+        <div style={{ width:20, height:20, borderRadius:'50%', border:'2.5px solid #E1E6EE',
+                      borderTopColor:C.primary,
+                      animation: (refreshing || pullY > 8) ? 'riplySpin .8s linear infinite' : 'none',
+                      opacity: refreshing ? 1 : Math.min(1, pullY / THRESHOLD) }}/>
+        <style>{`@keyframes riplySpin{to{transform:rotate(360deg);}}`}</style>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:11, background:C.chip, borderRadius:18, padding:'11px 11px 11px 15px', boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
@@ -425,7 +483,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
     const next = dx < 0 ? Math.min(i + 1, ids.length - 1) : Math.max(i - 1, 0);
     setActiveCat(ids[next]);
   };
-  const { events: liveEvents, loading: eventsLoading } = useEvents({ category: (activeCat === 'all' || activeCat === 'trending') ? null : activeCat, search: query, filters });
+  const { events: liveEvents, loading: eventsLoading, refetch: refetchEvents } = useEvents({ category: (activeCat === 'all' || activeCat === 'trending') ? null : activeCat, search: query, filters });
   const eventData = eventsLoading ? [] : liveEvents;
   let list = eventData.slice();
   if (activeCat==='new') list = [...list].reverse();
@@ -450,7 +508,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
       </div>
 
       {/* Feed */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
+      <PullToRefresh onRefresh={refetchEvents} style={{ flex:1, padding:'14px 16px 104px' }}
         onTouchStart={handleHomeSwipeStart} onTouchEnd={handleHomeSwipeEnd}>
 
         {list.length===0 && !query?.trim() && !eventsLoading && (
@@ -593,7 +651,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
             </div>
           );
         })}
-      </div>
+      </PullToRefresh>
 
       {/* Expandable FAB */}
       <div style={{ position:'absolute', bottom:94, right:18, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:10, zIndex:6 }}>
@@ -744,7 +802,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
     setSpaceTab(ids[next]);
   };
 
-  const { spaces: liveSpaces, loading: spacesLoading } = useSpaces();
+  const { spaces: liveSpaces, loading: spacesLoading, refetch: refetchSpaces } = useSpaces();
   const spaceData = spacesLoading ? [] : liveSpaces;
   let list = spaceData.slice();
   if(spaceTab==='today'||spaceTab==='tomorrow') list=list.filter(s=>s.day===spaceTab);
@@ -767,7 +825,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
       </div>
 
       {/* Spaces list */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
+      <PullToRefresh onRefresh={refetchSpaces} style={{ flex:1, padding:'14px 16px 104px' }}
         onTouchStart={handleSpacesSwipeStart} onTouchEnd={handleSpacesSwipeEnd}>
         {list.length===0 && !spacesLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No spaces in this category right now.</div>}
         {spacesLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>}
@@ -877,7 +935,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
             </div>
           );
         })}
-      </div>
+      </PullToRefresh>
 
       {/* FAB */}
       <button onClick={()=>navigate('create-space')} style={{ position:'absolute', bottom:94, right:18, width:60, height:60, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 10px 24px rgba(2,162,240,0.45)', zIndex:6 }}>
@@ -904,7 +962,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   // against each other and potentially leaving the UI and DB disagreeing.
   const joinMutatingRef = useRef({});
 
-  const { groups: liveGroups, loading: groupsLoading } = useGroups();
+  const { groups: liveGroups, loading: groupsLoading, refetch: refetchGroups } = useGroups();
   const groupData = groupsLoading ? [] : liveGroups;
   let list = groupData.slice();
   if(discoverTab==='popular') list=[...list].sort((a,b)=>(b.member_count||0)-(a.member_count||0));
@@ -927,7 +985,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
       </div>
 
       {/* Groups */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <PullToRefresh onRefresh={refetchGroups} style={{ flex:1, padding:'14px 16px 104px' }}>
         {list.length===0 && !groupsLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
         {groupsLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>}
         {list.map(g => {
@@ -1002,7 +1060,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
             </div>
           );
         })}
-      </div>
+      </PullToRefresh>
 
       {/* FAB */}
       <button onClick={()=>navigate('create-group')} style={{ position:'absolute', bottom:94, right:18, width:60, height:60, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 10px 24px rgba(2,162,240,0.45)', zIndex:6 }}>
@@ -1017,8 +1075,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 // ─────────────────────────────────────────────────────────────
 function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
   const isNotif = msgTab==='notifications';
-  const { chats, loading: chatsLoading, deleteChat } = useChats();
-  const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification } = notifs;
+  const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = useChats();
+  const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification, refetch: refetchNotifs } = notifs;
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
 
@@ -1060,7 +1118,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
       </div>
 
       {/* Body */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <PullToRefresh onRefresh={isNotif ? refetchNotifs : refetchChats} style={{ flex:1, padding:'14px 16px 104px' }}>
         {isNotif ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {/* Mark all read */}
@@ -1165,7 +1223,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
             ))}
           </div>
         )}
-      </div>
+      </PullToRefresh>
     </div>
   );
 }
@@ -8174,7 +8232,12 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         .select('name, avatar_url, logo_color').eq('id', sourceGroupId).single();
       const authorName = groupRow?.name || 'Group';
       const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
-      await supabase.from('posts').insert({
+      // Not checked before: if this group has "members can post" turned off,
+      // a non-admin member creating an event here would have this insert
+      // silently rejected by posts_insert's RLS (membersPost/admin check) --
+      // the event itself still publishes fine, but the announcement post
+      // just vanishes with no feedback that it never made it to the feed.
+      const { error: announceError } = await supabase.from('posts').insert({
         group_id:           sourceGroupId,
         user_id:            currentUser.userId,
         content:            eventPostText,
@@ -8192,6 +8255,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         avatar_url:         groupRow?.avatar_url || null,
         author_is_group:    true,
       });
+      if (announceError) {
+        console.error('[submitEvent] group announcement post failed:', announceError);
+        showToast('Event published, but the group announcement post could not be posted');
+      }
       // increment event_count via RPC: groups.update() is admin-only
       // now, so this (a member, not necessarily the admin, posting an
       // event) goes through a security-definer function scoped to

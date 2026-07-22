@@ -4871,7 +4871,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     const profile = msg._senderProfile || null
     const senderName = isOut
       ? (currentUser?.name || profile?.name || 'You')
-      : (profile?.name || chatName || '?')
+      : (profile?.name || 'Member')
     const senderAvatar = isOut ? (currentUser?.avatarUrl || profile?.avatar_url || null) : (profile?.avatar_url || null)
     const senderColor  = isOut ? (currentUser?.avatarColor || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)') : (profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)')
     return {
@@ -4884,6 +4884,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
       hasFile:    !!(msg.attachment_url && !/\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
       attachUrl:  msg.attachment_url || null,
       sender:     msg.sender_id,
+      aName:      senderName,
       aInitial:   senderName[0]?.toUpperCase() || '?',
       aColor:     senderColor,
       aAvatar:    senderAvatar,
@@ -5045,7 +5046,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
                 <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
                               background: m.aAvatar ? 'transparent' : m.aColor, display:'flex', alignItems:'center',
                               justifyContent:'center', color:'#fff', fontSize:10,
-                              fontWeight:800, alignSelf:'flex-end', position:'relative',
+                              fontWeight:800, alignSelf:'flex-start', position:'relative',
                               overflow:'hidden' }}>
                   {m.aAvatar
                     ? <img src={m.aAvatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
@@ -5063,7 +5064,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
                 {/* Sender name */}
                 {!isOut && firstOfGroup && (
                   <span style={{ fontSize:10, fontWeight:700, color:'#8A93A6',
-                                 marginBottom:3, marginLeft:4 }}>{chatName || m.aInitial}</span>
+                                 marginBottom:3, marginLeft:4 }}>{m.aName}</span>
                 )}
 
                 {/* Bubble */}

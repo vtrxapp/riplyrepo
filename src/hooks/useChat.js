@@ -145,19 +145,25 @@ export function useChat(chatId) {
     return error
   }
 
-  const sendAttachment = async (file) => {
-    if (!file || !user?.id) return
+  const sendAttachment = async (file, content = '') => {
+    if (!file) return new Error('Attachment file is required')
+    if (!user?.id) return new Error('Not signed in')
     if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
     const ext = file.name.split('.').pop()
     const path = `chat-attachments/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
     const { error: upErr } = await supabase.storage.from('attachments').upload(path, file)
     if (upErr) return upErr
     const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(path)
-    const sendErr = await sendMessage('', publicUrl)
-    if (sendErr) {
+    try {
+      const sendErr = await sendMessage(content, publicUrl)
+      if (sendErr) {
+        await supabase.storage.from('attachments').remove([path])
+      }
+      return sendErr
+    } catch (thrown) {
       await supabase.storage.from('attachments').remove([path])
+      throw thrown
     }
-    return sendErr
   }
 
   return { messages, loading, notFound, resolveError, messagesError, sendMessage, sendAttachment, currentUserId: user?.id || null }

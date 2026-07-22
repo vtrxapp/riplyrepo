@@ -2585,14 +2585,23 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
       {/* Linked event chip */}
       {p.linked_event_title && (
         <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
-          style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, width:'100%',
-                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:12, padding:'9px 12px', cursor:'pointer' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          style={{ display:'flex', alignItems:'center', gap:10, marginTop:10, width:'100%',
+                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:12, padding:'10px 12px', cursor:'pointer' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
             <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
             <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontSize:12.5, fontWeight:800, color:C.primary, flex:1, textAlign:'left' }}>{p.linked_event_title}</span>
-          <span style={{ fontSize:11, fontWeight:600, color:C.subtle, whiteSpace:'nowrap' }}>View event →</span>
+          <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {p.linked_event_title}
+            </div>
+            {(p.linked_event_date || p.linked_event_time) && (
+              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, marginTop:2 }}>
+                {[p.linked_event_date, p.linked_event_time].filter(Boolean).join(' · ')}
+              </div>
+            )}
+          </div>
+          <span style={{ fontSize:11, fontWeight:600, color:C.subtle, whiteSpace:'nowrap', flexShrink:0 }}>View event →</span>
         </button>
       )}
 
@@ -4735,6 +4744,77 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 }
 
 // ─────────────────────────────────────────────────────────────
+// SHEET: GIF PICKER (Giphy)
+// ─────────────────────────────────────────────────────────────
+function GifPickerSheet({ onClose, onSelect }) {
+  const apiKey = import.meta.env.VITE_GIPHY_API_KEY;
+  const [query,   setQuery]   = useState('');
+  const [gifs,    setGifs]    = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(false);
+
+  useEffect(() => {
+    if (!apiKey) { setLoading(false); setError(true); return; }
+    let cancelled = false;
+    const q = query.trim();
+    setLoading(true);
+    const endpoint = q
+      ? `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(q)}&limit=24&rating=pg-13`
+      : `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=24&rating=pg-13`;
+    // Debounce search-as-you-type; trending loads immediately.
+    const timer = setTimeout(() => {
+      fetch(endpoint)
+        .then(res => {
+          if (!res.ok) throw new Error(`Giphy request failed: ${res.status}`);
+          return res.json();
+        })
+        .then(json => { if (!cancelled) { setGifs(json.data || []); setError(false); } })
+        .catch(() => { if (!cancelled) setError(true); })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    }, q ? 350 : 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query, apiKey]);
+
+  return (
+    <Sheet onClose={onClose} title="Choose a GIF">
+      <input
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        placeholder="Search GIFs…"
+        aria-label="Search GIFs"
+        autoFocus
+        style={{ width:'100%', height:42, border:'none', borderRadius:12, background:C.chip,
+                 padding:'0 14px', fontSize:13, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                 color:C.body, outline:'none', marginBottom:14, boxSizing:'border-box' }}
+      />
+      {!apiKey ? (
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>
+          GIF search isn't configured yet.
+        </div>
+      ) : loading ? (
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>Loading…</div>
+      ) : error ? (
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>Couldn't load GIFs -- try again.</div>
+      ) : gifs.length === 0 ? (
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>No GIFs found.</div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, maxHeight:340, overflowY:'auto' }}>
+          {gifs.map(g => (
+            <button key={g.id} onClick={() => onSelect(g.images.fixed_height.url)}
+              aria-label={`Select GIF: ${g.title || g.id}`}
+              style={{ border:'none', borderRadius:10, overflow:'hidden', padding:0, cursor:'pointer',
+                       background:C.chip, aspectRatio:'1', display:'block' }}>
+              <img src={g.images.fixed_height_small?.url || g.images.preview_gif?.url || g.images.fixed_height.url}
+                alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+            </button>
+          ))}
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
 function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToast, currentUser }) {
@@ -4748,11 +4828,29 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
   };
 
   const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
-  const [draft,    setDraft]    = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [draft,       setDraft]       = useState('');
+  const [menuOpen,    setMenuOpen]    = useState(false);
+  // { kind: 'file', file: File } | { kind: 'gif', url: string } | null
+  const [pendingAttachment, setPendingAttachment] = useState(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState(null);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
+  const [sending,     setSending]     = useState(false);
+  const sendingRef = useRef(false);
   const scrollRef  = useRef(null);
   const inputRef   = useRef(null);
   const fileRef    = useRef(null);
+
+  // Only image files get a visual preview; revoke the object URL whenever the
+  // staged file changes or the screen unmounts, so we don't leak blob URLs.
+  useEffect(() => {
+    if (pendingAttachment?.kind !== 'file' || !pendingAttachment.file.type.startsWith('image/')) {
+      setPendingPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(pendingAttachment.file);
+    setPendingPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingAttachment]);
 
   useEffect(() => {
     if (notFound) {
@@ -4805,14 +4903,25 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
 
   const send = async () => {
     const t = draft.trim();
-    if (!t) return;
+    const attachment = pendingAttachment;
+    if (!t && !attachment) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
     setDraft('');
+    setPendingAttachment(null);
     try {
-      const err = await sendMessage(t);
+      const err = !attachment ? await sendMessage(t)
+        : attachment.kind === 'file' ? await sendAttachment(attachment.file, t)
+        : await sendMessage(t, attachment.url);
       if (err) throw err;
     } catch {
-      setDraft(current => current || t);
+      setDraft(current => (current && current !== t) ? `${t} ${current}`.trim() : t);
+      setPendingAttachment(current => current || attachment);
       showToast("Couldn't send -- try again");
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
     }
   };
 
@@ -5016,80 +5125,118 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
       <div style={{ flexShrink:0, background:'rgba(255,255,255,0.96)',
                     backdropFilter:'blur(16px)',
                     boxShadow:'0 -1px 0 rgba(16,24,40,0.07)',
-                    padding:'10px 13px 26px', display:'flex',
-                    alignItems:'center', gap:9, zIndex:6 }}>
-        {/* Hidden file input */}
-        <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt"
-          style={{ display:'none' }}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = '';
-            if (!file) return;
-            showToast('Uploading…');
-            const err = await sendAttachment(file);
-            if (err) showToast('Upload failed');
-          }}
-        />
-        {/* Attach */}
-        <button onClick={() => fileRef.current?.click()} style={{ width:36, height:36,
-          border:'none', background:'none', display:'flex', alignItems:'center',
-          justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M20 11.5 12.5 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.3 4.3l-7.6 7.6a1.5 1.5 0 0 1-2.2-2.2l6.9-6.9"
-                  stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+                    padding:'10px 13px 26px', zIndex:6 }}>
+        {/* Staged attachment preview */}
+        {pendingAttachment && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:9 }}>
+            <div style={{ width:44, height:44, borderRadius:10, overflow:'hidden', flexShrink:0,
+                          background:C.chip, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              {pendingAttachment.kind === 'gif' ? (
+                <img src={pendingAttachment.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+              ) : pendingPreviewUrl ? (
+                <img src={pendingPreviewUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke="#7B8499" strokeWidth="1.8" strokeLinejoin="round"/>
+                  <path d="M14 2v6h6" stroke="#7B8499" strokeWidth="1.8" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {pendingAttachment.kind === 'gif' ? 'GIF' : pendingAttachment.file.name}
+              </div>
+              {pendingAttachment.kind === 'file' && (
+                <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>
+                  {(pendingAttachment.file.size / 1024).toFixed(0)} KB
+                </div>
+              )}
+            </div>
+            <button onClick={() => setPendingAttachment(null)} style={{ width:26, height:26, border:'none',
+              borderRadius:'50%', background:C.chip, display:'flex', alignItems:'center',
+              justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6 6 18M6 6l12 12" stroke="#7B8499" strokeWidth="2.2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        )}
 
-        {/* Input pill */}
-        <div style={{ flex:1, display:'flex', alignItems:'center', background:C.chip,
-                      borderRadius:999, padding:'0 5px 0 15px', height:44,
-                      boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); send(); } }}
-            placeholder="Type a message…"
-            style={{ flex:1, minWidth:0, border:'none', background:'none', outline:'none',
-                     fontFamily:"'Montserrat',-apple-system,sans-serif",
-                     fontSize:13, color:C.body }}
+        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+          {/* Hidden file input */}
+          <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt"
+            style={{ display:'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              setPendingAttachment({ kind:'file', file });
+            }}
           />
-          {/* Emoji */}
-          <button onClick={() => setDraft(d => d + '😄')} style={{ width:32, height:32,
+          {/* Attach */}
+          <button onClick={() => fileRef.current?.click()} style={{ width:36, height:36,
             border:'none', background:'none', display:'flex', alignItems:'center',
             justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="#8A93A6" strokeWidth="1.8"/>
-              <path d="M8.5 14.5s1.2 1.8 3.5 1.8 3.5-1.8 3.5-1.8"
-                    stroke="#8A93A6" strokeWidth="1.8" strokeLinecap="round"/>
-              <circle cx="9"  cy="10" r="1" fill="#8A93A6"/>
-              <circle cx="15" cy="10" r="1" fill="#8A93A6"/>
+              <path d="M20 11.5 12.5 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.3 4.3l-7.6 7.6a1.5 1.5 0 0 1-2.2-2.2l6.9-6.9"
+                    stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-        </div>
 
-        {/* Send / mic toggle */}
-        {draft.trim() ? (
-          <button onClick={send} style={{ width:44, height:44, border:'none', borderRadius:'50%',
-            background:C.grad, display:'flex', alignItems:'center', justifyContent:'center',
-            cursor:'pointer', flexShrink:0, boxShadow:'0 4px 12px rgba(2,162,240,0.4)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M22 2 11 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          {/* GIF */}
+          <button onClick={() => setGifPickerOpen(true)} style={{ height:32, padding:'0 9px',
+            border:'none', borderRadius:9, background:C.chip, display:'flex', alignItems:'center',
+            justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+            <span style={{ fontSize:11, fontWeight:800, color:'#7B8499', letterSpacing:0.2 }}>GIF</span>
           </button>
-        ) : (
-          <button onClick={() => showToast('Hold to record')} style={{ width:44, height:44,
-            border:'none', borderRadius:'50%', background:C.chip, display:'flex',
-            alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <rect x="9" y="2" width="6" height="11" rx="3" stroke="#7B8499" strokeWidth="1.9"/>
-              <path d="M5 10a7 7 0 0 0 14 0" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
-              <path d="M12 19v3M9 22h6" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
-            </svg>
-          </button>
-        )}
+
+          {/* Input pill */}
+          <div style={{ flex:1, display:'flex', alignItems:'center', background:C.chip,
+                        borderRadius:999, padding:'0 15px', height:44,
+                        boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); send(); } }}
+              placeholder={pendingAttachment ? 'Add a caption…' : 'Type a message…'}
+              style={{ flex:1, minWidth:0, border:'none', background:'none', outline:'none',
+                       fontFamily:"'Montserrat',-apple-system,sans-serif",
+                       fontSize:13, color:C.body }}
+            />
+          </div>
+
+          {/* Send / mic toggle */}
+          {(draft.trim() || pendingAttachment) ? (
+            <button onClick={send} disabled={sending} style={{ width:44, height:44, border:'none', borderRadius:'50%',
+              background:C.grad, display:'flex', alignItems:'center', justifyContent:'center',
+              cursor: sending ? 'default' : 'pointer', flexShrink:0, opacity: sending ? 0.7 : 1,
+              boxShadow:'0 4px 12px rgba(2,162,240,0.4)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2 11 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ) : (
+            <button onClick={() => showToast('Hold to record')} style={{ width:44, height:44,
+              border:'none', borderRadius:'50%', background:C.chip, display:'flex',
+              alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="2" width="6" height="11" rx="3" stroke="#7B8499" strokeWidth="1.9"/>
+                <path d="M5 10a7 7 0 0 0 14 0" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
+                <path d="M12 19v3M9 22h6" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
+
+      {gifPickerOpen && (
+        <GifPickerSheet
+          onClose={() => setGifPickerOpen(false)}
+          onSelect={(url) => { setPendingAttachment({ kind:'gif', url }); setGifPickerOpen(false); }}
+        />
+      )}
     </div>
   );
 }
@@ -8261,10 +8408,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             // If created from a group, also create a post so it appears in the Posts tab
             if (sourceGroupId && event) {
               const authorName = currentUser.name || 'Organizer';
-              // No emoji prefix -- the linked-event chip below already renders a
-              // calendar icon, so a text emoji here would just be a redundant,
-              // platform-inconsistent glyph (e.g. iOS renders 📅 as a live date).
-              const eventPostText = `New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
+              const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
               await supabase.from('posts').insert({
                 group_id:           sourceGroupId,
                 user_id:            currentUser.userId,
@@ -8273,6 +8417,8 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                 image_url:          coverUrl || null,
                 linked_event_id:    event.id,
                 linked_event_title: title.trim(),
+                linked_event_date:  fmtDate(date) || null,
+                linked_event_time:  timeRange || null,
                 likes_count:        0,
                 comment_count:      0,
                 author_name:        authorName,

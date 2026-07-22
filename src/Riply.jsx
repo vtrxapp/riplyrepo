@@ -2585,14 +2585,23 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
       {/* Linked event chip */}
       {p.linked_event_title && (
         <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
-          style={{ display:'flex', alignItems:'center', gap:8, marginTop:10, width:'100%',
-                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:12, padding:'9px 12px', cursor:'pointer' }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          style={{ display:'flex', alignItems:'center', gap:10, marginTop:10, width:'100%',
+                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:12, padding:'10px 12px', cursor:'pointer' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
             <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
             <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontSize:12.5, fontWeight:800, color:C.primary, flex:1, textAlign:'left' }}>{p.linked_event_title}</span>
-          <span style={{ fontSize:11, fontWeight:600, color:C.subtle, whiteSpace:'nowrap' }}>View event →</span>
+          <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {p.linked_event_title}
+            </div>
+            {(p.linked_event_date || p.linked_event_time) && (
+              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, marginTop:2 }}>
+                {[p.linked_event_date, p.linked_event_time].filter(Boolean).join(' · ')}
+              </div>
+            )}
+          </div>
+          <span style={{ fontSize:11, fontWeight:600, color:C.subtle, whiteSpace:'nowrap', flexShrink:0 }}>View event →</span>
         </button>
       )}
 
@@ -8261,10 +8270,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             // If created from a group, also create a post so it appears in the Posts tab
             if (sourceGroupId && event) {
               const authorName = currentUser.name || 'Organizer';
-              // No emoji prefix -- the linked-event chip below already renders a
-              // calendar icon, so a text emoji here would just be a redundant,
-              // platform-inconsistent glyph (e.g. iOS renders 📅 as a live date).
-              const eventPostText = `New event: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
+              const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
               await supabase.from('posts').insert({
                 group_id:           sourceGroupId,
                 user_id:            currentUser.userId,
@@ -8273,6 +8279,8 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                 image_url:          coverUrl || null,
                 linked_event_id:    event.id,
                 linked_event_title: title.trim(),
+                linked_event_date:  fmtDate(date) || null,
+                linked_event_time:  timeRange || null,
                 likes_count:        0,
                 comment_count:      0,
                 author_name:        authorName,

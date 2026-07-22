@@ -32,6 +32,8 @@ alter table posts add column if not exists poll_votes          jsonb default '{}
 alter table posts add column if not exists poll_voter_ids      jsonb default '[]'::jsonb;
 alter table posts add column if not exists linked_event_id     uuid;
 alter table posts add column if not exists linked_event_title  text;
+alter table posts add column if not exists linked_event_date   text;
+alter table posts add column if not exists linked_event_time   text;
 
 -- post_comments table
 create table if not exists post_comments (

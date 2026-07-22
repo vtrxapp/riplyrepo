@@ -97,6 +97,11 @@ alter table events add column if not exists is_public boolean default true;
 -- users, who are only shown status IS NULL OR status = 'published'.
 alter table events add column if not exists status text;
 
+-- Amount actually charged at purchase time (fee + tax included), captured on
+-- the tickets row itself so purchase history stays accurate even if the
+-- event's price later changes -- previously nothing recorded this at all.
+alter table tickets add column if not exists amount_paid numeric;
+
 -- space_participants table (for SpaceDetailsScreen join)
 create table if not exists space_participants (
   space_id    uuid not null,

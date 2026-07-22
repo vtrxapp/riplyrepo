@@ -6706,7 +6706,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
     // time/location captured at purchase time), so no join is needed.
     supabase
       .from('tickets')
-      .select('id, event_id, event_title, access, location, date, time, status, purchased_at')
+      .select('id, event_id, event_title, access, location, date, time, status, purchased_at, amount_paid')
       .eq('user_id', user.id)
       .order('purchased_at', { ascending: false })
       .then(({ data, error }) => {
@@ -6731,6 +6731,10 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
             date: dateValid ? evDate.toLocaleDateString('en-GB', { weekday:'short', month:'short', day:'numeric' }) : (t.date || '–'),
             time: t.time ? fmt12(t.time) : '–',
             location: t.location || '–',
+            // Older tickets bought before this column existed have no
+            // recorded amount -- show a dash rather than a misleading "Free".
+            amountPaid: t.amount_paid == null ? null : t.amount_paid,
+            purchasedAt: t.purchased_at,
             isPast,
           };
         });
@@ -6855,6 +6859,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                 {[
                   { label:'Date',     value:tk.date     },
                   { label:'Time',     value:tk.time     },
+                  { label:'Amount',   value: tk.amountPaid == null ? '–' : (tk.amountPaid === 0 ? 'Free' : `$${tk.amountPaid.toFixed(2)}`) },
                   { label:'Location', value:tk.location, full:true },
                 ].map(row => (
                   <div key={row.label}
@@ -11348,13 +11353,13 @@ function StripePaymentForm({ total, onSuccess, onError }) {
     e.preventDefault();
     if (!stripe || !elements) return;
     setPaying(true);
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: { return_url: window.location.href },
       redirect: 'if_required',
     });
     setPaying(false);
-    if (error) { onError(error.message); } else { onSuccess(); }
+    if (error) { onError(error.message); } else { onSuccess(paymentIntent?.id || null); }
   };
 
   return (
@@ -11439,7 +11444,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   // false "confirmed" screen when the write actually failed.
   // `silent` lets the paid (Stripe) path show its own context-specific
   // message instead of stacking this generic one on top of it.
-  const saveTicket = async (silent = false) => {
+  const saveTicket = async (silent = false, paymentIntentId = null) => {
     if (!user?.id) return false;
     // Store an ISO date when the event's date field parses cleanly, so
     // MyTicketsScreen's ACTIVE/USED comparison doesn't depend on the
@@ -11458,6 +11463,11 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         date:         ticketDate,
         time:         ev.timeRange || ev.time_range || ev.start_time || null,
         location:     ev.location,
+        // Captured at purchase time (fee + tax included) rather than derived
+        // later from the event's current price -- a since-changed event
+        // price would otherwise make past purchases look wrong in history.
+        amount_paid:  total,
+        stripe_payment_intent_id: paymentIntentId,
       });
       if (error) throw error;
       return true;
@@ -11709,14 +11719,14 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme:'stripe' } }}>
           <StripePaymentForm
             total={total}
-            onSuccess={async () => {
+            onSuccess={async (paymentIntentId) => {
               // Payment already went through via Stripe at this point — unlike
               // the free path, we can't just send a failed save back to
               // 'purchase' without risking a second charge. Still show
               // success (the charge is real) but flag it if the ticket
               // record itself didn't save, since saveTicket already showed
               // its own generic toast which doesn't fit a completed payment.
-              const saved = await saveTicket(true);
+              const saved = await saveTicket(true, paymentIntentId);
               if (!saved) showToast('Payment received, but we had trouble saving your ticket — contact support if it doesn\'t appear in My Tickets.');
               setStep('success');
             }}

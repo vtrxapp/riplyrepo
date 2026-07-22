@@ -961,15 +961,12 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
           </div>
         </div>
         {/* Tabs */}
-        <div style={{ display:'flex', gap:26 }}>
+        <div style={{ display:'flex', gap:26, marginBottom:11 }}>
           <button onClick={()=>setMsgTab('notifications')} style={isNotif?activeTabStyle:idleTabStyle}>
             Notifications
             {unreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:8, fontWeight:800, verticalAlign:'middle' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
           <button onClick={()=>setMsgTab('chats')} style={isNotif?idleTabStyle:activeTabStyle}>Chats</button>
-        </div>
-        <div style={{ position:'relative', height:2, background:'#EEF0F4', marginTop:11 }}>
-          <div style={{ position:'absolute', bottom:0, height:2.5, borderRadius:2, background:C.primary, width: isNotif?'108px':'52px', left: isNotif?'0px':'134px', transition:'all .25s ease' }} />
         </div>
         {searchOpen && !isNotif && (
           <div style={{ marginTop:12 }}>
@@ -1581,14 +1578,14 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
     { topic:'Account', q:'How do I update my profile?', a:"Go to the Profile tab → tap your name or avatar at the top → Edit Profile. You can update your name, university, year, programme, bio, and profile photo." },
     { topic:'Account', q:'How do I change my password?', a:"Go to Profile & Settings → Privacy & Security → Change Password. Enter your current password and your new one twice, then tap Save." },
     { topic:'Account', q:'How do I make my profile private?', a:"Go to Profile & Settings → Privacy & Security → toggle on Private Profile. When private, only people you approve can see your activity and details." },
-    { topic:'Account', q:'How do I delete my account?', a:"Account deletion is handled by our support team to ensure your data is fully removed. Email us at support@riply.app with the subject \"Delete My Account\" and we'll process it within 7 days." },
+    { topic:'Account', q:'How do I delete my account?', a:"Account deletion is handled by our support team to ensure your data is fully removed. Email us at riplyapp@outlook.com with the subject \"Delete My Account\" and we'll process it within 7 days." },
     { topic:'Account', q:'I forgot my password — what do I do?', a:"On the login screen tap \"Forgot Password\". Enter your email and we'll send a reset link. If you signed up with Google or Apple, use that login method instead." },
     { topic:'Account', q:'Can I change my university after signing up?', a:"Yes — go to Edit Profile and update the University field. This helps us show you relevant events and groups for your campus." },
     // Payments
     { topic:'Payments', q:'What payment methods are accepted?', a:"Riply accepts major credit and debit cards. Apple Pay and Google Pay support is coming soon. All payments are processed securely." },
     { topic:'Payments', q:'Is it safe to pay through Riply?', a:"Yes. All payments are encrypted and processed through a secure payment provider. Riply never stores your full card details." },
     { topic:'Payments', q:'Where can I see my payment history?', a:"Go to Profile & Settings → Payment Methods → Payment History to see all past transactions and receipts." },
-    { topic:'Payments', q:'I was charged but didn\'t receive my ticket — what do I do?', a:"This can happen if your connection dropped during checkout. Check My Tickets first — your ticket may already be there. If not, email support@riply.app with your order details and we'll resolve it quickly." },
+    { topic:'Payments', q:'I was charged but didn\'t receive my ticket — what do I do?', a:"This can happen if your connection dropped during checkout. Check My Tickets first — your ticket may already be there. If not, email riplyapp@outlook.com with your order details and we'll resolve it quickly." },
     { topic:'Payments', q:'Are there booking fees on top of the ticket price?', a:"Any fees are shown clearly during checkout before you confirm payment. The price you see on the event page is the base ticket price." },
   ];
   const TOPICS = [
@@ -1724,7 +1721,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
                       color:C.subtle, margin:'24px 4px 10px' }}>Still need help?</div>
         <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
           {[
-            { title:'Email Support', sub:'support@riply.app', iconBg:'#F1ECFF',
+            { title:'Email Support', sub:'riplyapp@outlook.com', iconBg:'#F1ECFF',
               icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke="#7C5CFF" strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke="#7C5CFF" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
               onClick:() => navigate('feedback') },
           ].map((item,i) => (
@@ -7096,7 +7093,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           border:`1.5px solid ${C.border}`, borderRadius:16, padding:12, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:12, textAlign:'left',
         }}>
-          <div style={{ width:54, height:54, borderRadius:16, flexShrink:0,
+          <div style={{ width:54, height:54, borderRadius:'50%', flexShrink:0,
                         background: avatarUrl ? 'transparent' : coverGrad, position:'relative', overflow:'hidden',
                         display:'flex', alignItems:'center', justifyContent:'center' }}>
             {avatarUrl

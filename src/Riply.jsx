@@ -4865,15 +4865,19 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     }
   }, [resolveError, messagesError]);
 
+  // Group chats have no single "other person" to fall back to, so an
+  // unresolved profile shows as a generic member; DMs fall back to the
+  // chat's own display name, which is already the other participant's name.
+  const isGroupChat = chat.type === 'group' || chat.isGroup
   // Map Supabase shape → UI shape
   const messages = rawMessages.map(msg => {
     const isOut = msg.sender_id === currentUserId
     const profile = msg._senderProfile || null
     const senderName = isOut
       ? (currentUser?.name || profile?.name || 'You')
-      : (profile?.name || 'Member')
+      : (profile?.name || (isGroupChat ? 'Member' : chatName) || '?')
     const senderAvatar = isOut ? (currentUser?.avatarUrl || profile?.avatar_url || null) : (profile?.avatar_url || null)
-    const senderColor  = isOut ? (currentUser?.avatarColor || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)') : (profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)')
+    const senderColor  = (isOut ? currentUser?.avatarColor : null) || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)'
     return {
       id:         msg.id,
       side:       isOut ? 'out' : 'in',
@@ -4930,9 +4934,8 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
   useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
   // Online status — group chats (id 4) show member count, DMs show 'Active recently'
-  const isGroup = chat.type === 'group' || chat.isGroup;
   const memberCount = chat.memberCount || chat.members;
-  const onlineLabel = isGroup
+  const onlineLabel = isGroupChat
     ? memberCount ? `Online · ${memberCount} members` : 'Online'
     : 'Active recently';
 

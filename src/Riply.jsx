@@ -21,6 +21,8 @@ import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
 import { uploadImage } from "./hooks/useUpload";
 import { supabase } from "./lib/supabase";
+import QRCode from "qrcode";
+import jsQR from "jsqr";
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
@@ -6516,28 +6518,20 @@ const TICKETS_DATA = [
   },
 ];
 
-// Deterministic pseudo-QR matrix (17×17 cells)
-function makeQR(seed) {
-  const N = 17;
-  let x = (seed * 2654435761) >>> 0;
-  const rnd = () => { x = ((x * 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff; };
-  const cells = [];
-  for (let r = 0; r < N; r++) {
-    for (let c = 0; c < N; c++) {
-      // Simple finder-pattern corners
-      const inCorner = (br, bc) => r>=br && r<br+5 && c>=bc && c<bc+5;
-      let val;
-      if (inCorner(0,0) || inCorner(0,N-5) || inCorner(N-5,0)) {
-        const lr = r % 5 === 0 || r % 5 === 4 || c % 5 === 0 || c % 5 === 4;
-        const mid = r % 5 >= 1 && r % 5 <= 3 && c % 5 >= 1 && c % 5 <= 3;
-        val = lr || mid;
-      } else {
-        val = rnd() > 0.48;
-      }
-      cells.push(val);
-    }
-  }
-  return cells;
+// Real, scannable QR code encoding the ticket's id -- CheckInScreen decodes
+// this via camera + jsQR and looks the ticket up by that id.
+function TicketQRCode({ value, active }) {
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    QRCode.toDataURL(value, {
+      width: 136, margin: 0,
+      color: { dark: active ? '#0B1420' : '#9AA3B2', light: '#0000' },
+    }).then(u => { if (!cancelled) setUrl(u); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [value, active]);
+  if (!url) return <div style={{ width:136, height:136 }} />;
+  return <img src={url} width={136} height={136} alt="Ticket QR code" style={{ display:'block' }} />;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -6822,9 +6816,8 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
           </div>
         )}
 
-        {list.map((tk, idx) => {
+        {list.map((tk) => {
           const isActive = tk.status === 'ACTIVE';
-          const cells = makeQR(idx * 17 + 3);
 
           return (
             <div key={tk.id} style={{ background:C.card, borderRadius:22,
@@ -6887,19 +6880,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                 <div style={{ background: isActive ? '#F4F8FF' : '#F4F6FA',
                               borderRadius:16, padding:14,
                               border: isActive ? `1.5px solid #D6EAFF` : `1.5px solid ${C.border}` }}>
-                  {/* QR grid */}
-                  <div style={{ display:'grid', gridTemplateColumns:`repeat(17,1fr)`,
-                                width:136, height:136, gap:0 }}>
-                    {cells.map((on, i) => (
-                      <div key={i} style={{
-                        width:'100%', height:'100%',
-                        background: on
-                          ? (isActive ? C.ink : '#9AA3B2')
-                          : 'transparent',
-                        borderRadius:1,
-                      }}/>
-                    ))}
-                  </div>
+                  <TicketQRCode value={tk.id} active={isActive} />
                 </div>
 
                 {/* Ticket ID */}
@@ -10196,54 +10177,112 @@ function CheckInScreen({ eventId, goBack, showToast }) {
   const mockEv = EVENTS.find(e => e.id === eventId);
   const eventTitle = eventLoading ? 'Loading…' : ((dbEvent || mockEv)?.title || 'Event');
 
-  // NOTE: attendee list and check-in counts below are still a UI mock — this
-  // fix only resolves the real event so the header shows the right title
-  // instead of always "Karaoke Night". Wiring live ticket-holder data and a
-  // real check-in write path is a larger follow-up, not attempted here.
-  const ATTENDEES = [
-    { name:'Maya Robinson',  initial:'MR', ticket:'General', color:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', valid:true  },
-    { name:'Liam Kowalski',  initial:'LK', ticket:'VIP',     color:'linear-gradient(135deg,#2F6BFF,#6C4DF2)', valid:true  },
-    { name:'Aisha Nasser',   initial:'AN', ticket:'General', color:'linear-gradient(135deg,#10B981,#06B6D4)', valid:true  },
-    { name:'Noah Park',      initial:'NP', ticket:'VIP',     color:'linear-gradient(135deg,#7C5CFF,#B06BFF)', valid:true  },
-    { name:'Sofia Mendez',   initial:'SM', ticket:'General', color:'linear-gradient(135deg,#F59E0B,#EF4444)', valid:false, reason:'Already checked in' },
-    { name:'Ethan Wong',     initial:'EW', ticket:'General', color:'linear-gradient(135deg,#0EA5E9,#0E84E0)', valid:true  },
-  ];
+  const [checkedIn, setCheckedIn] = useState(0);
+  const [total,     setTotal]     = useState(0);
+  const [result,    setResult]    = useState(null);
+  const [recent,    setRecent]    = useState([]);
+  const [cameraError, setCameraError] = useState(null);
+  const [manualId,  setManualId]  = useState('');
 
-  const [checkedIn, setCheckedIn] = useState(142);
-  const total = 200;
-  const [result,  setResult]  = useState(null);
-  const [recent,  setRecent]  = useState([]);
-  const [scanIdx, setScanIdx] = useState(0);
-
+  const videoRef      = useRef(null);
+  const canvasRef      = useRef(null);
+  const streamRef      = useRef(null);
+  const rafRef         = useRef(null);
+  const processingRef  = useRef(false);
+  const pausedRef      = useRef(false);
   const resultTimerRef = useRef(null);
-  const scan = () => {
-    const a = ATTENDEES[scanIdx % ATTENDEES.length];
-    setScanIdx(i => i + 1);
-    setResult(a);
-    if (a.valid) {
-      setCheckedIn(n => Math.min(total, n + 1));
-      setRecent(r => [{ ...a, time:'just now' }, ...r].slice(0, 6));
-    }
+
+  // Real attendee totals -- how many tickets exist for this event, and how
+  // many are already marked used, instead of a hardcoded 142/200.
+  useEffect(() => {
+    if (!eventId) return;
+    let cancelled = false;
+    (async () => {
+      const [{ count: totalCount }, { count: usedCount }] = await Promise.all([
+        supabase.from('tickets').select('*', { count:'exact', head:true }).eq('event_id', eventId),
+        supabase.from('tickets').select('*', { count:'exact', head:true }).eq('event_id', eventId).eq('status', 'USED'),
+      ]);
+      if (!cancelled) { setTotal(totalCount || 0); setCheckedIn(usedCount || 0); }
+    })();
+    return () => { cancelled = true; };
+  }, [eventId]);
+
+  const showResult = (r) => {
+    setResult(r);
+    pausedRef.current = true;
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
-    resultTimerRef.current = setTimeout(() => setResult(null), 1800);
+    resultTimerRef.current = setTimeout(() => { setResult(null); pausedRef.current = false; }, 1800);
   };
+
+  // Validates + marks the ticket used via a security-definer RPC (not a
+  // direct update) -- tickets_update RLS only allows the ticket's own owner
+  // to touch their row, so the organizer needs a function that checks
+  // "am I this event's organizer" server-side rather than opening up
+  // tickets_update to anyone, which would let an organizer edit ticket
+  // fields beyond just status.
+  const handleScan = useCallback(async (ticketId) => {
+    const id = ticketId.trim();
+    if (!id || processingRef.current) return;
+    processingRef.current = true;
+    pausedRef.current = true;
+    const { data, error } = await supabase.rpc('check_in_ticket', { p_ticket_id: id, p_event_id: eventId });
+    if (error) {
+      showResult({ valid:false, name:null, reason: error.message || 'Invalid ticket' });
+    } else {
+      const row = data?.[0];
+      const name = row?.user_name || 'Attendee';
+      showResult({ valid:true, name, ticket: row?.access || 'Ticket' });
+      setCheckedIn(n => n + 1);
+      setRecent(r => [{ name, initial:(name[0] || '?').toUpperCase(),
+                         color:'linear-gradient(135deg,#19BFFF,#0098F0)', time:'just now' }, ...r].slice(0, 6));
+    }
+    processingRef.current = false;
+  }, [eventId]);
+
+  // Camera + scan loop: grab a video frame onto the hidden canvas every
+  // animation frame and hand the pixels to jsQR; a decoded QR payload is the
+  // ticket's id, which handleScan looks up server-side.
+  useEffect(() => {
+    let cancelled = false;
+    const tick = () => {
+      rafRef.current = requestAnimationFrame(tick);
+      const video = videoRef.current, canvas = canvasRef.current;
+      if (!video || !canvas || processingRef.current || pausedRef.current) return;
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code?.data) handleScan(code.data);
+    };
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        tick();
+      } catch {
+        if (!cancelled) setCameraError('Camera unavailable — check browser permissions, or check in manually below.');
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+    };
+  }, [handleScan]);
+
   useEffect(() => () => {
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
   }, []);
 
-  const pct = Math.round((checkedIn / total) * 100);
-
-  // faux QR cells
-  const N = 17;
-  const cells = Array.from({ length: N * N }, (_, idx) => {
-    const r = Math.floor(idx / N), c = idx % N;
-    const finder = (rr, cc) => rr < 5 && cc < 5;
-    if (finder(r, c) || finder(r, N - 5 + (c < 5 ? 0 : N)) || finder(N - 5 + (r < 5 ? 0 : N), c)) {
-      const lr = r % 5, lc = c % 5;
-      return lr === 0 || lr === 4 || lc === 0 || lc === 4 || (lr >= 1 && lr <= 3 && lc >= 1 && lc <= 3);
-    }
-    return ((r * 7 + c * 13 + (r * c) % 5)) % 3 === 0;
-  });
+  const pct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column',
@@ -10303,37 +10342,40 @@ function CheckInScreen({ eventId, goBack, showToast }) {
       <div style={{ flex:1, position:'relative', margin:'0 18px', borderRadius:24,
                     overflow:'hidden',
                     background:'linear-gradient(160deg,#16202C,#0C1219)', minHeight:0 }}>
-        {/* texture */}
-        <div style={{ position:'absolute', inset:0, background:
-          'repeating-linear-gradient(135deg,rgba(255,255,255,0.03) 0,rgba(255,255,255,0.03) 2px,transparent 2px,transparent 18px)'}}/>
-        <div style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
-                      fontFamily:"'JetBrains Mono',monospace", fontSize:10, letterSpacing:1,
-                      color:'rgba(255,255,255,0.4)' }}>POINT AT ATTENDEE QR</div>
+        <video ref={videoRef} playsInline muted style={{
+          position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
+          opacity: cameraError ? 0 : 1,
+        }}/>
+        <canvas ref={canvasRef} style={{ display:'none' }}/>
 
-        {/* Reticle */}
-        <div style={{ position:'absolute', top:'50%', left:'50%',
-                      transform:'translate(-50%,-50%)', width:208, height:208 }}>
-          {[
-            { top:0,  left:0,  borderTop:`4px solid #19BFFF`, borderLeft:`4px solid #19BFFF`,  borderRadius:'14px 0 0 0' },
-            { top:0,  right:0, borderTop:`4px solid #19BFFF`, borderRight:`4px solid #19BFFF`, borderRadius:'0 14px 0 0' },
-            { bottom:0, left:0, borderBottom:`4px solid #19BFFF`, borderLeft:`4px solid #19BFFF`, borderRadius:'0 0 0 14px' },
-            { bottom:0, right:0, borderBottom:`4px solid #19BFFF`, borderRight:`4px solid #19BFFF`, borderRadius:'0 0 14px 0' },
-          ].map((s, i) => (
-            <div key={i} style={{ position:'absolute', width:38, height:38, ...s }}/>
-          ))}
-          {/* Faux QR */}
-          <div style={{ position:'absolute', inset:30, opacity:0.22,
-                        display:'grid', gridTemplateColumns:`repeat(${N},1fr)` }}>
-            {cells.map((on, i) => (
-              <div key={i} style={{ background: on ? '#19BFFF' : 'transparent',
-                                    borderRadius:1 }}/>
-            ))}
+        {cameraError ? (
+          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column',
+                        alignItems:'center', justifyContent:'center', gap:8, padding:24,
+                        textAlign:'center' }}>
+            <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>{cameraError}</span>
           </div>
-          {/* Scan line */}
-          <div style={{ position:'absolute', left:20, right:20, top:'50%',
-                        height:2, background:'linear-gradient(90deg,transparent,#19BFFF,transparent)',
-                        animation:'none', opacity:0.7 }}/>
-        </div>
+        ) : (
+          <>
+            <div style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
+                          fontFamily:"'JetBrains Mono',monospace", fontSize:10, letterSpacing:1,
+                          color:'rgba(255,255,255,0.7)', textShadow:'0 1px 4px rgba(0,0,0,0.6)' }}>
+              POINT AT ATTENDEE QR
+            </div>
+
+            {/* Reticle */}
+            <div style={{ position:'absolute', top:'50%', left:'50%',
+                          transform:'translate(-50%,-50%)', width:208, height:208 }}>
+              {[
+                { top:0,  left:0,  borderTop:`4px solid #19BFFF`, borderLeft:`4px solid #19BFFF`,  borderRadius:'14px 0 0 0' },
+                { top:0,  right:0, borderTop:`4px solid #19BFFF`, borderRight:`4px solid #19BFFF`, borderRadius:'0 14px 0 0' },
+                { bottom:0, left:0, borderBottom:`4px solid #19BFFF`, borderLeft:`4px solid #19BFFF`, borderRadius:'0 0 0 14px' },
+                { bottom:0, right:0, borderBottom:`4px solid #19BFFF`, borderRight:`4px solid #19BFFF`, borderRadius:'0 0 14px 0' },
+              ].map((s, i) => (
+                <div key={i} style={{ position:'absolute', width:38, height:38, ...s }}/>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Result overlay */}
         {result && (
@@ -10398,24 +10440,30 @@ function CheckInScreen({ eventId, goBack, showToast }) {
         )}
       </div>
 
-      {/* Scan button */}
-      <div style={{ flexShrink:0, display:'flex', justifyContent:'center',
-                    padding:'18px 0 30px', zIndex:4 }}>
-        <button onClick={scan} style={{
-          display:'flex', alignItems:'center', gap:10, height:56, padding:'0 30px',
-          border:'none', borderRadius:999, cursor:'pointer',
-          background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
-          fontSize:16, fontWeight:800,
-          fontFamily:"'Montserrat',-apple-system,sans-serif",
-          boxShadow:'0 10px 28px rgba(2,162,240,0.55)',
-        }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"
-                  stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M4 12h16" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          Scan Ticket
-        </button>
+      {/* Manual entry fallback -- for when the camera is unavailable, or the
+          attendee's QR is glared out on their screen */}
+      <div style={{ flexShrink:0, padding:'16px 18px 30px', zIndex:4 }}>
+        <div style={{ display:'flex', gap:8 }}>
+          <input value={manualId} onChange={e => setManualId(e.target.value)}
+            placeholder="Or type ticket ID"
+            onKeyDown={e => { if (e.key === 'Enter' && manualId.trim()) { handleScan(manualId.trim()); setManualId(''); } }}
+            style={{ flex:1, height:50, borderRadius:16, border:'1.5px solid rgba(255,255,255,0.14)',
+                     background:'rgba(255,255,255,0.06)', color:'#fff', padding:'0 16px',
+                     fontSize:13, fontFamily:"'JetBrains Mono',monospace", outline:'none' }}/>
+          <button
+            disabled={!manualId.trim()}
+            onClick={() => { handleScan(manualId.trim()); setManualId(''); }}
+            style={{
+              height:50, padding:'0 22px', border:'none', borderRadius:16,
+              cursor: manualId.trim() ? 'pointer' : 'not-allowed',
+              background: manualId.trim() ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : 'rgba(255,255,255,0.08)',
+              color: manualId.trim() ? '#fff' : 'rgba(255,255,255,0.35)',
+              fontSize:14, fontWeight:800,
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+            }}>
+            Check In
+          </button>
+        </div>
       </div>
     </div>
   );

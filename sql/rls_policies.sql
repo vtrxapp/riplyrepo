@@ -396,6 +396,47 @@ create policy tickets_update on public.tickets for update
   using (current_user_id() = user_id) with check (current_user_id() = user_id);
 create policy tickets_delete on public.tickets for delete using (current_user_id() = user_id);
 
+-- Event check-in: marks a ticket used. tickets_update above only lets the
+-- ticket's own owner update it, so the organizer scanning tickets at the
+-- door needs a security-definer function instead of a direct client update
+-- -- otherwise we'd have to open tickets_update to "anyone", which would let
+-- an organizer edit any field on any attendee's ticket, not just status.
+create or replace function public.check_in_ticket(p_ticket_id uuid, p_event_id uuid)
+returns table(user_name text, access text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  t record;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in to check in tickets';
+  end if;
+
+  select * into t from public.tickets where id = p_ticket_id for update;
+  if not found then
+    raise exception 'ticket not found';
+  end if;
+
+  if t.event_id is distinct from p_event_id then
+    raise exception 'this ticket is for a different event';
+  end if;
+
+  if not exists (select 1 from public.events e where e.id = p_event_id and e.user_id = current_user_id()) then
+    raise exception 'not authorized to check in tickets for this event';
+  end if;
+
+  if t.status = 'USED' then
+    raise exception 'this ticket has already been checked in';
+  end if;
+
+  update public.tickets set status = 'USED' where id = p_ticket_id;
+
+  return query select u.name, t.access from public.users u where u.id = t.user_id;
+end;
+$$;
+
 -- ─────────────────────────────────────────────────────────────
 -- chats / messages — scoped to chat_participants membership.
 -- ─────────────────────────────────────────────────────────────

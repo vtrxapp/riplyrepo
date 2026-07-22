@@ -220,8 +220,27 @@ drop policy if exists posts_update on public.posts;
 drop policy if exists posts_delete on public.posts;
 
 create policy posts_select on public.posts for select using (true);
+-- A group's "members can post" toggle (groups.permissions->>'membersPost')
+-- was only ever checked client-side, so anyone hitting the API directly
+-- could post into a group that had it turned off. Enforce it here too:
+-- non-group posts are unaffected; group posts require either the poster to
+-- be an admin/owner of that group, or the toggle to not be explicitly
+-- 'false' (absent/null defaults to allowed, matching the client's default).
 create policy posts_insert on public.posts for insert
-  with check (current_user_id() = user_id);
+  with check (
+    current_user_id() = user_id
+    and (
+      group_id is null
+      or exists (
+        select 1 from public.group_members gm
+        where gm.group_id = posts.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
+      )
+      or coalesce(
+           (select permissions ->> 'membersPost' from public.groups where id = posts.group_id),
+           'true'
+         ) <> 'false'
+    )
+  );
 -- Update/delete are also allowed for a group admin/owner of the post's group
 -- (not just the author) so group admins can pin/unpin and moderate posts.
 -- USING and WITH CHECK are identical here, so WITH CHECK is omitted --

@@ -1118,11 +1118,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
-    supabase.from('group_members').select('group_id, groups(id, name, initial, logo_color, avatar_url)')
+    supabase.from('group_members').select('group_id, role, groups(id, name, initial, logo_color, avatar_url, permissions)')
       .eq('user_id', user.id).in('role', ['member', 'admin', 'owner'])
       .then(({ data }) => {
         if (cancelled) return;
-        const groups = (data || []).map(r => r.groups).filter(Boolean);
+        // Keep the member's own role alongside the group so the composer can
+        // tell "membersPost:false" apart from "but I'm an admin, so I still can".
+        const groups = (data || []).filter(r => r.groups).map(r => ({ ...r.groups, myRole: r.role }));
         setMyGroups(groups);
         setSelectedGroupId(prev => prev || groupId || groups[0]?.id || null);
       });
@@ -1158,12 +1160,20 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     ? text.trim().length > 0 && pollOpts.filter(o => o.trim()).length >= 2
     : !!(text.trim() || hasPhoto || hasFile || linkedEvent);
 
+  // membersPost defaults to true when a group hasn't set permissions at all
+  // (undefined shouldn't read as "locked"); admins/owners can always post
+  // regardless of the toggle, since they're the ones who'd have set it.
+  const isGroupAdminHere = selectedGroup?.myRole === 'admin' || selectedGroup?.myRole === 'owner';
+  const membersCanPost = selectedGroup?.permissions?.membersPost !== false;
+  const postingLocked = !!selectedGroup && !isGroupAdminHere && !membersCanPost;
+
   const handlePost = async () => {
     if (!canPost) {
       showToast(hasPoll ? 'Write a question and add at least 2 options' : 'Write something or add a photo, file, or event');
       return;
     }
     if (!selectedGroupId) { showToast('Select a group to post to'); return; }
+    if (postingLocked) { showToast('Only admins can post in this group'); return; }
     if (photosUploading) { showToast('Photos are still uploading'); return; }
     setPosting(true);
     const authorName = currentUser.name || user?.username || 'Member';
@@ -1260,12 +1270,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         </div>
 
         <button onClick={handlePost} style={{
-          height:40, padding:'0 18px', border:'none', borderRadius:13, cursor:'pointer',
+          height:40, padding:'0 18px', border:'none', borderRadius:13,
+          cursor: canPost && !postingLocked ? 'pointer' : 'not-allowed',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           fontSize:13, fontWeight:800, flexShrink:0,
-          background: canPost ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#E4E8EF',
-          color: canPost ? '#fff' : '#A8B0BD',
-          boxShadow: canPost ? '0 4px 10px rgba(2,162,240,0.3)' : 'none',
+          background: canPost && !postingLocked ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#E4E8EF',
+          color: canPost && !postingLocked ? '#fff' : '#A8B0BD',
+          boxShadow: canPost && !postingLocked ? '0 4px 10px rgba(2,162,240,0.3)' : 'none',
           transition: 'all .18s',
         }}>
           Post
@@ -1274,6 +1285,19 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
 
       {/* ── Body ───────────────────────────────────────────── */}
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 30px' }}>
+
+        {postingLocked && (
+          <div style={{ display:'flex', alignItems:'center', gap:7, background:'#FFF6EC',
+                        borderRadius:11, padding:'10px 13px', marginBottom:13 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+              <circle cx="12" cy="12" r="9" stroke="#F59E0B" strokeWidth="2"/>
+              <path d="M12 8v5M12 16h.01" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize:12, fontWeight:600, color:'#92400E' }}>
+              Only admins can post in {selectedGroup?.name || 'this group'}
+            </span>
+          </div>
+        )}
 
         {/* Author + group picker */}
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
@@ -9636,6 +9660,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
     setDesc(dbGroup.description || '');
     setCategory((dbGroup.category || [])?.[0] || 'academic');
     setVisibility(dbGroup.privacy || 'public');
+    if (dbGroup.permissions) setPerms(p => ({ ...p, ...dbGroup.permissions }));
     if (dbGroup.rules?.length) setRules([...dbGroup.rules]);
     if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', ...dbGroup.social_links });
   }, [dbGroup]);

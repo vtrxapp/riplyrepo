@@ -933,7 +933,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 // ─────────────────────────────────────────────────────────────
 function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
   const isNotif = msgTab==='notifications';
-  const { chats, loading: chatsLoading } = useChats();
+  const { chats, loading: chatsLoading, deleteChat } = useChats();
   const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification } = notifs;
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
@@ -1065,6 +1065,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                     {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
                   </div>
                 </div>
+                <button onClick={e => { e.stopPropagation(); deleteChat(c.id); }} style={{ flexShrink:0, border:'none',
+                  background:'none', cursor:'pointer', padding:4, color:C.subtle, fontSize:16, lineHeight:1 }}>×</button>
               </div>
             ))}
           </div>

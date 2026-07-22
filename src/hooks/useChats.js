@@ -94,5 +94,20 @@ export function useChats() {
     return () => { supabase.removeChannel(channel) }
   }, [user?.id, load])
 
-  return { chats, loading }
+  // Deletes the current user's own membership row rather than the chat
+  // itself, so this only removes the conversation from their own list --
+  // other participants keep the chat and their message history intact.
+  const deleteChat = useCallback(async (chatId) => {
+    if (!user?.id) return { error: 'Not signed in' }
+    setChats(prev => prev.filter(c => c.id !== chatId))
+    const { error } = await supabase
+      .from('chat_participants')
+      .delete()
+      .eq('chat_id', chatId)
+      .eq('user_id', user.id)
+    if (error) load(user.id)
+    return { error }
+  }, [user?.id, load])
+
+  return { chats, loading, deleteChat }
 }

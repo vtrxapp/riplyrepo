@@ -957,7 +957,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>My Messages</span>
           <div style={{ display:'flex', gap:9 }}>
-            <button onClick={()=>{ setSearchOpen(v=>!v); setChatQuery(''); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background: searchOpen ? C.grad : C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <button onClick={()=>{ setSearchOpen(v=>!v); setChatQuery(''); }} aria-label="Search chats" aria-expanded={searchOpen} aria-pressed={searchOpen} style={{ width:40, height:40, border:'none', borderRadius:'50%', background: searchOpen ? C.grad : C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2" strokeLinecap="round"/></svg>
             </button>
             <button onClick={()=>showToast('Start a new conversation')} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
@@ -1073,7 +1073,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                   e.stopPropagation();
                   const { error } = await deleteChat(c.id);
                   if (error) showToast("Couldn't delete chat. Try again.");
-                }} style={{ flexShrink:0, border:'none',
+                }} aria-label={`Delete chat with ${c.name}`} style={{ flexShrink:0, border:'none',
                   background:'none', cursor:'pointer', padding:4, color:C.subtle, fontSize:16, lineHeight:1 }}>×</button>
               </div>
             ))}

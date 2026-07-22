@@ -91,7 +91,7 @@ export function useChats() {
   }, [])
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return }
+    if (!userId) return
     load(userId)
 
     const channel = supabase
@@ -122,5 +122,5 @@ export function useChats() {
     return { error }
   }, [userId, load])
 
-  return { chats, loading, deleteChat }
+  return { chats, loading: userId ? loading : false, deleteChat }
 }

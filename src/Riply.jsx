@@ -74,6 +74,25 @@ function fmtDate(raw, empty = '') {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// Renders plain text with any http(s) URLs turned into clickable links --
+// post bodies are stored/rendered as plain text, so a pasted link previously
+// just sat there unclickable.
+const URL_RE = /(https?:\/\/[^\s]+)/g;
+function Linkify({ text }) {
+  if (!text) return null;
+  // A capturing group in the split pattern puts each matched URL at an odd
+  // index and the surrounding plain text at even indices, so no separate
+  // regex test (stateful/unreliable with the `g` flag) is needed to tell them
+  // apart -- plain strings render fine directly inside an array, no Fragment
+  // wrapper required.
+  return String(text).split(URL_RE).map((part, i) => i % 2 === 1
+    ? <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+        style={{ color: C.primary, wordBreak: 'break-all' }}
+        onClick={e => e.stopPropagation()}>{part}</a>
+    : part
+  );
+}
+
 // Convert "HH:MM" (24-hr) to "H:MM AM/PM". Passes through anything else.
 function fmt12(t) {
   if (!t) return t;
@@ -2536,7 +2555,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
       </div>
 
       {/* Post text */}
-      <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}>{p.text}</div>
+      <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}><Linkify text={p.text} /></div>
 
       {/* Poll */}
       {pollOptions && pollOptions.length >= 2 && (() => {
@@ -2733,7 +2752,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                       <div style={{ fontSize:10.5, color:C.primary, fontWeight:700, marginBottom:2 }}>↩ {c.replyToName}</div>
                     )}
                     <div style={{ fontSize:12, fontWeight:700, color:C.ink }}>{c.author}</div>
-                    <div style={{ fontSize:13, color:C.body, marginTop:2 }}>{c.text}</div>
+                    <div style={{ fontSize:13, color:C.body, marginTop:2 }}><Linkify text={c.text} /></div>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:4, paddingLeft:4 }}>
                     <span style={{ fontSize:10, color:C.subtle }}>{c.time}</span>
@@ -3581,7 +3600,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                               </svg>
                             )}
                           </div>
-                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{fmtDate(ev.full_date || ev.date)}</div>
+                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>
+                            {fmtDate(ev.full_date || ev.date)}{(ev.start_time || ev.time_range) ? ` · ${fmtRange(ev.time_range) || fmt12(ev.start_time)}` : ''}
+                          </div>
+                          {(ev.location || ev.venue) && (
+                            <div style={{ fontSize:11.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
+                                          overflow:'hidden', textOverflow:'ellipsis' }}>{ev.venue || ev.location}</div>
+                          )}
                           <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                               <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>

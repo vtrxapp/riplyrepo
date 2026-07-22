@@ -957,7 +957,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>My Messages</span>
           <div style={{ display:'flex', gap:9 }}>
-            <button onClick={()=>{ setSearchOpen(v=>!v); setChatQuery(''); }} aria-label="Search chats" aria-expanded={searchOpen} aria-pressed={searchOpen} style={{ width:40, height:40, border:'none', borderRadius:'50%', background: searchOpen ? C.grad : C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <button onClick={()=>{ setSearchOpen(v=>!v); setChatQuery(''); }} aria-label="Search chats" aria-expanded={searchOpen && !isNotif} aria-pressed={searchOpen && !isNotif} style={{ width:40, height:40, border:'none', borderRadius:'50%', background: searchOpen ? C.grad : C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2" strokeLinecap="round"/></svg>
             </button>
             <button onClick={()=>showToast('Start a new conversation')} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
@@ -1196,7 +1196,10 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     if (linkedEvent?.title)payload.linked_event_title= linkedEvent.title;
     if (hasPoll) {
       const opts = pollOpts.filter(o => o.trim());
-      if (opts.length >= 2) payload.poll_options = opts;
+      if (opts.length >= 2) {
+        payload.poll_options = opts;
+        payload.poll_expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      }
     }
 
     const { error } = await supabase.from('posts').insert(payload);
@@ -2425,9 +2428,12 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
     return typeof voter === 'object' ? voter.opt : null;
   });
 
+  const pollExpired = !!p.poll_expires_at && new Date(p.poll_expires_at).getTime() < Date.now();
+
   const castVote = async (optIdx) => {
     if (!currentUser?.userId) { showToast('Sign in to vote'); return; }
     if (myVote !== null) { showToast('You already voted'); return; }
+    if (pollExpired) { showToast('This poll has closed'); return; }
     const newVotes = { ...pollVotes, [optIdx]: ((pollVotes[optIdx] || 0) + 1) };
     setPollVotes(newVotes);
     setMyVote(optIdx);
@@ -2505,13 +2511,16 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
       {/* Poll */}
       {pollOptions && pollOptions.length >= 2 && (() => {
         const totalVotes = Object.values(pollVotes).reduce((s, n) => s + n, 0);
+        const daysLeft = p.poll_expires_at
+          ? Math.max(0, Math.ceil((new Date(p.poll_expires_at).getTime() - Date.now()) / 86400000))
+          : null;
         return (
           <div style={{ marginTop:14, display:'flex', flexDirection:'column', gap:9 }}>
             {pollOptions.map((opt, i) => {
               const count  = pollVotes[i] || 0;
               const pct    = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
               const isMyV  = myVote === i;
-              const voted  = myVote !== null;
+              const voted  = myVote !== null || pollExpired;
               return (
                 <button key={i} onClick={() => castVote(i)} disabled={voted}
                   style={{ position:'relative', width:'100%', textAlign:'left', border:'none',
@@ -2555,7 +2564,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
               );
             })}
             <div style={{ fontSize:11, color:C.subtle, marginTop:2, textAlign:'center', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-              {totalVotes} vote{totalVotes !== 1 ? 's' : ''}{myVote === null ? ' · Tap to vote' : ''}
+              {totalVotes} vote{totalVotes !== 1 ? 's' : ''}
+              {pollExpired ? ' · Poll closed'
+                : daysLeft !== null ? ` · ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`
+                : ''}
+              {!pollExpired && myVote === null && daysLeft === null ? ' · Tap to vote' : ''}
             </div>
           </div>
         );
@@ -5068,7 +5081,8 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack,
         {messages.map((m, i) => {
           const isOut = m.side === 'out';
           const prev  = messages[i - 1];
-          const firstOfGroup = !prev || prev.side !== m.side;
+          const firstOfGroup = !prev || prev.side !== m.side ||
+            (!isOut && isGroupChat && prev.sender !== m.sender);
 
           return (
             <div key={m.id} style={{ display:'flex', gap:7, marginTop: firstOfGroup ? 10 : 2,
@@ -6680,7 +6694,11 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
       .then(({ data, error }) => {
         if (error) { console.error('[MyTickets] fetch error:', error); setLoading(false); return; }
         const mapped = (data || []).map(t => {
-          const evDate = t.date ? new Date(t.date) : null;
+          const evDate = t.date
+            ? /^\d{4}-\d{2}-\d{2}$/.test(t.date)
+              ? new Date(`${t.date}T00:00:00`)
+              : new Date(t.date)
+            : null;
           const dateValid = evDate && !isNaN(evDate);
           // Compare calendar days, not exact timestamps — otherwise an event
           // happening later today gets marked USED the moment midnight passes.

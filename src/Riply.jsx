@@ -888,8 +888,12 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
               </div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:13 }}>
                 <div style={{ display:'flex', alignItems:'center' }}>
-                 {['S','M','J','A','R'].slice(0, 5).map((initial,i)=>(
-                    <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:9, fontWeight:800, background:['#FF5A8A','#0098F0','#10B981','#7C5CFF','#FF8A3D'][i] }}>{initial}</div>
+                 {(g.member_previews || []).map((m,i)=>(
+                    <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:9, fontWeight:800, overflow:'hidden', position:'relative', background: m.avatar_url ? 'transparent' : (m.avatar_color || '#7C5CFF') }}>
+                      {m.avatar_url
+                        ? <img src={m.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                        : m.initial}
+                    </div>
                   ))}
                   <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.member_count || 0}</span>
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>

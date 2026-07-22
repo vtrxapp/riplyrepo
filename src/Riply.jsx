@@ -4757,11 +4757,24 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
   };
 
   const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
-  const [draft,    setDraft]    = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [draft,       setDraft]       = useState('');
+  const [menuOpen,    setMenuOpen]    = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState(null);
+  const [sending,     setSending]     = useState(false);
+  const sendingRef = useRef(false);
   const scrollRef  = useRef(null);
   const inputRef   = useRef(null);
   const fileRef    = useRef(null);
+
+  // Only images get a visual preview; revoke the object URL whenever the
+  // staged file changes or the screen unmounts, so we don't leak blob URLs.
+  useEffect(() => {
+    if (!pendingFile || !pendingFile.type.startsWith('image/')) { setPendingPreviewUrl(null); return; }
+    const url = URL.createObjectURL(pendingFile);
+    setPendingPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingFile]);
 
   useEffect(() => {
     if (notFound) {
@@ -4814,14 +4827,23 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
 
   const send = async () => {
     const t = draft.trim();
-    if (!t) return;
+    const file = pendingFile;
+    if (!t && !file) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
     setDraft('');
+    setPendingFile(null);
     try {
-      const err = await sendMessage(t);
+      const err = file ? await sendAttachment(file, t) : await sendMessage(t);
       if (err) throw err;
     } catch {
       setDraft(current => current || t);
+      setPendingFile(current => current || file);
       showToast("Couldn't send -- try again");
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
     }
   };
 
@@ -5025,79 +5047,99 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
       <div style={{ flexShrink:0, background:'rgba(255,255,255,0.96)',
                     backdropFilter:'blur(16px)',
                     boxShadow:'0 -1px 0 rgba(16,24,40,0.07)',
-                    padding:'10px 13px 26px', display:'flex',
-                    alignItems:'center', gap:9, zIndex:6 }}>
-        {/* Hidden file input */}
-        <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt"
-          style={{ display:'none' }}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = '';
-            if (!file) return;
-            showToast('Uploading…');
-            const err = await sendAttachment(file);
-            if (err) showToast('Upload failed');
-          }}
-        />
-        {/* Attach */}
-        <button onClick={() => fileRef.current?.click()} style={{ width:36, height:36,
-          border:'none', background:'none', display:'flex', alignItems:'center',
-          justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M20 11.5 12.5 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.3 4.3l-7.6 7.6a1.5 1.5 0 0 1-2.2-2.2l6.9-6.9"
-                  stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+                    padding:'10px 13px 26px', zIndex:6 }}>
+        {/* Staged attachment preview */}
+        {pendingFile && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:9 }}>
+            <div style={{ width:44, height:44, borderRadius:10, overflow:'hidden', flexShrink:0,
+                          background:C.chip, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              {pendingPreviewUrl ? (
+                <img src={pendingPreviewUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke="#7B8499" strokeWidth="1.8" strokeLinejoin="round"/>
+                  <path d="M14 2v6h6" stroke="#7B8499" strokeWidth="1.8" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {pendingFile.name}
+              </div>
+              <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>
+                {(pendingFile.size / 1024).toFixed(0)} KB
+              </div>
+            </div>
+            <button onClick={() => setPendingFile(null)} style={{ width:26, height:26, border:'none',
+              borderRadius:'50%', background:C.chip, display:'flex', alignItems:'center',
+              justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6 6 18M6 6l12 12" stroke="#7B8499" strokeWidth="2.2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        )}
 
-        {/* Input pill */}
-        <div style={{ flex:1, display:'flex', alignItems:'center', background:C.chip,
-                      borderRadius:999, padding:'0 5px 0 15px', height:44,
-                      boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); send(); } }}
-            placeholder="Type a message…"
-            style={{ flex:1, minWidth:0, border:'none', background:'none', outline:'none',
-                     fontFamily:"'Montserrat',-apple-system,sans-serif",
-                     fontSize:13, color:C.body }}
+        <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+          {/* Hidden file input */}
+          <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt"
+            style={{ display:'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              setPendingFile(file);
+            }}
           />
-          {/* Emoji */}
-          <button onClick={() => setDraft(d => d + '😄')} style={{ width:32, height:32,
+          {/* Attach */}
+          <button onClick={() => fileRef.current?.click()} style={{ width:36, height:36,
             border:'none', background:'none', display:'flex', alignItems:'center',
             justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="#8A93A6" strokeWidth="1.8"/>
-              <path d="M8.5 14.5s1.2 1.8 3.5 1.8 3.5-1.8 3.5-1.8"
-                    stroke="#8A93A6" strokeWidth="1.8" strokeLinecap="round"/>
-              <circle cx="9"  cy="10" r="1" fill="#8A93A6"/>
-              <circle cx="15" cy="10" r="1" fill="#8A93A6"/>
+              <path d="M20 11.5 12.5 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.3 4.3l-7.6 7.6a1.5 1.5 0 0 1-2.2-2.2l6.9-6.9"
+                    stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-        </div>
 
-        {/* Send / mic toggle */}
-        {draft.trim() ? (
-          <button onClick={send} style={{ width:44, height:44, border:'none', borderRadius:'50%',
-            background:C.grad, display:'flex', alignItems:'center', justifyContent:'center',
-            cursor:'pointer', flexShrink:0, boxShadow:'0 4px 12px rgba(2,162,240,0.4)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M22 2 11 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        ) : (
-          <button onClick={() => showToast('Hold to record')} style={{ width:44, height:44,
-            border:'none', borderRadius:'50%', background:C.chip, display:'flex',
-            alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <rect x="9" y="2" width="6" height="11" rx="3" stroke="#7B8499" strokeWidth="1.9"/>
-              <path d="M5 10a7 7 0 0 0 14 0" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
-              <path d="M12 19v3M9 22h6" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
-            </svg>
-          </button>
-        )}
+          {/* Input pill */}
+          <div style={{ flex:1, display:'flex', alignItems:'center', background:C.chip,
+                        borderRadius:999, padding:'0 15px', height:44,
+                        boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); send(); } }}
+              placeholder={pendingFile ? 'Add a caption…' : 'Type a message…'}
+              style={{ flex:1, minWidth:0, border:'none', background:'none', outline:'none',
+                       fontFamily:"'Montserrat',-apple-system,sans-serif",
+                       fontSize:13, color:C.body }}
+            />
+          </div>
+
+          {/* Send / mic toggle */}
+          {(draft.trim() || pendingFile) ? (
+            <button onClick={send} disabled={sending} style={{ width:44, height:44, border:'none', borderRadius:'50%',
+              background:C.grad, display:'flex', alignItems:'center', justifyContent:'center',
+              cursor: sending ? 'default' : 'pointer', flexShrink:0, opacity: sending ? 0.7 : 1,
+              boxShadow:'0 4px 12px rgba(2,162,240,0.4)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2 11 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ) : (
+            <button onClick={() => showToast('Hold to record')} style={{ width:44, height:44,
+              border:'none', borderRadius:'50%', background:C.chip, display:'flex',
+              alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="9" y="2" width="6" height="11" rx="3" stroke="#7B8499" strokeWidth="1.9"/>
+                <path d="M5 10a7 7 0 0 0 14 0" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
+                <path d="M12 19v3M9 22h6" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

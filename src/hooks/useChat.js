@@ -145,7 +145,7 @@ export function useChat(chatId) {
     return error
   }
 
-  const sendAttachment = async (file) => {
+  const sendAttachment = async (file, content = '') => {
     if (!file || !user?.id) return
     if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
     const ext = file.name.split('.').pop()
@@ -153,7 +153,7 @@ export function useChat(chatId) {
     const { error: upErr } = await supabase.storage.from('attachments').upload(path, file)
     if (upErr) return upErr
     const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(path)
-    const sendErr = await sendMessage('', publicUrl)
+    const sendErr = await sendMessage(content, publicUrl)
     if (sendErr) {
       await supabase.storage.from('attachments').remove([path])
     }

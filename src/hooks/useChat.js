@@ -153,11 +153,16 @@ export function useChat(chatId) {
     const { error: upErr } = await supabase.storage.from('attachments').upload(path, file)
     if (upErr) return upErr
     const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(path)
-    const sendErr = await sendMessage(content, publicUrl)
-    if (sendErr) {
+    try {
+      const sendErr = await sendMessage(content, publicUrl)
+      if (sendErr) {
+        await supabase.storage.from('attachments').remove([path])
+      }
+      return sendErr
+    } catch (thrown) {
       await supabase.storage.from('attachments').remove([path])
+      throw thrown
     }
-    return sendErr
   }
 
   return { messages, loading, notFound, resolveError, messagesError, sendMessage, sendAttachment, currentUserId: user?.id || null }

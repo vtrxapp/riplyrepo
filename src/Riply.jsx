@@ -4911,7 +4911,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
         : await sendMessage(t, attachment.url);
       if (err) throw err;
     } catch {
-      setDraft(current => current || t);
+      setDraft(current => (current && current !== t) ? `${t} ${current}`.trim() : t);
       setPendingAttachment(current => current || attachment);
       showToast("Couldn't send -- try again");
     } finally {

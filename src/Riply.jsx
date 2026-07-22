@@ -4313,7 +4313,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
     const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
     if (raw === todayStr) return 'Today';
     if (raw === tomorrowStr) return 'Tomorrow';
-    return spDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return fmtDate(spDate);
   })();
 
 
@@ -4910,7 +4910,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack,
       id:         msg.id,
       side:       isOut ? 'out' : 'in',
       text:       msg.content,
-      time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
+      time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'numeric', minute:'2-digit', hour12:true }),
       hasText:    !!msg.content,
       hasImage:   !!(msg.attachment_url && /\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
       hasFile:    !!(msg.attachment_url && !/\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
@@ -6691,8 +6691,8 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
             title: t.event_title || 'Event',
             access: t.access || 'General Admission',
             status: isPast ? 'USED' : (t.status || 'ACTIVE'),
-            date: dateValid ? evDate.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : (t.date || '–'),
-            time: t.time || '–',
+            date: dateValid ? evDate.toLocaleDateString('en-GB', { weekday:'short', month:'short', day:'numeric' }) : (t.date || '–'),
+            time: t.time ? fmt12(t.time) : '–',
             location: t.location || '–',
             isPast,
           };

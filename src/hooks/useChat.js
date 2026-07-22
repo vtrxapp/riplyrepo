@@ -146,7 +146,7 @@ export function useChat(chatId) {
   }
 
   const sendAttachment = async (file, content = '') => {
-    if (!file || !user?.id) return
+    if (!file || !user?.id) return new Error('Not signed in')
     if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
     const ext = file.name.split('.').pop()
     const path = `chat-attachments/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`

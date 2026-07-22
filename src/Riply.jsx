@@ -4744,6 +4744,72 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 }
 
 // ─────────────────────────────────────────────────────────────
+// SHEET: GIF PICKER (Giphy)
+// ─────────────────────────────────────────────────────────────
+function GifPickerSheet({ onClose, onSelect }) {
+  const apiKey = import.meta.env.VITE_GIPHY_API_KEY;
+  const [query,   setQuery]   = useState('');
+  const [gifs,    setGifs]    = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(false);
+
+  useEffect(() => {
+    if (!apiKey) { setLoading(false); setError(true); return; }
+    let cancelled = false;
+    const q = query.trim();
+    setLoading(true);
+    const endpoint = q
+      ? `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(q)}&limit=24&rating=pg-13`
+      : `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=24&rating=pg-13`;
+    // Debounce search-as-you-type; trending loads immediately.
+    const timer = setTimeout(() => {
+      fetch(endpoint)
+        .then(res => res.json())
+        .then(json => { if (!cancelled) { setGifs(json.data || []); setError(false); } })
+        .catch(() => { if (!cancelled) setError(true); })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    }, q ? 350 : 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query, apiKey]);
+
+  return (
+    <Sheet onClose={onClose} title="Choose a GIF">
+      <input
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        placeholder="Search GIFs…"
+        autoFocus
+        style={{ width:'100%', height:42, border:'none', borderRadius:12, background:C.chip,
+                 padding:'0 14px', fontSize:13, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                 color:C.body, outline:'none', marginBottom:14, boxSizing:'border-box' }}
+      />
+      {!apiKey ? (
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>
+          GIF search isn't configured yet.
+        </div>
+      ) : loading ? (
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>Loading…</div>
+      ) : error ? (
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>Couldn't load GIFs -- try again.</div>
+      ) : gifs.length === 0 ? (
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>No GIFs found.</div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, maxHeight:340, overflowY:'auto' }}>
+          {gifs.map(g => (
+            <button key={g.id} onClick={() => onSelect(g.images.fixed_height.url)}
+              style={{ border:'none', borderRadius:10, overflow:'hidden', padding:0, cursor:'pointer',
+                       background:C.chip, aspectRatio:'1', display:'block' }}>
+              <img src={g.images.fixed_height_small?.url || g.images.preview_gif?.url || g.images.fixed_height.url}
+                alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+            </button>
+          ))}
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
 function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToast, currentUser }) {
@@ -4759,22 +4825,27 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
   const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
   const [draft,       setDraft]       = useState('');
   const [menuOpen,    setMenuOpen]    = useState(false);
-  const [pendingFile, setPendingFile] = useState(null);
+  // { kind: 'file', file: File } | { kind: 'gif', url: string } | null
+  const [pendingAttachment, setPendingAttachment] = useState(null);
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState(null);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [sending,     setSending]     = useState(false);
   const sendingRef = useRef(false);
   const scrollRef  = useRef(null);
   const inputRef   = useRef(null);
   const fileRef    = useRef(null);
 
-  // Only images get a visual preview; revoke the object URL whenever the
+  // Only image files get a visual preview; revoke the object URL whenever the
   // staged file changes or the screen unmounts, so we don't leak blob URLs.
   useEffect(() => {
-    if (!pendingFile || !pendingFile.type.startsWith('image/')) { setPendingPreviewUrl(null); return; }
-    const url = URL.createObjectURL(pendingFile);
+    if (pendingAttachment?.kind !== 'file' || !pendingAttachment.file.type.startsWith('image/')) {
+      setPendingPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(pendingAttachment.file);
     setPendingPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
-  }, [pendingFile]);
+  }, [pendingAttachment]);
 
   useEffect(() => {
     if (notFound) {
@@ -4827,19 +4898,21 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
 
   const send = async () => {
     const t = draft.trim();
-    const file = pendingFile;
-    if (!t && !file) return;
+    const attachment = pendingAttachment;
+    if (!t && !attachment) return;
     if (sendingRef.current) return;
     sendingRef.current = true;
     setSending(true);
     setDraft('');
-    setPendingFile(null);
+    setPendingAttachment(null);
     try {
-      const err = file ? await sendAttachment(file, t) : await sendMessage(t);
+      const err = !attachment ? await sendMessage(t)
+        : attachment.kind === 'file' ? await sendAttachment(attachment.file, t)
+        : await sendMessage(t, attachment.url);
       if (err) throw err;
     } catch {
       setDraft(current => current || t);
-      setPendingFile(current => current || file);
+      setPendingAttachment(current => current || attachment);
       showToast("Couldn't send -- try again");
     } finally {
       sendingRef.current = false;
@@ -5049,11 +5122,13 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
                     boxShadow:'0 -1px 0 rgba(16,24,40,0.07)',
                     padding:'10px 13px 26px', zIndex:6 }}>
         {/* Staged attachment preview */}
-        {pendingFile && (
+        {pendingAttachment && (
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:9 }}>
             <div style={{ width:44, height:44, borderRadius:10, overflow:'hidden', flexShrink:0,
                           background:C.chip, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              {pendingPreviewUrl ? (
+              {pendingAttachment.kind === 'gif' ? (
+                <img src={pendingAttachment.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+              ) : pendingPreviewUrl ? (
                 <img src={pendingPreviewUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
               ) : (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -5064,13 +5139,15 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:12, fontWeight:700, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                {pendingFile.name}
+                {pendingAttachment.kind === 'gif' ? 'GIF' : pendingAttachment.file.name}
               </div>
-              <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>
-                {(pendingFile.size / 1024).toFixed(0)} KB
-              </div>
+              {pendingAttachment.kind === 'file' && (
+                <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>
+                  {(pendingAttachment.file.size / 1024).toFixed(0)} KB
+                </div>
+              )}
             </div>
-            <button onClick={() => setPendingFile(null)} style={{ width:26, height:26, border:'none',
+            <button onClick={() => setPendingAttachment(null)} style={{ width:26, height:26, border:'none',
               borderRadius:'50%', background:C.chip, display:'flex', alignItems:'center',
               justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -5080,7 +5157,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
           </div>
         )}
 
-        <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
           {/* Hidden file input */}
           <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt"
             style={{ display:'none' }}
@@ -5088,7 +5165,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
               const file = e.target.files?.[0];
               e.target.value = '';
               if (!file) return;
-              setPendingFile(file);
+              setPendingAttachment({ kind:'file', file });
             }}
           />
           {/* Attach */}
@@ -5101,6 +5178,13 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
             </svg>
           </button>
 
+          {/* GIF */}
+          <button onClick={() => setGifPickerOpen(true)} style={{ height:32, padding:'0 9px',
+            border:'none', borderRadius:9, background:C.chip, display:'flex', alignItems:'center',
+            justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+            <span style={{ fontSize:11, fontWeight:800, color:'#7B8499', letterSpacing:0.2 }}>GIF</span>
+          </button>
+
           {/* Input pill */}
           <div style={{ flex:1, display:'flex', alignItems:'center', background:C.chip,
                         borderRadius:999, padding:'0 15px', height:44,
@@ -5110,7 +5194,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
               value={draft}
               onChange={e => setDraft(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); send(); } }}
-              placeholder={pendingFile ? 'Add a caption…' : 'Type a message…'}
+              placeholder={pendingAttachment ? 'Add a caption…' : 'Type a message…'}
               style={{ flex:1, minWidth:0, border:'none', background:'none', outline:'none',
                        fontFamily:"'Montserrat',-apple-system,sans-serif",
                        fontSize:13, color:C.body }}
@@ -5118,7 +5202,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
           </div>
 
           {/* Send / mic toggle */}
-          {(draft.trim() || pendingFile) ? (
+          {(draft.trim() || pendingAttachment) ? (
             <button onClick={send} disabled={sending} style={{ width:44, height:44, border:'none', borderRadius:'50%',
               background:C.grad, display:'flex', alignItems:'center', justifyContent:'center',
               cursor: sending ? 'default' : 'pointer', flexShrink:0, opacity: sending ? 0.7 : 1,
@@ -5141,6 +5225,13 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
           )}
         </div>
       </div>
+
+      {gifPickerOpen && (
+        <GifPickerSheet
+          onClose={() => setGifPickerOpen(false)}
+          onSelect={(url) => { setPendingAttachment({ kind:'gif', url }); setGifPickerOpen(false); }}
+        />
+      )}
     </div>
   );
 }

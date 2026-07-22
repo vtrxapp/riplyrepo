@@ -2542,10 +2542,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                         {isMyV && <div style={{ width:7, height:7, borderRadius:'50%', background:'#fff' }}/>}
                       </div>
                       <span style={{ fontSize:13.5, fontWeight: isMyV ? 800 : 600,
+                                     fontFamily:"'Montserrat',-apple-system,sans-serif",
                                      color: isMyV ? '#fff' : C.ink }}>{opt}</span>
                     </div>
                     {voted && (
-                      <span style={{ fontSize:12, fontWeight:700, color: isMyV ? '#fff' : C.subtle }}>
+                      <span style={{ fontSize:12, fontWeight:700, fontFamily:"'Montserrat',-apple-system,sans-serif", color: isMyV ? '#fff' : C.subtle }}>
                         {pct}%
                       </span>
                     )}
@@ -2553,7 +2554,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                 </button>
               );
             })}
-            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2, textAlign:'center', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
               {totalVotes} vote{totalVotes !== 1 ? 's' : ''}{myVote === null ? ' · Tap to vote' : ''}
             </div>
           </div>
@@ -2618,11 +2619,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
           <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
-            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
               {p.linked_event_title}
             </div>
             {(p.linked_event_date || p.linked_event_time) && (
-              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, marginTop:2 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:2 }}>
                 {[p.linked_event_date, p.linked_event_time].filter(Boolean).join(' · ')}
               </div>
             )}

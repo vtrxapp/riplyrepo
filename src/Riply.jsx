@@ -3225,7 +3225,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           <>
           {/* Primary button */}
           <button onClick={handlePrimary} disabled={membershipMutating} style={{
-            flex:'0 1 260px', height:46, borderRadius:999, border:btn.border||'none',
+            flex:'0 1 auto', height:46, padding:'0 24px', borderRadius:999, border:btn.border||'none',
             background:btn.bg, color:btn.color, boxShadow:btn.shadow,
             fontSize:15, fontWeight:800, cursor: membershipMutating ? 'default' : 'pointer',
             opacity: membershipMutating ? 0.7 : 1,

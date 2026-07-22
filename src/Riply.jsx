@@ -938,6 +938,13 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
 
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [chatQuery,  setChatQuery]  = useState('');
+  const q = chatQuery.trim().toLowerCase();
+  const filteredChats = q
+    ? chats.filter(c => c.name?.toLowerCase().includes(q) || c.preview?.toLowerCase().includes(q))
+    : chats;
+
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
       {/* Header */}
@@ -945,8 +952,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>My Messages</span>
           <div style={{ display:'flex', gap:9 }}>
-            <button onClick={()=>showToast('Search your messages')} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#39414F" strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke="#39414F" strokeWidth="2" strokeLinecap="round"/></svg>
+            <button onClick={()=>{ setSearchOpen(v=>!v); setChatQuery(''); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background: searchOpen ? C.grad : C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2" strokeLinecap="round"/></svg>
             </button>
             <button onClick={()=>showToast('Start a new conversation')} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/></svg>
@@ -964,6 +971,11 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
         <div style={{ position:'relative', height:2, background:'#EEF0F4', marginTop:11 }}>
           <div style={{ position:'absolute', bottom:0, height:2.5, borderRadius:2, background:C.primary, width: isNotif?'108px':'52px', left: isNotif?'0px':'134px', transition:'all .25s ease' }} />
         </div>
+        {searchOpen && !isNotif && (
+          <div style={{ marginTop:12 }}>
+            <SearchBar placeholder="Search chats…" value={chatQuery} onChange={e=>setChatQuery(e.target.value)} />
+          </div>
+        )}
       </div>
 
       {/* Body */}
@@ -1030,7 +1042,11 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                 <div style={{ fontSize:14, fontWeight:700, color:C.ink, marginTop:12 }}>No conversations yet</div>
                 <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>Start a chat to connect with someone</div>
               </div>
-            ) : chats.map(c => (
+            ) : filteredChats.length === 0 ? (
+              <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:60 }}>
+                No chats match "{chatQuery.trim()}"
+              </div>
+            ) : filteredChats.map(c => (
               <div key={c.id} onClick={()=>navigate('chat',{chatId:c.id})} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
                 <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
                   {c.avatar_url

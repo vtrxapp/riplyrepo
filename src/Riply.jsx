@@ -4764,7 +4764,10 @@ function GifPickerSheet({ onClose, onSelect }) {
     // Debounce search-as-you-type; trending loads immediately.
     const timer = setTimeout(() => {
       fetch(endpoint)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error(`Giphy request failed: ${res.status}`);
+          return res.json();
+        })
         .then(json => { if (!cancelled) { setGifs(json.data || []); setError(false); } })
         .catch(() => { if (!cancelled) setError(true); })
         .finally(() => { if (!cancelled) setLoading(false); });
@@ -4778,6 +4781,7 @@ function GifPickerSheet({ onClose, onSelect }) {
         value={query}
         onChange={e => setQuery(e.target.value)}
         placeholder="Search GIFs…"
+        aria-label="Search GIFs"
         autoFocus
         style={{ width:'100%', height:42, border:'none', borderRadius:12, background:C.chip,
                  padding:'0 14px', fontSize:13, fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -4797,6 +4801,7 @@ function GifPickerSheet({ onClose, onSelect }) {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, maxHeight:340, overflowY:'auto' }}>
           {gifs.map(g => (
             <button key={g.id} onClick={() => onSelect(g.images.fixed_height.url)}
+              aria-label={`Select GIF: ${g.title || g.id}`}
               style={{ border:'none', borderRadius:10, overflow:'hidden', padding:0, cursor:'pointer',
                        background:C.chip, aspectRatio:'1', display:'block' }}>
               <img src={g.images.fixed_height_small?.url || g.images.preview_gif?.url || g.images.fixed_height.url}

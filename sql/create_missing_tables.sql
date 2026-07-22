@@ -31,6 +31,10 @@ alter table posts add column if not exists poll_options        jsonb;
 alter table posts add column if not exists poll_votes          jsonb default '{}'::jsonb;
 alter table posts add column if not exists poll_voter_ids      jsonb default '[]'::jsonb;
 alter table posts add column if not exists poll_expires_at    timestamptz;
+-- true for auto-generated group announcements (e.g. "New Event Alert") that
+-- should always display the group's own name/avatar, never the live profile
+-- of whichever member happened to create the event
+alter table posts add column if not exists author_is_group    boolean default false;
 alter table posts add column if not exists linked_event_id     uuid;
 alter table posts add column if not exists linked_event_title  text;
 alter table posts add column if not exists linked_event_date   text;

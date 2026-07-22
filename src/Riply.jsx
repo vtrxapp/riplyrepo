@@ -2449,12 +2449,16 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
     await addComment(t, currentUser, rt);
   };
 
+  // Group-announcement posts (e.g. "New Event Alert") always show the
+  // group's own identity, even when the viewer is the member who created the
+  // underlying event -- so skip the "it's me" live-profile override for those.
+  const isMe = !p.author_is_group && !!(currentUser?.userId && p.user_id === currentUser.userId);
+
   return (
     <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:15 }}>
       {/* Author */}
       <div style={{ display:'flex', alignItems:'center', gap:11 }}>
         {(() => {
-          const isMe = currentUser?.userId && p.user_id === currentUser.userId;
           const avatarUrl = isMe ? currentUser.avatarUrl : (p.avatar_url || null);
           const avatarColor = isMe ? (currentUser.avatarColor || p.aColor) : p.aColor;
           const initial = isMe ? (currentUser.name?.[0] || p.aInitial) : p.aInitial;
@@ -2474,7 +2478,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>
-              {currentUser?.userId && p.user_id === currentUser.userId ? (currentUser.name || p.author) : p.author}
+              {isMe ? (currentUser.name || p.author) : p.author}
             </span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
               <path d="M12 2.5l2.2 1.6 2.7-.2 1 2.5 2.3 1.4-.6 2.6.6 2.6-2.3 1.4-1 2.5-2.7-.2L12 21.5 9.8 19.9l-2.7.2-1-2.5-2.3-1.4.6-2.6L3.8 11l2.3-1.4 1-2.5 2.7.2L12 2.5Z" fill="#02B6FE"/>
@@ -8454,7 +8458,14 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             if (error) { setSubmitting(false); showToast('Failed to publish: ' + error.message); return; }
             // If created from a group, also create a post so it appears in the Posts tab
             if (sourceGroupId && event) {
-              const authorName = currentUser.name || 'Organizer';
+              // Event-alert posts read as an announcement from the group itself,
+              // not a personal post from whichever member happened to create the
+              // event -- so attribute it to the group's own name/avatar rather
+              // than currentUser (unlike CreatePostScreen's regular posts, which
+              // are correctly attributed to the actual poster).
+              const { data: groupRow } = await supabase.from('groups')
+                .select('name, avatar_url, logo_color').eq('id', sourceGroupId).single();
+              const authorName = groupRow?.name || 'Group';
               const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
               await supabase.from('posts').insert({
                 group_id:           sourceGroupId,
@@ -8469,8 +8480,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                 likes_count:        0,
                 comment_count:      0,
                 author_name:        authorName,
-                author_initial:     authorName[0]?.toUpperCase() || 'O',
-                author_color:       currentUser?.avatarColor || deriveAvatarColor(currentUser?.userId || ''),
+                author_initial:     authorName[0]?.toUpperCase() || 'G',
+                author_color:       groupRow?.logo_color || deriveAvatarColor(sourceGroupId),
+                avatar_url:         groupRow?.avatar_url || null,
+                author_is_group:    true,
               });
               // increment event_count via RPC: groups.update() is admin-only
               // now, so this (a member, not necessarily the admin, posting an

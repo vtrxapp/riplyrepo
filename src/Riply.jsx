@@ -328,7 +328,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, navigate, showToast }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, navigate, showToast }) {
   const CATS = [
     {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
@@ -390,7 +390,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
           const isLiked = !!liked[ev.id];
           const isSaved = !!saved[ev.id];
           const isSharedEv = !!shared[ev.id];
-          const isFollowing = !!following[ev.id];
           return (
             <div key={ev.id} style={{ background:C.card, borderRadius:24, boxShadow:'0 8px 24px rgba(16,24,40,0.07),0 1px 2px rgba(16,24,40,0.04)', marginBottom:16, overflow:'hidden' }}>
               {/* Banner */}
@@ -453,20 +452,25 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 </div>
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
 
-                {/* Organizer row */}
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:13 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:9, minWidth:0 }}>
-                    <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color:'#fff', background: ev.org_avatar ? 'transparent' : (ev.org_color || th.org) }}>
-                      {ev.org_avatar ? <img src={ev.org_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : ev.orgInitial}
-                    </div>
-                    <div style={{ minWidth:0 }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:C.body, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.org}</div>
-                      <div style={{ fontSize:9, color:C.subtle }}>Organizer</div>
-                    </div>
+                {/* Organizer row -- tapping through to the group page only
+                    when the event actually belongs to one; a solo organizer
+                    (no group_id) has no profile page to show. The old
+                    "Follow" button here was wired to toggleRsvp (event
+                    RSVPs), so tapping it silently created a fake RSVP row
+                    and fired the organizer's "someone's attending your
+                    event" notification -- removed rather than reused, since
+                    GroupProfileScreen already has its own real join/request
+                    state for this group. */}
+                <div onClick={() => ev.group_id && navigate('group-profile', { groupId: ev.group_id })}
+                  style={{ display:'flex', alignItems:'center', gap:9, minWidth:0, marginTop:13,
+                           cursor: ev.group_id ? 'pointer' : 'default' }}>
+                  <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color:'#fff', background: ev.org_avatar ? 'transparent' : (ev.org_color || th.org) }}>
+                    {ev.org_avatar ? <img src={ev.org_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : ev.orgInitial}
                   </div>
-                  <button onClick={()=>toggleFollowing(ev.id)} style={{ flexShrink:0, border: isFollowing?'1.5px solid #E3E7EE':'none', background: isFollowing?'#fff':C.primary, color: isFollowing?'#7B8499':'#fff', height:32, padding:'0 17px', borderRadius:999, fontSize:10.5, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </button>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:C.body, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.org}</div>
+                    <div style={{ fontSize:9, color:C.subtle }}>Organizer</div>
+                  </div>
                 </div>
 
                 {/* Divider */}
@@ -3715,7 +3719,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
-function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, navigate, goBack, showToast, role }) {
+function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, navigate, goBack, showToast, role }) {
   const [dbEvent, setDbEvent] = useState(null);
   useEffect(() => {
     if (!eventId) return;
@@ -3739,7 +3743,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   const ev = dbEvent || EVENTS.find(e => e.id === eventId) || EVENTS[0];
   const th = THEME[ev.primary || ev.category] || THEME.social;
   const [expanded, setExpanded] = useState(false);
-  const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isFollowing = !!following[ev.id], isShared = !!shared[ev.id];
+  const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isShared = !!shared[ev.id];
 
   const attendeeCount = ev.attendee_count || ev.attendees || 0;
 
@@ -3868,10 +3872,19 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           );
         })()}
 
-        {/* Organizer card */}
-        <div style={{ marginTop:13, background:C.card, borderRadius:16,
+        {/* Organizer card — tapping through to the group page only makes
+            sense when the event actually belongs to a group; a solo
+            organizer (no group_id) has no profile page to show here.
+            The old "Follow" button here was wired to toggleRsvp (event
+            RSVPs), so tapping it silently created a fake RSVP row and fired
+            the organizer's "someone's attending your event" notification --
+            removed rather than reusing that, since GroupProfileScreen
+            already has its own real join/request state for this group. */}
+        <div onClick={() => ev.group_id && navigate('group-profile', { groupId: ev.group_id })}
+          style={{ marginTop:13, background:C.card, borderRadius:16,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'12px 15px',
-                      display:'flex', alignItems:'center', gap:11 }}>
+                      display:'flex', alignItems:'center', gap:11,
+                      cursor: ev.group_id ? 'pointer' : 'default' }}>
           <div style={{ width:44, height:44, borderRadius:13, flexShrink:0,
                         background: ev.org_avatar ? 'transparent' : (ev.org_color || th.grad),
                         display:'flex', alignItems:'center', overflow:'hidden',
@@ -3890,15 +3903,11 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             </div>
             <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Verified Organizer</div>
           </div>
-          <button onClick={() => toggleFollowing(ev.id)}
-            style={{ flexShrink:0, height:30, padding:'0 14px', borderRadius:999,
-                     border: isFollowing ? `1.5px solid ${C.border}` : 'none',
-                     background: isFollowing ? '#fff' : C.primary,
-                     color: isFollowing ? '#7B8499' : '#fff',
-                     fontSize:11, fontWeight:700, cursor:'pointer',
-                     fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-            {isFollowing ? 'Following' : 'Follow'}
-          </button>
+          {ev.group_id && (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+              <path d="M9 6l6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
         </div>
 
         {/* Info card */}
@@ -12010,7 +12019,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   }, []);
 
   // Home state
-  const { liked, saved, spaceSaved, shared, rsvpd: following, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
+  const { liked, saved, spaceSaved, shared, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike } = useUserInteractions();
   const [filters, setFilters] = useState({});
   const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
@@ -12075,7 +12084,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} currentUser={currentUser} />;
-      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} showToast={showToast} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
@@ -12086,7 +12095,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
+      case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
@@ -12106,7 +12115,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} showToast={showToast} />;
+      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} showToast={showToast} />;
     }
   };
 

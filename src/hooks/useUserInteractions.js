@@ -8,7 +8,6 @@ export function useUserInteractions() {
   const [saved,       setSavedState]      = useState({})
   const [spaceSaved,  setSpaceSavedState] = useState({})
   const [shared,      setSharedState]     = useState({})
-  const [rsvpd,       setRsvpdState]      = useState({})
   const [postLiked,   setPostLikedState]  = useState({})
 
   useEffect(() => {
@@ -19,14 +18,12 @@ export function useUserInteractions() {
       supabase.from('event_saves').select('event_id').eq('user_id', uid),
       supabase.from('space_saves').select('space_id').eq('user_id', uid),
       supabase.from('event_shares').select('event_id').eq('user_id', uid),
-      supabase.from('event_rsvps').select('event_id').eq('user_id', uid),
       supabase.from('post_likes').select('post_id').eq('user_id', uid),
-    ]).then(([likes, saves, ssaves, shares, rsvps, plikes]) => {
+    ]).then(([likes, saves, ssaves, shares, plikes]) => {
       if (likes.data)  setLikedState(Object.fromEntries(likes.data.map(r => [r.event_id, true])))
       if (saves.data)  setSavedState(Object.fromEntries(saves.data.map(r => [r.event_id, true])))
       if (ssaves.data) setSpaceSavedState(Object.fromEntries(ssaves.data.map(r => [r.space_id, true])))
       if (shares.data) setSharedState(Object.fromEntries(shares.data.map(r => [r.event_id, true])))
-      if (rsvps.data)  setRsvpdState(Object.fromEntries(rsvps.data.map(r => [r.event_id, true])))
       if (plikes.data) setPostLikedState(Object.fromEntries(plikes.data.map(r => [r.post_id, true])))
     })
   }, [user?.id])
@@ -60,17 +57,6 @@ export function useUserInteractions() {
     await supabase.from('event_shares').upsert({ user_id: user.id, event_id: eventId }, { onConflict: 'user_id,event_id' })
   }, [user?.id, shared])
 
-  const toggleRsvp = useCallback(async (eventId) => {
-    if (!user?.id) return
-    const was = !!rsvpd[eventId]
-    setRsvpdState(p => ({ ...p, [eventId]: !was }))
-    if (was) {
-      await supabase.from('event_rsvps').delete().eq('user_id', user.id).eq('event_id', eventId)
-    } else {
-      await supabase.from('event_rsvps').insert({ user_id: user.id, event_id: eventId })
-    }
-  }, [user?.id, rsvpd])
-
   const toggleSaveSpace = useCallback(async (spaceId) => {
     if (!user?.id) return
     const was = !!spaceSaved[spaceId]
@@ -93,5 +79,5 @@ export function useUserInteractions() {
     }
   }, [user?.id, postLiked])
 
-  return { liked, saved, spaceSaved, shared, rsvpd, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, toggleRsvp, togglePostLike }
+  return { liked, saved, spaceSaved, shared, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike }
 }

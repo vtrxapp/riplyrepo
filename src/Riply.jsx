@@ -8001,10 +8001,108 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
   const removeGuest = (i) => setGuests(g => g.filter((_, idx) => idx !== i));
 
   const [isPublic,   setIsPublic]   = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // Tracks *which* action is in flight ('draft' | 'published' | null) so each
+  // button can show its own "…ing" label instead of both going stale together.
+  const [submittingStatus, setSubmittingStatus] = useState(null);
+  const submitting = !!submittingStatus;
   const activeCat = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid = pricing === 'paid';
   const canPublish = title.trim().length > 0;
+
+  const submitEvent = async (status) => {
+    if (!canPublish) { showToast('Add an event title first'); return; }
+    if (!currentUser.userId) { showToast('You must be logged in to save an event'); return; }
+    if (status === 'published' && isPaid && parseEventPrice(price).amount <= 0) {
+      showToast('Enter a valid ticket price');
+      return;
+    }
+    setSubmittingStatus(status);
+    const location = [venue, room].filter(Boolean).join(' · ');
+    const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
+    const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
+    const { data: event, error } = await supabase.from('events').insert({
+      user_id: currentUser.userId,
+      title: title.trim(),
+      org: currentUser.name || 'Organizer',
+      org_initial: (currentUser.name || 'O')[0].toUpperCase(),
+      description: about.trim(),
+      full_desc: about.trim(),
+      category: cat,
+      tags: [cat],
+      location: location || null,
+      venue: venue.trim() || null,
+      room: room.trim() || null,
+      date: date || null,
+      full_date: date || null,
+      start_time: startTime ? fmt12(startTime) : null,
+      time_range: timeRange || null,
+      repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
+      image_url: coverUrl || null,
+      // Store a clean numeric string, not a raw `$`-prefixed user
+      // string — every read site parses this defensively, but no
+      // need to bake a display artifact into the stored value.
+      // parseEventPrice (not a bare parseFloat) so a user who typed
+      // "$15" into the field doesn't silently become a free event.
+      price: isPaid ? String(parseEventPrice(price).amount) : 'Free',
+      capacity: unlimited ? null : capacity,
+      attendee_count: 0,
+      likes: 0,
+      saves: 0,
+      shares: 0,
+      trending: false,
+      badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
+      rules: selectedRules.length ? selectedRules : null,
+      guests: guests.length ? guests : null,
+      group_id: sourceGroupId || null,
+      is_public: sourceGroupId ? isPublic : true,
+      status,
+    }).select().single();
+    if (error) { setSubmittingStatus(null); showToast(`Failed to ${status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }
+    // Drafts aren't visible to anyone else yet, so skip the group
+    // announcement post entirely -- only a published event should notify.
+    if (status === 'published' && sourceGroupId && event) {
+      // Event-alert posts read as an announcement from the group itself,
+      // not a personal post from whichever member happened to create the
+      // event -- so attribute it to the group's own name/avatar rather
+      // than currentUser (unlike CreatePostScreen's regular posts, which
+      // are correctly attributed to the actual poster).
+      const { data: groupRow } = await supabase.from('groups')
+        .select('name, avatar_url, logo_color').eq('id', sourceGroupId).single();
+      const authorName = groupRow?.name || 'Group';
+      const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
+      await supabase.from('posts').insert({
+        group_id:           sourceGroupId,
+        user_id:            currentUser.userId,
+        content:            eventPostText,
+        text:               eventPostText,
+        image_url:          coverUrl || null,
+        linked_event_id:    event.id,
+        linked_event_title: title.trim(),
+        linked_event_date:  fmtDate(date) || null,
+        linked_event_time:  timeRange || null,
+        likes_count:        0,
+        comment_count:      0,
+        author_name:        authorName,
+        author_initial:     authorName[0]?.toUpperCase() || 'G',
+        author_color:       groupRow?.logo_color || deriveAvatarColor(sourceGroupId),
+        avatar_url:         groupRow?.avatar_url || null,
+        author_is_group:    true,
+      });
+      // increment event_count via RPC: groups.update() is admin-only
+      // now, so this (a member, not necessarily the admin, posting an
+      // event) goes through a security-definer function scoped to
+      // just this counter.
+      await supabase.rpc('increment_group_event_count', { p_group_id: sourceGroupId });
+    }
+    setSubmittingStatus(null);
+    if (status === 'draft') {
+      showToast('Draft saved');
+      navigate('event-manager');
+    } else {
+      showToast('Event published! 🎉');
+      navigate('event-details', { eventId: event.id });
+    }
+  };
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -8415,112 +8513,44 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             </span>
           </div>
         )}
-        <button
-          onClick={async () => {
-            if (!canPublish) { showToast('Add an event title first'); return; }
-            if (!currentUser.userId) { showToast('You must be logged in to publish an event'); return; }
-            if (isPaid && parseEventPrice(price).amount <= 0) { showToast('Enter a valid ticket price'); return; }
-            setSubmitting(true);
-            const location = [venue, room].filter(Boolean).join(' · ');
-            const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
-            const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
-            const { data: event, error } = await supabase.from('events').insert({
-              user_id: currentUser.userId,
-              title: title.trim(),
-              org: currentUser.name || 'Organizer',
-              org_initial: (currentUser.name || 'O')[0].toUpperCase(),
-              description: about.trim(),
-              full_desc: about.trim(),
-              category: cat,
-              tags: [cat],
-              location: location || null,
-              venue: venue.trim() || null,
-              room: room.trim() || null,
-              date: date || null,
-              full_date: date || null,
-              start_time: startTime ? fmt12(startTime) : null,
-              time_range: timeRange || null,
-              repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
-              image_url: coverUrl || null,
-              // Store a clean numeric string, not a raw `$`-prefixed user
-              // string — every read site parses this defensively, but no
-              // need to bake a display artifact into the stored value.
-              // parseEventPrice (not a bare parseFloat) so a user who typed
-              // "$15" into the field doesn't silently become a free event.
-              price: isPaid ? String(parseEventPrice(price).amount) : 'Free',
-              capacity: unlimited ? null : capacity,
-              attendee_count: 0,
-              likes: 0,
-              saves: 0,
-              shares: 0,
-              trending: false,
-              badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
-              rules: selectedRules.length ? selectedRules : null,
-              guests: guests.length ? guests : null,
-              group_id: sourceGroupId || null,
-              is_public: sourceGroupId ? isPublic : true,
-            }).select().single();
-            if (error) { setSubmitting(false); showToast('Failed to publish: ' + error.message); return; }
-            // If created from a group, also create a post so it appears in the Posts tab
-            if (sourceGroupId && event) {
-              // Event-alert posts read as an announcement from the group itself,
-              // not a personal post from whichever member happened to create the
-              // event -- so attribute it to the group's own name/avatar rather
-              // than currentUser (unlike CreatePostScreen's regular posts, which
-              // are correctly attributed to the actual poster).
-              const { data: groupRow } = await supabase.from('groups')
-                .select('name, avatar_url, logo_color').eq('id', sourceGroupId).single();
-              const authorName = groupRow?.name || 'Group';
-              const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
-              await supabase.from('posts').insert({
-                group_id:           sourceGroupId,
-                user_id:            currentUser.userId,
-                content:            eventPostText,
-                text:               eventPostText,
-                image_url:          coverUrl || null,
-                linked_event_id:    event.id,
-                linked_event_title: title.trim(),
-                linked_event_date:  fmtDate(date) || null,
-                linked_event_time:  timeRange || null,
-                likes_count:        0,
-                comment_count:      0,
-                author_name:        authorName,
-                author_initial:     authorName[0]?.toUpperCase() || 'G',
-                author_color:       groupRow?.logo_color || deriveAvatarColor(sourceGroupId),
-                avatar_url:         groupRow?.avatar_url || null,
-                author_is_group:    true,
-              });
-              // increment event_count via RPC: groups.update() is admin-only
-              // now, so this (a member, not necessarily the admin, posting an
-              // event) goes through a security-definer function scoped to
-              // just this counter.
-              await supabase.rpc('increment_group_event_count', { p_group_id: sourceGroupId });
-            }
-            setSubmitting(false);
-            showToast('Event published! 🎉');
-            navigate('event-details', { eventId: event.id });
-          }}
-          style={{
-            width:'100%', height:50, border:'none', borderRadius:15,
-            cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
-            background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-            color:'#fff', fontSize:14, fontWeight:800,
-            fontFamily:"'Montserrat',-apple-system,sans-serif",
-            display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-            boxShadow: canPublish ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
-            opacity: submitting ? 0.7 : 1,
-          }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
-                  stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
-          </svg>
-          {submitting ? 'Publishing…' : 'Publish Event'}
-          {canPublish && !submitting && (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+        <div style={{ display:'flex', gap:10 }}>
+          <button
+            disabled={!canPublish || submitting}
+            onClick={() => submitEvent('draft')}
+            style={{
+              flex:'0 0 auto', height:50, padding:'0 20px', borderRadius:15,
+              cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
+              border:`1.5px solid ${C.border}`, background:C.card, color:C.body,
+              fontSize:14, fontWeight:800,
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+              opacity: submitting ? 0.7 : 1,
+            }}>
+            {submittingStatus === 'draft' ? 'Saving…' : 'Save Draft'}
+          </button>
+          <button
+            onClick={() => submitEvent('published')}
+            style={{
+              flex:1, height:50, border:'none', borderRadius:15,
+              cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
+              background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
+              color:'#fff', fontSize:14, fontWeight:800,
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+              display:'flex', alignItems:'center', justifyContent:'center', gap:9,
+              boxShadow: canPublish ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
+              opacity: submitting ? 0.7 : 1,
+            }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
+                    stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
-          )}
-        </button>
+            {submittingStatus === 'published' ? 'Publishing…' : 'Publish Event'}
+            {canPublish && !submitting && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
     </div>

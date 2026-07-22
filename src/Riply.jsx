@@ -2571,7 +2571,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         </div>
       ) : p.image_url && (
         <div style={{ borderRadius:14, overflow:'hidden', marginTop:11 }}>
-          <img src={p.image_url} alt="" style={{ width:'100%', display:'block', objectFit:'cover', maxHeight:240 }} />
+          <img src={p.image_url} alt="" style={{ width:'100%', display:'block', maxHeight:420 }} />
         </div>
       )}
 

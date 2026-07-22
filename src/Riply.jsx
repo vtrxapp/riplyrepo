@@ -328,7 +328,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, navigate, showToast }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, navigate }) {
   const CATS = [
     {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
@@ -1125,7 +1125,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     if (!user?.id) return;
     let cancelled = false;
     supabase.from('group_members').select('group_id, role, groups(id, name, initial, logo_color, avatar_url, permissions)')
-      .eq('user_id', user.id).in('role', ['member', 'admin', 'owner'])
+      .eq('user_id', user.id).eq('status', 'approved').in('role', ['member', 'admin', 'owner'])
       .then(({ data }) => {
         if (cancelled) return;
         // Keep the member's own role alongside the group so the composer can
@@ -2598,7 +2598,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
               {pollExpired ? ' · Poll closed'
                 : daysLeft !== null ? ` · ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`
                 : ''}
-              {!pollExpired && myVote === null && daysLeft === null ? ' · Tap to vote' : ''}
+              {!pollExpired && myVote === null ? ' · Tap to vote' : ''}
             </div>
           </div>
         );
@@ -8692,7 +8692,10 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
         try {
           const { data: chatId, error } = await supabase.rpc('create_admin_thread', { p_group_id: groupId });
           if (error || !chatId) { showToast('Failed to reach UMSU support'); return; }
-          navigate('chat', { chatId, chatName: 'UMSU Support', chatInitial: 'U', chatColor: 'linear-gradient(135deg,#19BFFF,#0098F0)' });
+          // isGroup: true -- this is a shared thread with every UMSU admin for
+          // the campus, not a 1:1 DM, so incoming messages need per-sender
+          // names/avatars rather than all showing "UMSU Support".
+          navigate('chat', { chatId, chatName: 'UMSU Support', chatInitial: 'U', chatColor: 'linear-gradient(135deg,#19BFFF,#0098F0)', isGroup: true });
         } catch {
           showToast('Failed to reach UMSU support');
         }
@@ -12084,7 +12087,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} currentUser={currentUser} />;
-      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} showToast={showToast} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
@@ -12115,7 +12118,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} showToast={showToast} />;
+      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} />;
     }
   };
 

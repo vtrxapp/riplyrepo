@@ -232,13 +232,17 @@ create policy posts_insert on public.posts for insert
     and (
       group_id is null
       or exists (
-        select 1 from public.group_members gm
-        where gm.group_id = posts.group_id and gm.user_id = current_user_id() and gm.role in ('admin','owner')
+        select 1
+        from public.group_members gm
+        join public.groups g on g.id = gm.group_id
+        where gm.group_id = posts.group_id
+          and gm.user_id = current_user_id()
+          and gm.status = 'approved'
+          and (
+            gm.role in ('admin', 'owner')
+            or coalesce(g.permissions ->> 'membersPost', 'true') <> 'false'
+          )
       )
-      or coalesce(
-           (select permissions ->> 'membersPost' from public.groups where id = posts.group_id),
-           'true'
-         ) <> 'false'
     )
   );
 -- Update/delete are also allowed for a group admin/owner of the post's group
@@ -324,18 +328,23 @@ declare
   voters jsonb;
   votes  jsonb;
   already_voted boolean;
+  expires_at timestamptz;
 begin
   if current_user_id() is null then
     raise exception 'must be signed in to vote';
   end if;
 
-  select coalesce(poll_voter_ids, '[]'::jsonb), coalesce(poll_votes, '{}'::jsonb)
-    into voters, votes
+  select coalesce(poll_voter_ids, '[]'::jsonb), coalesce(poll_votes, '{}'::jsonb), poll_expires_at
+    into voters, votes, expires_at
   from public.posts where id = p_post_id
   for update;
 
   if not found then
     raise exception 'post not found';
+  end if;
+
+  if expires_at is not null and expires_at < now() then
+    raise exception 'poll has closed';
   end if;
 
   select exists (

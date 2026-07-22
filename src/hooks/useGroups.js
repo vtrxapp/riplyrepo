@@ -1,15 +1,23 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useGroups() {
   const [groups,  setGroups]  = useState([])
   const [loading, setLoading] = useState(true)
+  // Bumped on every fetchGroups() call so an earlier-fired fetch (e.g. from a
+  // rapid burst of group_members realtime events during a bulk approval)
+  // can't resolve after a later one and overwrite it with stale data.
+  const genRef = useRef(0)
 
-  const fetch = useCallback(async () => {
-    const { data } = await supabase
+  const fetchGroups = useCallback(async () => {
+    const gen = ++genRef.current
+    const { data, error } = await supabase
       .from('groups')
       .select('*')
       .order('name', { ascending: true })
+
+    if (gen !== genRef.current) return
+    if (error) { console.error('[useGroups] fetch error:', error); setLoading(false); return }
 
     const list = data || []
     if (list.length === 0) { setGroups([]); setLoading(false); return }
@@ -18,16 +26,25 @@ export function useGroups() {
     // kept in sync with joins/leaves/bans, so it drifts from reality almost
     // immediately -- derive both the count and the avatar previews from the
     // actual approved membership rows instead of trusting that column.
-    const { data: members } = await supabase
+    const { data: members, error: membersError } = await supabase
       .from('group_members')
       .select('group_id, role, users(name, avatar_url, avatar_color)')
       .in('group_id', list.map(g => g.id))
       .eq('status', 'approved')
-      .order('role', { ascending: true }) // 'admin' sorts before 'member' -- admin shows first
 
+    if (gen !== genRef.current) return
+    if (membersError) { console.error('[useGroups] members fetch error:', membersError); setLoading(false); return }
+
+    // Most-privileged first (owner, then admin, then member) -- ordering by
+    // `role` in SQL sorts alphabetically ('admin' < 'member' < 'owner'), which
+    // put owners last instead of first, so sort in JS by explicit rank instead.
+    const ROLE_RANK = { owner: 0, admin: 1, member: 2 }
     const byGroup = {}
     ;(members || []).forEach(m => {
       (byGroup[m.group_id] ||= []).push(m)
+    })
+    Object.values(byGroup).forEach(rows => {
+      rows.sort((a, b) => (ROLE_RANK[a.role] ?? 3) - (ROLE_RANK[b.role] ?? 3))
     })
 
     setGroups(list.map(g => {
@@ -46,14 +63,14 @@ export function useGroups() {
   }, [])
 
   useEffect(() => {
-    fetch()
+    fetchGroups()
 
     const channel = supabase
       .channel('groups-list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => fetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => fetchGroups())
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [fetch])
+  }, [fetchGroups])
 
   return { groups, loading }
 }

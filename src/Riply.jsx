@@ -198,6 +198,64 @@ function Toast({ msg }) {
   );
 }
 
+// Twitter/Instagram-style swipe-left-to-reveal-delete. Wraps a row (chat,
+// notification, etc.) so a horizontal drag reveals a red delete action
+// underneath, while a vertical drag falls through untouched so the
+// surrounding list still scrolls normally. Additive, not a replacement --
+// any delete button already inside `children` keeps working via mouse/tap
+// for desktop users who can't swipe.
+function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWidth = 76 }) {
+  const [dragX, setDragX] = useState(0);
+  const startRef = useRef(null);
+  const draggingRef = useRef(false);
+  const axisRef = useRef(null);
+
+  const onTouchStart = (e) => {
+    startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, base: dragX };
+    axisRef.current = null;
+  };
+  const onTouchMove = (e) => {
+    if (!startRef.current) return;
+    const dx = e.touches[0].clientX - startRef.current.x;
+    const dy = e.touches[0].clientY - startRef.current.y;
+    if (axisRef.current === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      axisRef.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    }
+    if (axisRef.current !== 'x') return;
+    draggingRef.current = true;
+    setDragX(Math.min(0, Math.max(-revealWidth, startRef.current.base + dx)));
+  };
+  const onTouchEnd = () => {
+    if (draggingRef.current) {
+      setDragX(prev => (prev < -revealWidth / 2 ? -revealWidth : 0));
+    }
+    startRef.current = null;
+    draggingRef.current = false;
+    axisRef.current = null;
+  };
+
+  return (
+    <div style={{ position:'relative', overflow:'hidden', borderRadius:18 }}>
+      <div style={{ position:'absolute', top:0, right:0, bottom:0, width:revealWidth, display:'flex' }}>
+        <button onClick={() => { onDelete(); setDragX(0); }} aria-label={deleteLabel} style={{
+          flex:1, border:'none', background:'#FF3B6B', color:'#fff', fontSize:11.5, fontWeight:800,
+          cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+          Delete
+        </button>
+      </div>
+      <div
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        onClickCapture={e => { if (dragX !== 0) { e.stopPropagation(); setDragX(0); } }}
+        style={{ transform:`translateX(${dragX}px)`,
+                 transition: draggingRef.current ? 'none' : 'transform .2s ease',
+                 touchAction:'pan-y' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:11, background:C.chip, borderRadius:18, padding:'11px 11px 11px 15px', boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
@@ -1027,29 +1085,31 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                 <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>No notifications yet</div>
               </div>
             ) : notifications.map(n => (
-              <div key={n.id} onClick={() => markRead(n.id)}
-                style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
-                         boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
-                         cursor:'pointer', position:'relative',
-                         borderLeft: n.read ? 'none' : `3px solid ${C.primary}` }}>
-                <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
-                  <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color,
-                                display:'flex', alignItems:'center', justifyContent:'center',
-                                color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
-                    <span>{n.initial}</span>
-                    <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} />
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
-                    <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
-                  </div>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
-                    <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
-                    <button onClick={e => { e.stopPropagation(); deleteNotification(n.id); }}
-                      style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
+              <SwipeToDeleteRow key={n.id} onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
+                <div onClick={() => markRead(n.id)}
+                  style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
+                           boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
+                           cursor:'pointer', position:'relative',
+                           borderLeft: n.read ? 'none' : `3px solid ${C.primary}` }}>
+                  <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                    <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color,
+                                  display:'flex', alignItems:'center', justifyContent:'center',
+                                  color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
+                      <span>{n.initial}</span>
+                      <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} />
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
+                      <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
+                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
+                      <button onClick={e => { e.stopPropagation(); deleteNotification(n.id); }}
+                        style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </SwipeToDeleteRow>
             ))}
           </div>
         ) : (
@@ -1070,33 +1130,38 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                 No chats match "{chatQuery.trim()}"
               </div>
             ) : filteredChats.map(c => (
-              <div key={c.id} onClick={()=>navigate('chat',{
-                chatId: c.id, chatName: c.name, chatInitial: c.initial, chatColor: c.color, isGroup: !!c.group_id,
-              })} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
-                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
-                  {c.avatar_url
-                    ? <img src={c.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
-                    : <><span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
-                        <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} /></>
-                  }
-                </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                    <span style={{ fontSize:13, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
-                    <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
+              <SwipeToDeleteRow key={c.id} deleteLabel={`Delete chat with ${c.name}`} onDelete={async () => {
+                const { error } = await deleteChat(c.id);
+                if (error) showToast("Couldn't delete chat. Try again.");
+              }}>
+                <div onClick={()=>navigate('chat',{
+                  chatId: c.id, chatName: c.name, chatInitial: c.initial, chatColor: c.color, isGroup: !!c.group_id,
+                })} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
+                  <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
+                    {c.avatar_url
+                      ? <img src={c.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
+                      : <><span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
+                          <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} /></>
+                    }
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
-                    <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
-                    {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                      <span style={{ fontSize:13, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
+                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
+                      <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
+                      {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
+                    </div>
                   </div>
+                  <button onClick={async e => {
+                    e.stopPropagation();
+                    const { error } = await deleteChat(c.id);
+                    if (error) showToast("Couldn't delete chat. Try again.");
+                  }} aria-label={`Delete chat with ${c.name}`} style={{ flexShrink:0, border:'none',
+                    background:'none', cursor:'pointer', padding:4, color:C.subtle, fontSize:16, lineHeight:1 }}>×</button>
                 </div>
-                <button onClick={async e => {
-                  e.stopPropagation();
-                  const { error } = await deleteChat(c.id);
-                  if (error) showToast("Couldn't delete chat. Try again.");
-                }} aria-label={`Delete chat with ${c.name}`} style={{ flexShrink:0, border:'none',
-                  background:'none', cursor:'pointer', padding:4, color:C.subtle, fontSize:16, lineHeight:1 }}>×</button>
-              </div>
+              </SwipeToDeleteRow>
             ))}
           </div>
         )}

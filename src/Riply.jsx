@@ -326,7 +326,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, navigate, showToast }) {
   const CATS = [
     {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
@@ -565,14 +565,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
       {createOpen && (
         <Sheet onClose={()=>setCreateOpen(false)} title="Create something">
           <div style={{ fontSize:10.5, color:C.subtle, marginBottom:14 }}>Signed in as <span style={{ fontWeight:700, color:C.primary }}>{role==='admin'?'Group Admin':role==='organizer'?'Event Organizer':'Student'}</span></div>
-          {/* Role switcher */}
-          <div style={{ display:'flex', gap:6, background:'#E9ECF2', borderRadius:13, padding:4, marginBottom:16 }}>
-            {(['student','organizer','admin']).map(r => (
-              <button key={r} onClick={()=>setRole(r)} style={{ flex:1, height:36, border:'none', borderRadius:10, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:9.5, fontWeight:700, background: role===r?C.card:'none', color: role===r?C.primary:'#7B8499', boxShadow: role===r?'0 2px 6px rgba(16,24,40,0.08)':'none' }}>
-                {r==='admin'?'Admin':r==='organizer'?'Organizer':'Student'}
-              </button>
-            ))}
-          </div>
           <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
             {/* Space — all */}
             <div onClick={()=>{setCreateOpen(false);navigate('create-space');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
@@ -11897,7 +11889,12 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [role, setRole] = useState('student');
+  // The real, persisted role lives on the user's own profile (changed via
+  // Settings, which writes it to the database) -- this screen must read it,
+  // not maintain its own separate copy that resets to 'student' every
+  // session and can be flipped locally with no relationship to what the
+  // user actually saved.
+  const role = currentUser.role;
 
   // Spaces state
   const [spaceTab, setSpaceTab] = useState('all');
@@ -11952,7 +11949,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} currentUser={currentUser} />;
-      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} showToast={showToast} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
@@ -11983,7 +11980,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
+      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} showToast={showToast} />;
     }
   };
 

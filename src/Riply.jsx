@@ -404,7 +404,8 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 };
                 const cardImg = ev.image_url || ev.imageUrl || ev.cover_url || CARD_IMGS[ev.primary] || CARD_IMGS[ev.category] || CARD_IMGS.social;
                 const { isFree, amount: priceAmount } = parseEventPrice(ev.price);
-                const isNew = ev.created_at && (Date.now() - new Date(ev.created_at).getTime()) < 2 * 24 * 60 * 60 * 1000;
+                const eventAge = ev.created_at ? Date.now() - new Date(ev.created_at).getTime() : NaN;
+                const isNew = Number.isFinite(eventAge) && eventAge >= 0 && eventAge < 2 * 24 * 60 * 60 * 1000;
                 return (
                   <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ position:'relative', height:172, overflow:'hidden', cursor:'pointer' }}>
                     <img src={cardImg} alt={ev.title}
@@ -1048,7 +1049,9 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                 No chats match "{chatQuery.trim()}"
               </div>
             ) : filteredChats.map(c => (
-              <div key={c.id} onClick={()=>navigate('chat',{chatId:c.id})} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
+              <div key={c.id} onClick={()=>navigate('chat',{
+                chatId: c.id, chatName: c.name, chatInitial: c.initial, chatColor: c.color, isGroup: !!c.group_id,
+              })} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
                 <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
                   {c.avatar_url
                     ? <img src={c.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
@@ -1066,7 +1069,11 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                     {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
                   </div>
                 </div>
-                <button onClick={e => { e.stopPropagation(); deleteChat(c.id); }} style={{ flexShrink:0, border:'none',
+                <button onClick={async e => {
+                  e.stopPropagation();
+                  const { error } = await deleteChat(c.id);
+                  if (error) showToast("Couldn't delete chat. Try again.");
+                }} style={{ flexShrink:0, border:'none',
                   background:'none', cursor:'pointer', padding:4, color:C.subtle, fontSize:16, lineHeight:1 }}>×</button>
               </div>
             ))}
@@ -2620,7 +2627,9 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
               </div>
             )}
           </div>
-          <span style={{ fontSize:11, fontWeight:600, color:C.subtle, whiteSpace:'nowrap', flexShrink:0 }}>View event →</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+            <path d="M9 6l6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
       )}
 
@@ -4836,14 +4845,14 @@ function GifPickerSheet({ onClose, onSelect }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
-function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToast, currentUser }) {
+function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack, showToast, currentUser }) {
   const found = CHATS.find(c => c.id === chatId);
   const chat = found || {
     id: chatId,
     name: chatName || 'Chat',
     initial: chatInitial || (chatName?.[0]?.toUpperCase() || '?'),
     color: chatColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
-    type: 'dm',
+    type: isGroup ? 'group' : 'dm',
   };
 
   const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
@@ -11930,7 +11939,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
-      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
+      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;

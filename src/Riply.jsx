@@ -64,6 +64,15 @@ function addToCalendar({ title, location, description, dateStr, timeStr, duratio
   }
 }
 
+// ProfileScreen (Settings) fully unmounts when navigating to one of its
+// sub-pages (My Tickets, Help Center, etc.) since only the top of the nav
+// stack renders -- so its scroll position was always lost, resetting to the
+// top on every return. Module-scope rather than component state/a ref passed
+// down from the app root, since that would mean threading it through the
+// whole navigate/goBack stack just for this one screen; this is reset on a
+// full page reload, which is the expected/acceptable boundary for it.
+let profileScrollTop = 0;
+
 // Format any parseable date value as "13 Jan 2026" (the app-wide default),
 // falling back to the raw value if it isn't a real date, or to `empty` (a
 // caller-supplied placeholder, "" by default) if there's no value at all.
@@ -5526,6 +5535,8 @@ function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColo
 // ─────────────────────────────────────────────────────────────
 function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const cu = currentUser || {};
+  const scrollRef = useRef(null);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = profileScrollTop; }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
@@ -5642,7 +5653,8 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }}>
+      <div ref={scrollRef} onScroll={e => { profileScrollTop = e.currentTarget.scrollTop; }}
+        style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }}>
         {/* Identity */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
           <button onClick={() => {

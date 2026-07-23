@@ -4,7 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
-import { useChat, blockUser } from "./hooks/useChat";
+import { useChat, blockUser, invalidateProfileCache } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
 import { useGroupActivity } from "./hooks/useGroupActivity";
 import { useEvents, useEvent } from "./hooks/useEvents";
@@ -5854,6 +5854,51 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [draftProgram, setDraftProgram] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  // Shared by both avatar-tap targets (header photo + Edit Profile sheet).
+  // The upload path is fixed per user (avatars/{userId}.jpg) so every
+  // re-upload overwrites the same object -- Supabase Storage serves that
+  // URL through a CDN with a long cache lifetime, so without a cache-busting
+  // query param, the old image keeps showing (to this user and everyone
+  // else viewing their avatar) until something unrelated happens to clear
+  // the cache. Appending ?v=<timestamp> makes every upload a distinct URL,
+  // so the new photo shows immediately for everyone, every time.
+  const handleAvatarPick = () => {
+    // Both avatar buttons stay clickable while uploadingPhoto is true (it
+    // only dims opacity), so without this guard a second pick before the
+    // first upload finishes would race two updateProfile calls -- whichever
+    // resolves last wins, which isn't necessarily the most recently chosen
+    // file.
+    if (uploadingPhoto) return;
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      setUploadingPhoto(true);
+      try {
+        const url = await uploadImage(file, 'post-media', `avatars/${currentUser.userId}.jpg`);
+        // Build with URL/URLSearchParams rather than string concatenation --
+        // uploadImage's URL has no query string today, but blindly appending
+        // "?v=..." would produce a malformed "?a=b?v=c" URL the moment that
+        // ever changes.
+        const avatarUrl = new URL(url);
+        avatarUrl.searchParams.set('v', Date.now());
+        const { error } = await currentUser.updateProfile({ avatar_url: avatarUrl.toString() });
+        if (error) showToast('Save failed: ' + error.message);
+        else {
+          showToast('Profile photo updated ✓');
+          // users.avatar_url is now versioned, but posts/messages snapshot
+          // avatar_url at creation time and never re-read it -- without
+          // this, this user's existing posts and cached chat profiles would
+          // keep showing the old (or now cache-invalidated) avatar.
+          await supabase.from('posts').update({ avatar_url: avatarUrl.toString() }).eq('user_id', currentUser.userId);
+          invalidateProfileCache(currentUser.userId, avatarUrl.toString());
+        }
+      } catch(err) { showToast('Upload failed: ' + err.message); }
+      finally { setUploadingPhoto(false); }
+    };
+    input.click();
+  };
+
   const pageBg = C.pageBg;
   const cardBg = C.card;
   const textColor = C.ink;
@@ -5944,22 +5989,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }}>
         {/* Identity */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
-          <button onClick={() => {
-            const input = document.createElement('input');
-            input.type = 'file'; input.accept = 'image/*';
-            input.onchange = async (e) => {
-              const file = e.target.files[0]; if (!file) return;
-              setUploadingPhoto(true);
-              try {
-                const url = await uploadImage(file, 'post-media', `avatars/${currentUser.userId}.jpg`);
-                const { error } = await currentUser.updateProfile({ avatar_url: url });
-                if (error) showToast('Save failed: ' + error.message);
-                else showToast('Profile photo updated ✓');
-              } catch(err) { showToast('Upload failed: ' + err.message); }
-              finally { setUploadingPhoto(false); }
-            };
-            input.click();
-          }} style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)', position:'relative', border:'none', cursor:'pointer', opacity: uploadingPhoto ? 0.6 : 1 }}>
+          <button onClick={handleAvatarPick} disabled={uploadingPhoto} style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)', position:'relative', border:'none', cursor:'pointer', opacity: uploadingPhoto ? 0.6 : 1 }}>
             <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: currentUser.avatarColor || 'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, position:'relative', overflow:'hidden' }}>
               {currentUser.avatarUrl
                 ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -6047,22 +6077,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         <Sheet onClose={()=>setEditOpen(false)} title="Edit Profile">
           {/* Avatar */}
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom:20 }}>
-            <button onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file'; input.accept = 'image/*';
-              input.onchange = async (e) => {
-                const file = e.target.files[0]; if (!file) return;
-                setUploadingPhoto(true);
-                try {
-                  const url = await uploadImage(file, 'post-media', `avatars/${currentUser.userId}.jpg`);
-                  const { error } = await currentUser.updateProfile({ avatar_url: url });
-                  if (error) showToast('Save failed: ' + error.message);
-                  else showToast('Profile photo updated ✓');
-                } catch(err) { showToast('Upload failed: ' + err.message); }
-                finally { setUploadingPhoto(false); }
-              };
-              input.click();
-            }} style={{ width:80, height:80, borderRadius:'50%', padding:3, background:C.grad, border:'none', cursor:'pointer', position:'relative', boxShadow:'0 6px 16px rgba(2,162,240,0.3)', opacity: uploadingPhoto ? 0.6 : 1 }}>
+            <button onClick={handleAvatarPick} disabled={uploadingPhoto} style={{ width:80, height:80, borderRadius:'50%', padding:3, background:C.grad, border:'none', cursor:'pointer', position:'relative', boxShadow:'0 6px 16px rgba(2,162,240,0.3)', opacity: uploadingPhoto ? 0.6 : 1 }}>
               <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: currentUser.avatarColor || 'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, overflow:'hidden' }}>
                 {currentUser.avatarUrl
                   ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />

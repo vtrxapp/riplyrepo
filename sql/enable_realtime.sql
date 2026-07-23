@@ -26,6 +26,15 @@
 -- checked_in_at's table dependency aren't guaranteed to have been applied
 -- yet, and this script's own tables shouldn't be blocked on migration
 -- ordering from unrelated PRs.
+-- Supabase provisions this publication by default, but guard anyway rather
+-- than assuming it on every environment this script might run against.
+do $$
+begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    create publication supabase_realtime;
+  end if;
+end $$;
+
 do $$
 declare
   t text;

@@ -13,6 +13,15 @@ async function fetchSenderProfiles(senderIds) {
   }
 }
 
+// This cache has no TTL -- once a sender is fetched, their profile is never
+// re-read, so an avatar change wouldn't otherwise show up in any chat
+// session that already cached that user. Called by ProfileScreen right
+// after a successful avatar upload so the current session at least reflects
+// its own change immediately, rather than waiting on a full reload.
+export function invalidateProfileCache(userId, avatarUrl) {
+  if (profileCache[userId]) profileCache[userId] = { ...profileCache[userId], avatar_url: avatarUrl }
+}
+
 function enrichMessages(msgs, currentUserId) {
   return msgs.map(msg => ({
     ...msg,

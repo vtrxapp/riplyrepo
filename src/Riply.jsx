@@ -4,7 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
-import { useChat, blockUser } from "./hooks/useChat";
+import { useChat, blockUser, invalidateProfileCache } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
 import { useGroupActivity } from "./hooks/useGroupActivity";
 import { useEvents, useEvent } from "./hooks/useEvents";
@@ -5863,6 +5863,12 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   // the cache. Appending ?v=<timestamp> makes every upload a distinct URL,
   // so the new photo shows immediately for everyone, every time.
   const handleAvatarPick = () => {
+    // Both avatar buttons stay clickable while uploadingPhoto is true (it
+    // only dims opacity), so without this guard a second pick before the
+    // first upload finishes would race two updateProfile calls -- whichever
+    // resolves last wins, which isn't necessarily the most recently chosen
+    // file.
+    if (uploadingPhoto) return;
     const input = document.createElement('input');
     input.type = 'file'; input.accept = 'image/*';
     input.onchange = async (e) => {
@@ -5870,9 +5876,23 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       setUploadingPhoto(true);
       try {
         const url = await uploadImage(file, 'post-media', `avatars/${currentUser.userId}.jpg`);
-        const { error } = await currentUser.updateProfile({ avatar_url: `${url}?v=${Date.now()}` });
+        // Build with URL/URLSearchParams rather than string concatenation --
+        // uploadImage's URL has no query string today, but blindly appending
+        // "?v=..." would produce a malformed "?a=b?v=c" URL the moment that
+        // ever changes.
+        const avatarUrl = new URL(url);
+        avatarUrl.searchParams.set('v', Date.now());
+        const { error } = await currentUser.updateProfile({ avatar_url: avatarUrl.toString() });
         if (error) showToast('Save failed: ' + error.message);
-        else showToast('Profile photo updated ✓');
+        else {
+          showToast('Profile photo updated ✓');
+          // users.avatar_url is now versioned, but posts/messages snapshot
+          // avatar_url at creation time and never re-read it -- without
+          // this, this user's existing posts and cached chat profiles would
+          // keep showing the old (or now cache-invalidated) avatar.
+          await supabase.from('posts').update({ avatar_url: avatarUrl.toString() }).eq('user_id', currentUser.userId);
+          invalidateProfileCache(currentUser.userId, avatarUrl.toString());
+        }
       } catch(err) { showToast('Upload failed: ' + err.message); }
       finally { setUploadingPhoto(false); }
     };

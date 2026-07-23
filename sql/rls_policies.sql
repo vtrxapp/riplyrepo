@@ -623,7 +623,8 @@ begin
   end if;
   if not exists (
     select 1 from public.group_members
-    where group_id = p_group_id and user_id = current_user_id() and role in ('admin','owner')
+    where group_id = p_group_id and user_id = current_user_id()
+      and role in ('admin','owner') and status = 'approved'
   ) then
     raise exception 'must be an admin of this group';
   end if;

@@ -32,6 +32,31 @@ export function useChats() {
       .in('id', chatIds)
       .order('last_message_at', { ascending: false, nullsFirst: false })
 
+    if (gen !== loadGenRef.current) return
+
+    // Unread = messages sent by someone else since this user last opened the
+    // chat. chat_participants.last_read_at is bumped by useChat.js whenever
+    // the chat screen is opened (or a new message arrives while it's open).
+    const { data: myParticipations } = await supabase
+      .from('chat_participants')
+      .select('chat_id, last_read_at')
+      .eq('user_id', userId)
+      .in('chat_id', chatIds)
+    const lastReadMap = Object.fromEntries((myParticipations || []).map(p => [p.chat_id, p.last_read_at]))
+
+    const { data: unreadRows } = await supabase
+      .from('messages')
+      .select('chat_id, sender_id, created_at')
+      .in('chat_id', chatIds)
+      .neq('sender_id', userId)
+    const unreadCountMap = {}
+    ;(unreadRows || []).forEach(m => {
+      const lastRead = lastReadMap[m.chat_id]
+      if (!lastRead || new Date(m.created_at) > new Date(lastRead)) {
+        unreadCountMap[m.chat_id] = (unreadCountMap[m.chat_id] || 0) + 1
+      }
+    })
+
     // A chat with no group_id is a plain 1:1 DM -- look up the other
     // participant's profile so the list shows their name/avatar rather than
     // a blank "Chat" row (chats.name is only set for group/admin threads).
@@ -76,8 +101,8 @@ export function useChats() {
             avatar_url: profile?.avatar_url || null,
             preview: c.last_message || 'No messages yet',
             time: formatTime(c.last_message_at),
-            unread: false,
-            unreadCount: 0,
+            unread: !!unreadCountMap[c.id],
+            unreadCount: unreadCountMap[c.id] || 0,
           }
         })
         setChats(enriched)
@@ -90,8 +115,8 @@ export function useChats() {
       ...c,
       preview: c.last_message || 'No messages yet',
       time:    formatTime(c.last_message_at),
-      unread:  false,
-      unreadCount: 0,
+      unread:  !!unreadCountMap[c.id],
+      unreadCount: unreadCountMap[c.id] || 0,
     })))
     setLoading(false)
   }, [])
@@ -130,5 +155,9 @@ export function useChats() {
 
   const refetch = useCallback(() => load(userId), [userId, load])
 
-  return { chats, loading: userId ? loading : false, deleteChat, refetch }
+  // How many *chats* have unread messages -- not the total unread message
+  // count -- since that's what the Messages tab badge should show.
+  const unreadChatCount = chats.filter(c => c.unread).length
+
+  return { chats, loading: userId ? loading : false, deleteChat, refetch, unreadChatCount }
 }

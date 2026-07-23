@@ -1057,9 +1057,9 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 // ─────────────────────────────────────────────────────────────
 // SCREEN: MESSAGES
 // ─────────────────────────────────────────────────────────────
-function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
+function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsData }) {
   const isNotif = msgTab==='notifications';
-  const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = useChats();
+  const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = chatsData;
   const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification, refetch: refetchNotifs } = notifs;
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
@@ -1185,6 +1185,10 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                       : <><span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
                           <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} /></>
                     }
+                    {c.unread && (
+                      <span style={{ position:'absolute', top:2, right:2, width:12, height:12, borderRadius:'50%',
+                                     background:C.primary, border:'2px solid #fff' }}/>
+                    )}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
@@ -12641,6 +12645,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
 export default function RiplyApp({ clerkTimedOut } = {}) {
   const currentUser = useCurrentUser();
   const notifs = useNotifications();
+  const chatsData = useChats();
 
   // Font injection
   useEffect(() => {
@@ -12774,7 +12779,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
-      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
+      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} chatsData={chatsData} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
@@ -12814,7 +12819,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
         {renderScreen()}
       </div>
       {toast && <Toast msg={toast} />}
-      {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={notifs.unreadCount} />}
+      {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={chatsData.unreadChatCount} />}
     </div>
   );
 }

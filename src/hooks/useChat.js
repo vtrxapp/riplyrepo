@@ -41,6 +41,14 @@ async function resolveChat(chatId, currentUserId) {
   return { chatId: data ? chatId : null, error: null }
 }
 
+function markRead(chatId, userId) {
+  return supabase
+    .from('chat_participants')
+    .update({ last_read_at: new Date().toISOString() })
+    .eq('chat_id', chatId)
+    .eq('user_id', userId)
+}
+
 export function useChat(chatId) {
   const { user } = useUser()
   const [messages, setMessages] = useState([])
@@ -90,6 +98,10 @@ export function useChat(chatId) {
       setMessages(enrichMessages(msgs, user.id))
       setLoading(false)
 
+      // Mark read on open, so the chats list/badge stop counting whatever's
+      // already here the moment this screen is viewed.
+      markRead(resolved, user.id)
+
       const channel = supabase
         .channel(`chat:${resolved}`)
         .on('postgres_changes', {
@@ -103,6 +115,9 @@ export function useChat(chatId) {
             if (prev.find(m => m.id === payload.new.id)) return prev
             return [...prev, ...enrichMessages([payload.new], user.id)]
           })
+          // Still viewing the chat when this arrived -- keep it marked read
+          // rather than letting it count as unread until the next visit.
+          if (payload.new.sender_id !== user.id) markRead(resolved, user.id)
         })
         .subscribe()
 

@@ -449,9 +449,9 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
       {/* Spaces */}
       <button onClick={()=>setScreen('spaces')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M12 4.5 15 10H9l3-5.5Z" fill={navColor('spaces')}/>
-          <path d="M5.5 13.5l3 5.5h-6l3-5.5Z" fill={navColor('spaces')}/>
-          <path d="M18.5 13.5l3 5.5h-6l3-5.5Z" fill={navColor('spaces')}/>
+          <circle cx="12" cy="7" r="3.3" stroke={navColor('spaces')} strokeWidth="2"/>
+          <circle cx="6" cy="17" r="3.3" stroke={navColor('spaces')} strokeWidth="2"/>
+          <circle cx="18" cy="17" r="3.3" stroke={navColor('spaces')} strokeWidth="2"/>
         </svg>
         <span style={{ fontSize:8, fontWeight:navWeight('spaces'), color:navColor('spaces'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Spaces</span>
       </button>

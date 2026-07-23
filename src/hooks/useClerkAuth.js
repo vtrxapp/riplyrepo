@@ -110,6 +110,50 @@ export function useClerkAuth(showToast, setScreen, go, refetchProfile) {
     }
   }
 
+  // Track which email a reset was requested for, since Clerk's signIn
+  // resource doesn't otherwise expose it back for display/resend.
+  const resetEmailRef = useRef(null)
+
+  const requestPasswordReset = async (email) => {
+    if (!email.trim()) { showToast('Enter your student email'); return; }
+    if (!signInLoaded) { showToast('Still loading, try again'); return; }
+    try {
+      await signIn.create({ strategy: 'reset_password_email_code', identifier: email })
+      resetEmailRef.current = email
+      go('reset-password')
+    } catch(e) {
+      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Could not send reset code. Check the email and try again.')
+    }
+  }
+
+  const resendPasswordReset = async () => {
+    if (!resetEmailRef.current) return
+    try {
+      await signIn.create({ strategy: 'reset_password_email_code', identifier: resetEmailRef.current })
+      showToast('A new code is on its way')
+    } catch(e) {
+      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Could not resend code.')
+    }
+  }
+
+  const resetPassword = async (code, newPassword) => {
+    if (!code || code.length < 6) { showToast('Enter the full code'); return; }
+    if (!newPassword || newPassword.length < 8) { showToast('New password must be at least 8 characters'); return; }
+    if (!signInLoaded) { showToast('Still loading, try again'); return; }
+    try {
+      const result = await signIn.attemptFirstFactor({ strategy: 'reset_password_email_code', code, password: newPassword })
+      if (result.status === 'complete') {
+        await setActiveIn({ session: result.createdSessionId })
+        resetEmailRef.current = null
+        setScreen('home')
+      } else {
+        showToast('Reset incomplete: ' + result.status)
+      }
+    } catch(e) {
+      showToast(e.errors?.[0]?.longMessage || e.errors?.[0]?.message || 'Invalid or expired code. Try again.')
+    }
+  }
+
   const signup = async (name, email, password, confirm) => {
     if (!name.trim()) { showToast('Choose a username'); return; }
     if (!email.includes('@')) { showToast('Enter a valid email'); return; }
@@ -180,5 +224,5 @@ export function useClerkAuth(showToast, setScreen, go, refetchProfile) {
     }
   }
 
-  return { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor }
+  return { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor, requestPasswordReset, resendPasswordReset, resetPassword }
 }

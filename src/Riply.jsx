@@ -6092,10 +6092,14 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
   // code-entry step, so leftover digits from a previous attempt don't
   // briefly flash before clearing.
   const go = (s) => {
-    if (s === 'second-factor') { setCode(['','','','','','']); setBackupCode(''); }
+    if (s === 'second-factor' || s === 'reset-password') { setCode(['','','','','','']); setBackupCode(''); }
     setStep(s); setAnimKey(k => k+1);
   };
-  const { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
+  const { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor, requestPasswordReset, resendPasswordReset, resetPassword } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode,  setResetCode]  = useState('');
+  const [newPw,      setNewPw]      = useState('');
+  const [confirmNewPw, setConfirmNewPw] = useState('');
 
   // ── field state ───────────────────────────────────────────
   const [name,     setName]     = useState('');
@@ -6167,7 +6171,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
           />
         </div>
         {/* Forgot */}
-        <span onClick={()=>showToast('Password reset coming soon')}
+        <span onClick={()=>{ setResetEmail(email); go('forgot-password'); }}
           style={{ fontSize:13, fontWeight:700, color:'#19BFFF', marginTop:14,
                    cursor:'pointer', alignSelf:'flex-end' }}>
           Forgot Password?
@@ -6271,11 +6275,6 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
           {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
           {loading ? 'Creating account…' : 'Sign Up'}
         </button>
-        <span onClick={()=>showToast('Password reset coming soon')}
-          style={{ fontSize:13, fontWeight:700, color:'#19BFFF', marginTop:12,
-                   cursor:'pointer', textAlign:'center', display:'block' }}>
-          Forgot Password?
-        </span>
         <div style={{ textAlign:'center', fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:10 }}>
           Already have an account?{' '}
           <span onClick={()=>go('login')} style={{ color:'#19BFFF', fontWeight:800, cursor:'pointer' }}>
@@ -6369,6 +6368,145 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </div>
         <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
         <AuthBigBtn onClick={withLoading(()=>verify(code.join('')))} loading={loading} fullWidth>Verify</AuthBigBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // ── FORGOT PASSWORD: request a reset code ────────────────
+  if (step === 'forgot-password') {
+    return (
+      <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+                    background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                    overflow:'hidden', ...slideStyle }}>
+        <div style={bgWash}/>
+        <div style={{ position:'relative', flexShrink:0, padding:'52px 16px 0',
+                      display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={()=>go('login')} style={{ width:38, height:38, border:'none',
+            borderRadius:999, background:'#fff', boxShadow:`0 2px 8px rgba(16,24,40,0.08)`,
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
+                         letterSpacing:1.5, color:C.ink, marginRight:38 }}>
+            RESET PASSWORD
+          </span>
+        </div>
+        <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
+                      alignItems:'center', padding:'40px 32px 0' }}>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink, textAlign:'center' }}>
+            Forgot your password?
+          </div>
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+                        marginTop:10, maxWidth:280 }}>
+            Enter your student email and we'll send you a code to reset it.
+          </div>
+          <div style={{ width:'100%', marginTop:26 }}>
+            <input value={resetEmail} onChange={e=>setResetEmail(e.target.value)}
+              placeholder="student email" inputMode="email"
+              style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
+                       color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+          </div>
+        </div>
+        <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
+          <AuthBigBtn onClick={withLoading(()=>requestPasswordReset(resetEmail))} loading={loading} fullWidth>
+            Send Reset Code
+          </AuthBigBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // ── RESET PASSWORD: enter code + new password ────────────
+  if (step === 'reset-password') {
+    const inputs = Array.from({length:6},(_,i)=>i);
+    const handleKey = (i,e) => {
+      const v = e.target.value.replace(/\D/g,'').slice(-1);
+      const nc=[...code]; nc[i]=v; setCode(nc);
+      if(v&&i<5) codeRefs[i+1].current?.focus();
+      if(!v&&i>0&&e.nativeEvent.inputType==='deleteContentBackward') codeRefs[i-1].current?.focus();
+    };
+    const handlePaste = (e) => {
+      const digits = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6).split('');
+      if(!digits.length) return;
+      e.preventDefault();
+      const nc=['','','','','',''];
+      digits.forEach((d,i)=>{ nc[i]=d; });
+      setCode(nc);
+      const focusIdx = Math.min(digits.length, 5);
+      codeRefs[focusIdx].current?.focus();
+    };
+    return (
+      <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+                    background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                    overflow:'hidden', ...slideStyle }}>
+        <div style={bgWash}/>
+        <div style={{ position:'relative', flexShrink:0, padding:'52px 16px 0',
+                      display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={()=>go('forgot-password')} style={{ width:38, height:38, border:'none',
+            borderRadius:999, background:'#fff', boxShadow:`0 2px 8px rgba(16,24,40,0.08)`,
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
+                         letterSpacing:1.5, color:C.ink, marginRight:38 }}>
+            RESET PASSWORD
+          </span>
+        </div>
+        <div style={{ position:'relative', flex:1, overflowY:'auto', display:'flex', flexDirection:'column',
+                      alignItems:'center', padding:'32px 32px 0' }}>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink,
+                        textAlign:'center' }}>Enter the code</div>
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+                        marginTop:10, maxWidth:280 }}>
+            We've sent a 6-digit code to {resetEmail || 'your email'}. Enter it below with your new password.
+          </div>
+          <div style={{ display:'flex', gap:11, marginTop:24 }}>
+            {inputs.map(i=>(
+              <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                <div style={{ width:14, height:14, borderRadius:'50%',
+                              background: code[i] ? C.primary : '#E4E8EF',
+                              transition:'background .2s', pointerEvents:'none' }}/>
+                <input ref={codeRefs[i]} value={code[i]} onChange={e=>handleKey(i,e)}
+                  onPaste={i===0 ? handlePaste : undefined}
+                  maxLength={1} inputMode="numeric"
+                  style={{ width:44, height:44, border:'none',
+                           borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,
+                           background:'none', outline:'none', textAlign:'center',
+                           fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary,
+                           transition:'border-color 0.15s' }}/>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize:13, color:'#7B8499', marginTop:18 }}>
+            Didn't receive the code?{' '}
+            <span onClick={resendPasswordReset} style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>Resend</span>
+          </div>
+          <div style={{ width:'100%', marginTop:22, display:'flex', flexDirection:'column', gap:12 }}>
+            <input value={newPw} onChange={e=>setNewPw(e.target.value)} type="password"
+              placeholder="new password"
+              style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
+                       color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+            <input value={confirmNewPw} onChange={e=>setConfirmNewPw(e.target.value)} type="password"
+              placeholder="confirm new password"
+              style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
+                       color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+          </div>
+        </div>
+        <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
+          <AuthBigBtn onClick={withLoading(async ()=>{
+            if (newPw !== confirmNewPw) { showToast("Passwords don't match"); return; }
+            await resetPassword(code.join(''), newPw);
+          })} loading={loading} fullWidth>
+            Reset Password
+          </AuthBigBtn>
         </div>
       </div>
     );

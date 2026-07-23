@@ -12965,10 +12965,34 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     }
   };
 
+  // Edge-swipe-back: starting a touch within a narrow strip of the left
+  // screen edge and dragging right triggers goBack(), matching iOS/Android's
+  // native back gesture. Anchoring to the edge (rather than a full-width
+  // swipe) is what keeps this from colliding with the app's existing
+  // full-width horizontal swipes (Home/Spaces category tabs, GroupProfile
+  // tabs) -- those gestures start from wherever the user's finger already
+  // is, essentially never the literal edge, so they never satisfy the
+  // start-position check below and this handler simply never engages for
+  // them. goBack() itself already no-ops when there's nothing to go back
+  // to (root tab screens), so this doesn't need its own guard for that.
+  const EDGE_SWIPE_WIDTH = 24;
+  const edgeSwipeRef = useRef(null);
+  const handleEdgeSwipeStart = (e) => {
+    const x = e.touches[0].clientX;
+    edgeSwipeRef.current = x <= EDGE_SWIPE_WIDTH ? { x, y: e.touches[0].clientY } : null;
+  };
+  const handleEdgeSwipeEnd = (e) => {
+    if (!edgeSwipeRef.current) return;
+    const dx = e.changedTouches[0].clientX - edgeSwipeRef.current.x;
+    const dy = e.changedTouches[0].clientY - edgeSwipeRef.current.y;
+    edgeSwipeRef.current = null;
+    if (dx > 70 && dx > Math.abs(dy) * 1.5) goBack();
+  };
+
   return (
     <div style={{ width:'100%', height:'100dvh', position:'relative', background:C.pageBg,
                   fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden' }}>
-      <div style={{ height:'100%' }}>
+      <div style={{ height:'100%' }} onTouchStart={handleEdgeSwipeStart} onTouchEnd={handleEdgeSwipeEnd}>
         {renderScreen()}
       </div>
       {toast && <Toast msg={toast} />}

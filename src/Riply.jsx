@@ -5431,11 +5431,19 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                   )}
                 </div>
 
-                {/* Timestamp */}
-                <span style={{ fontSize:9.5, color:C.subtle, fontWeight:600,
+                {/* Timestamp -- a WhatsApp-style check only appears on the
+                    very last message when it's ours (sent/delivered), never
+                    on an incoming one, so it reads as "seen up to here". */}
+                <span style={{ display:'flex', alignItems:'center', gap:3,
                                marginTop:4, marginLeft:4,
                                alignSelf: isOut ? 'flex-end' : 'flex-start' }}>
-                  {m.time}
+                  <span style={{ fontSize:9.5, color:C.subtle, fontWeight:600 }}>{m.time}</span>
+                  {isOut && i === messages.length - 1 && (
+                    <svg width="14" height="10" viewBox="0 0 16 11" fill="none">
+                      <path d="M1 5.5 4.5 9 11 1.5" stroke={C.primary} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M5.5 5.5 9 9 15.5 1.5" stroke={C.primary} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
                 </span>
               </div>
             </div>

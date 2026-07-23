@@ -472,7 +472,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, navigate }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, role, navigate }) {
   const CATS = [
     {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
@@ -683,18 +683,55 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
             </button>
           </div>
         )}
-        {fabOpen && (
-          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .13s ease' }}>
+        {fabOpen && role === 'admin' && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .1s ease' }}>
             <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
               fontSize:12, fontWeight:700, color:C.ink,
-              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Add Event</span>
-            <button onClick={() => { setFabOpen(false); setCreateOpen(true); }}
+              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Campus Group</span>
+            <button onClick={() => { setFabOpen(false); navigate('create-group'); }}
               style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
                 display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
                 boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
-              </svg>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="#fff" strokeWidth="1.8"/><circle cx="16" cy="9" r="2.6" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        )}
+        {fabOpen && role !== 'student' && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .13s ease' }}>
+            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
+              fontSize:12, fontWeight:700, color:C.ink,
+              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Event</span>
+            <button onClick={() => { setFabOpen(false); navigate('create-event'); }}
+              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
+                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        )}
+        {fabOpen && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .16s ease' }}>
+            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
+              fontSize:12, fontWeight:700, color:C.ink,
+              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Post</span>
+            <button onClick={() => { setFabOpen(false); navigate('create-post'); }}
+              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
+                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        )}
+        {fabOpen && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .19s ease' }}>
+            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
+              fontSize:12, fontWeight:700, color:C.ink,
+              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Student Space</span>
+            <button onClick={() => { setFabOpen(false); navigate('create-space'); }}
+              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
+                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#fff" strokeWidth="1.8"/></svg>
             </button>
           </div>
         )}
@@ -711,82 +748,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
         <style>{`@keyframes fabItemIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
       </div>
 
-      {/* Create Sheet */}
-      {createOpen && (
-        <Sheet onClose={()=>setCreateOpen(false)} title="Create something">
-          <div style={{ fontSize:10.5, color:C.subtle, marginBottom:14 }}>Signed in as <span style={{ fontWeight:700, color:C.primary }}>{role==='admin'?'Group Admin':role==='organizer'?'Event Organizer':'Student'}</span></div>
-          <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
-            {/* Space — all */}
-            <div onClick={()=>{setCreateOpen(false);navigate('create-space');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
-              <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#E4F7EC', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <svg width="23" height="23" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#15A34A" strokeWidth="2"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#15A34A" strokeWidth="2"/></svg>
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Student Space</div>
-                <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>A small recurring group — open to all students</div>
-              </div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            {/* Post — all roles */}
-            <div onClick={()=>{setCreateOpen(false);navigate('create-post');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
-              <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#FFF6EC', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#F59E0B" strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke="#F59E0B" strokeWidth="1.9" strokeLinecap="round"/></svg>
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Post</div>
-                <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>Share something with a group</div>
-              </div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            {/* Event — organizer/admin only */}
-            {role!=='student' ? (
-              <div onClick={()=>{setCreateOpen(false);navigate('create-event');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
-                <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#E9F6FF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="23" height="23" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/></svg>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Event</div>
-                  <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>Ticketed campus event with RSVPs & check-in</div>
-                </div>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            ) : (
-              <div style={{ display:'flex', alignItems:'center', gap:13, background:'#F1F3F7', borderRadius:16, padding:15, opacity:0.85 }}>
-                <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#E4E8EF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5" stroke={C.subtle} strokeWidth="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke={C.subtle} strokeWidth="2" strokeLinecap="round"/></svg>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.muted }}>Event</div>
-                  <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>Only organizers & group admins can post events</div>
-                </div>
-              </div>
-            )}
-            {/* Campus Group — admin only */}
-            {role==='admin' ? (
-              <div onClick={()=>{setCreateOpen(false);navigate('create-group');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
-                <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#F1ECFF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="23" height="23" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="#7C5CFF" strokeWidth="2"/><circle cx="16" cy="9" r="2.6" stroke="#7C5CFF" strokeWidth="2"/><path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2" stroke="#7C5CFF" strokeWidth="2" strokeLinecap="round"/></svg>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Campus Group</div>
-                  <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>A community with members, posts & moderation</div>
-                </div>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            ) : (
-              <div style={{ display:'flex', alignItems:'center', gap:13, background:'#F1F3F7', borderRadius:16, padding:15, opacity:0.85 }}>
-                <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#E4E8EF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5" stroke={C.subtle} strokeWidth="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke={C.subtle} strokeWidth="2" strokeLinecap="round"/></svg>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.muted }}>Campus Group</div>
-                  <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>Only group admins can create groups</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </Sheet>
-      )}
     </div>
   );
 }
@@ -12417,7 +12378,6 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   const [filters, setFilters] = useState({});
   const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
-  const [createOpen, setCreateOpen] = useState(false);
   // The real, persisted role lives on the user's own profile (changed via
   // Settings, which writes it to the database) -- this screen must read it,
   // not maintain its own separate copy that resets to 'student' every
@@ -12478,7 +12438,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} currentUser={currentUser} />;
-      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
@@ -12510,7 +12470,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} navigate={navigate} />;
+      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} />;
     }
   };
 

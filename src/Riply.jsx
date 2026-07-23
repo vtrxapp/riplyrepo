@@ -5354,16 +5354,14 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
     goBack();
   };
 
-  // Online status — group chats (id 4) show member count, DMs show 'Active recently'.
-  // Groups and a currently-online DM read as "active now" (blue, matches the
-  // app's theme color); a last-seen/recency label reads as grey since it's
-  // not a live state.
+  // Group chats show member count (real data); DMs show a static label.
+  // Neither is a live presence signal, so both render in the same neutral
+  // color -- no blue/"active" implication for either case.
   const memberCount = chat.memberCount || chat.members;
-  const isActiveNow = isGroupChat;
   const onlineLabel = isGroupChat
-    ? memberCount ? `Online · ${memberCount} members` : 'Online'
-    : 'Active recently';
-  const statusColor = isActiveNow ? C.primary : C.subtle;
+    ? memberCount ? `${memberCount} members` : 'Group'
+    : 'Direct message';
+  const statusColor = C.subtle;
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -5388,9 +5386,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                         whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             {chat.name}
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:1 }}>
-            <span style={{ width:7, height:7, borderRadius:'50%', background:statusColor,
-                           display:'inline-block', flexShrink:0 }}/>
+          <div style={{ marginTop:1 }}>
             <span style={{ fontSize:11, fontWeight:600, color:statusColor }}>{onlineLabel}</span>
           </div>
         </div>

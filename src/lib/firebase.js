@@ -24,12 +24,11 @@ export async function requestNotificationPermission(userId) {
     })
     if (token && userId) {
       // fcm_tokens is a text[] — a user can have multiple registered
-      // devices/browsers, so append rather than overwrite.
-      const { data } = await supabase.from('users').select('fcm_tokens').eq('id', userId).single()
-      const existing = data?.fcm_tokens || []
-      if (!existing.includes(token)) {
-        await supabase.from('users').update({ fcm_tokens: [...existing, token] }).eq('id', userId)
-      }
+      // devices/browsers, so append rather than overwrite. Done via an
+      // atomic RPC (array_append in a single UPDATE) rather than a
+      // client-side read-then-write, which would race and drop a token if
+      // two devices/tabs registered at the same time.
+      await supabase.rpc('add_fcm_token', { p_token: token })
     }
     return token
   } catch (err) {

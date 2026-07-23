@@ -4,11 +4,17 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // Sends transactional email via Resend. Both the shared caller secret and
 // the Resend API key live in Supabase Vault (never in git or Deno env),
 // fetched here through the service-role-only get_vault_secret RPC.
+function requiredEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`Missing required env var: ${name}`);
+  return value;
+}
+
 Deno.serve(async (req: Request) => {
   try {
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      requiredEnv("SUPABASE_URL"),
+      requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
     );
 
     const { data: edgeSecret } = await supabase.rpc("get_vault_secret", { p_name: "edge_function_secret" });
@@ -49,7 +55,9 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: fromAddress || "Riply <onboarding@resend.dev>",
         to: [user.email],
-        subject,
+        // Subject is a mail header, not HTML -- strip line breaks so a
+        // crafted notification title can't inject extra headers.
+        subject: String(subject).replace(/[\r\n]/g, " "),
         html: `<p>${escapeHtml(body || "")}</p>`,
       }),
     });

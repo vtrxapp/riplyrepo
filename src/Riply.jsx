@@ -9632,18 +9632,14 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
 
   const open = requests.filter(r => !done[r.userId]);
 
+  // notify_membership_decision now performs the accept/decline mutation
+  // itself (atomically with the notification) so the two can never diverge
+  // -- see the SQL function's comment for why that matters.
   const resolve = async (r, accept) => {
     setDone(s => ({ ...s, [r.userId]: true }));
-    // Notify before mutating membership -- the RPC requires the target's
-    // group_members row to still exist (it verifies a real pending request
-    // was on file), and decline deletes that row rather than just updating it.
-    const { error: notifErr } = await supabase.rpc('notify_membership_decision', {
+    const { error } = await supabase.rpc('notify_membership_decision', {
       p_group_id: groupId, p_target_user_id: r.userId, p_accepted: accept,
     });
-    if (notifErr) console.error('[pending-requests] notify failed:', notifErr);
-    const { error } = accept
-      ? await supabase.from('group_members').update({ role: 'member' }).eq('group_id', groupId).eq('user_id', r.userId)
-      : await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', r.userId);
     if (error) {
       setDone(s => { const n = { ...s }; delete n[r.userId]; return n; });
       showToast(`Failed to ${accept ? 'accept' : 'decline'}: ` + error.message);
@@ -9654,17 +9650,20 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
   const acceptAll = async () => {
     const targets = open;
     setDone(s => { const n = { ...s }; targets.forEach(r => { n[r.userId] = true; }); return n; });
-    const { error } = await supabase.from('group_members').update({ role: 'member' })
-      .eq('group_id', groupId).eq('role', 'pending');
-    if (error) {
-      setDone(s => { const n = { ...s }; targets.forEach(r => { delete n[r.userId]; }); return n; });
-      showToast('Failed to accept all: ' + error.message);
+    const results = await Promise.all(targets.map(r =>
+      supabase.rpc('notify_membership_decision', { p_group_id: groupId, p_target_user_id: r.userId, p_accepted: true })
+    ));
+    const failed = results.filter(({ error }) => error);
+    if (failed.length > 0) {
+      console.error('[pending-requests] accept-all had failures:', failed.map(f => f.error));
+      setDone(s => {
+        const n = { ...s };
+        targets.forEach((r, i) => { if (results[i].error) delete n[r.userId]; });
+        return n;
+      });
+      showToast(failed.length === targets.length ? 'Failed to accept all' : `Accepted ${targets.length - failed.length} of ${targets.length}`);
       return;
     }
-    await Promise.all(targets.map(r =>
-      supabase.rpc('notify_membership_decision', { p_group_id: groupId, p_target_user_id: r.userId, p_accepted: true })
-        .then(({ error: e }) => { if (e) console.error('[pending-requests] notify failed:', e); })
-    ));
     showToast('All requests accepted');
   };
 
@@ -12117,7 +12116,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
     const parsedDate = rawDate ? new Date(rawDate) : null;
     const ticketDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toISOString() : rawDate;
     try {
-      const { error } = await supabase.from('tickets').insert({
+      const { data: newTicket, error } = await supabase.from('tickets').insert({
         user_id:      user.id,
         event_id:     ev.id,
         event_title:  ev.title,
@@ -12131,11 +12130,13 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         // price would otherwise make past purchases look wrong in history.
         amount_paid:  total,
         stripe_payment_intent_id: paymentIntentId,
-      });
+      }).select('id').single();
       if (error) throw error;
       // Best-effort: the ticket itself already saved above, so a failure to
       // notify the organizer shouldn't affect the buyer's confirmation.
-      const { error: notifErr } = await supabase.rpc('notify_ticket_purchase', { p_event_id: ev.id });
+      // Scoped to this specific ticket id (not just the event) so the RPC
+      // can enforce it only ever fires once per purchase.
+      const { error: notifErr } = await supabase.rpc('notify_ticket_purchase', { p_ticket_id: newTicket.id });
       if (notifErr) console.error('[tickets] organizer notify failed:', notifErr);
       return true;
     } catch (err) {

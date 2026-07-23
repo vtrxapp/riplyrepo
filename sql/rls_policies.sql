@@ -577,36 +577,54 @@ create policy notifications_delete on public.notifications for delete
 -- generally isn't a co-admin of any group the organizer belongs to, so
 -- notifications_insert's fan-out branch wouldn't cover this; a narrow
 -- security-definer RPC with server-derived content instead.
-create or replace function public.notify_ticket_purchase(p_event_id uuid)
+-- Scoped to a specific ticket (not just event_id) and idempotent via the
+-- `notified` flag below -- otherwise a ticket holder could call this RPC
+-- repeatedly for the same purchase and spam the organizer with fake sale
+-- notifications (and themselves with duplicate receipts). The atomic
+-- false->true flip means only the first call for a given ticket does
+-- anything; every later call for that same ticket is a silent no-op.
+alter table public.tickets add column if not exists notified boolean not null default false;
+
+create or replace function public.notify_ticket_purchase(p_ticket_id uuid)
 returns void
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
+  v_buyer text;
+  v_event_id uuid;
   v_organizer text;
   v_event_title text;
   v_buyer_name text;
+  v_updated int;
 begin
   if current_user_id() is null then
     raise exception 'must be signed in';
   end if;
 
-  select user_id, title into v_organizer, v_event_title from public.events where id = p_event_id;
+  select user_id, event_id into v_buyer, v_event_id from public.tickets where id = p_ticket_id;
+  if v_buyer is null then
+    raise exception 'ticket not found';
+  end if;
+  if v_buyer is distinct from current_user_id() then
+    raise exception 'not authorized for this ticket';
+  end if;
+
+  update public.tickets set notified = true where id = p_ticket_id and notified = false;
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    return;
+  end if;
+
+  select user_id, title into v_organizer, v_event_title from public.events where id = v_event_id;
   if v_organizer is null then
-    raise exception 'event not found';
+    return;
   end if;
 
   -- An organizer buying/RSVPing to their own event shouldn't notify themself.
   if v_organizer = current_user_id() then
     return;
-  end if;
-
-  if not exists (
-    select 1 from public.tickets
-    where event_id = p_event_id and user_id = current_user_id()
-  ) then
-    raise exception 'no ticket found for this event';
   end if;
 
   select coalesce(name, 'Someone') into v_buyer_name from public.users where id = current_user_id();
@@ -621,6 +639,12 @@ begin
 end;
 $$;
 
+-- Performs the accept/decline membership mutation itself (rather than
+-- trusting the client to have already done it and just pass along a
+-- matching p_accepted flag) -- otherwise an admin could call this with
+-- p_accepted mismatched to the row's real resulting state and send a
+-- notification that lies about what actually happened. Doing the mutation
+-- and the notification in the same statement means they can't diverge.
 create or replace function public.notify_membership_decision(p_group_id uuid, p_target_user_id text, p_accepted boolean)
 returns void
 language plpgsql
@@ -629,6 +653,7 @@ set search_path = public
 as $$
 declare
   v_group_name text;
+  v_updated int;
 begin
   if current_user_id() is null then
     raise exception 'must be signed in';
@@ -641,11 +666,16 @@ begin
     raise exception 'must be an admin of this group';
   end if;
 
-  if not exists (
-    select 1 from public.group_members
-    where group_id = p_group_id and user_id = p_target_user_id
-  ) then
-    raise exception 'target user has no membership record for this group';
+  if p_accepted then
+    update public.group_members set role = 'member'
+    where group_id = p_group_id and user_id = p_target_user_id and role = 'pending';
+  else
+    delete from public.group_members
+    where group_id = p_group_id and user_id = p_target_user_id and role = 'pending';
+  end if;
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    raise exception 'no pending request found for this user in this group';
   end if;
 
   select name into v_group_name from public.groups where id = p_group_id;
@@ -965,3 +995,42 @@ drop trigger if exists notifications_send_notification on public.notifications;
 create trigger notifications_send_notification
   after insert on public.notifications
   for each row execute function public.trigger_send_notification();
+
+-- Atomic FCM token registration: the client previously did a read-then-write
+-- (select fcm_tokens, append client-side, update) which races when a user
+-- registers from two devices/tabs concurrently -- the slower write can
+-- clobber the faster one and silently drop a token. array_append inside a
+-- single UPDATE is atomic at the row level, so concurrent calls compose
+-- correctly instead of one overwriting the other.
+create or replace function public.add_fcm_token(p_token text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.users
+  set fcm_tokens = array_append(coalesce(fcm_tokens, '{}'), p_token)
+  where id = current_user_id()
+    and not (p_token = any(coalesce(fcm_tokens, '{}')));
+$$;
+
+-- Symmetric atomic counterpart to add_fcm_token, used by the send-push Edge
+-- Function to prune tokens FCM reports as dead. Also a single-statement
+-- UPDATE so it can't race with a concurrent send-push invocation for the
+-- same user (or with add_fcm_token itself) the way a read-then-write would.
+create or replace function public.remove_fcm_tokens(p_user_id text, p_tokens text[])
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.users
+  set fcm_tokens = coalesce(
+    (select array_agg(t) from unnest(fcm_tokens) as t where not (t = any(p_tokens))),
+    '{}'
+  )
+  where id = p_user_id;
+$$;
+
+revoke all on function public.remove_fcm_tokens(text, text[]) from public, anon, authenticated;
+grant execute on function public.remove_fcm_tokens(text, text[]) to service_role;

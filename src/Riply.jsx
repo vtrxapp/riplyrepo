@@ -5278,11 +5278,14 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   // Auto-scroll when messages change
   useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
+  const deletingChatRef = useRef(false);
   const handleDeleteChat = async () => {
     setMenuOpen(false);
     if (!window.confirm(`Delete this chat with ${chat.name}? This can't be undone.`)) return;
+    if (deletingChatRef.current) return;
+    deletingChatRef.current = true;
     const { error } = await deleteChatParticipant(chatId, currentUserId);
-    if (error) { showToast("Couldn't delete chat. Try again."); return; }
+    if (error) { showToast("Couldn't delete chat. Try again."); deletingChatRef.current = false; return; }
     showToast('Chat deleted');
     goBack();
   };

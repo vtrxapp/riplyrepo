@@ -595,12 +595,12 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
           />
         </div>
         {(role==='organizer' || role==='admin') && (
-          <button onClick={()=>navigate('create-event')} aria-label="Create event" style={{
+          <button type="button" onClick={()=>navigate('create-event')} aria-label="Create event" style={{
             flexShrink:0, width:44, height:44, marginTop:1, border:'none', borderRadius:15,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)',
             display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
             boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
             </svg>
           </button>

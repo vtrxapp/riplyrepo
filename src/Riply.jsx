@@ -10855,18 +10855,28 @@ function CheckInScreen({ eventId, goBack, showToast }) {
     if (!id || processingRef.current) return;
     processingRef.current = true;
     pausedRef.current = true;
-    const { data, error } = await supabase.rpc('check_in_ticket', { p_ticket_id: id, p_event_id: eventId });
-    if (error) {
-      showResult({ valid:false, name:null, reason: error.message || 'Invalid ticket' });
-    } else {
-      const row = data?.[0];
-      const name = row?.user_name || 'Attendee';
-      showResult({ valid:true, name, ticket: row?.access || 'Ticket' });
-      setCheckedIn(n => n + 1);
-      setRecent(r => [{ name, initial:(name[0] || '?').toUpperCase(),
-                         color:'linear-gradient(135deg,#19BFFF,#0098F0)', time:'just now' }, ...r].slice(0, 6));
+    try {
+      const { data, error } = await supabase.rpc('check_in_ticket', { p_ticket_id: id, p_event_id: eventId });
+      if (error) {
+        showResult({ valid:false, name:null, reason: error.message || 'Invalid ticket' });
+      } else {
+        const row = data?.[0];
+        const name = row?.user_name || 'Attendee';
+        showResult({ valid:true, name, ticket: row?.access || 'Ticket' });
+        setCheckedIn(n => n + 1);
+        setRecent(r => [{ name, initial:(name[0] || '?').toUpperCase(),
+                           color:'linear-gradient(135deg,#19BFFF,#0098F0)', time:'just now' }, ...r].slice(0, 6));
+      }
+    } catch (err) {
+      // supabase.rpc() throwing (network failure, etc.) rather than resolving
+      // with {data, error} previously left processingRef/pausedRef stuck true
+      // forever, freezing the scanner for the rest of the session with no
+      // recovery short of a reload.
+      console.error('[handleScan] error:', err);
+      showResult({ valid:false, name:null, reason: 'Scan failed — try again' });
+    } finally {
+      processingRef.current = false;
     }
-    processingRef.current = false;
   }, [eventId, showResult]);
 
   // Camera + scan loop: grab a video frame onto the hidden canvas every

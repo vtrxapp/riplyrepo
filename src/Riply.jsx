@@ -5275,6 +5275,19 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
           </svg>
         </button>
 
+        {/* Name + status */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:14, fontWeight:800, letterSpacing:-0.3, color:C.ink,
+                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            {chat.name}
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:1 }}>
+            <span style={{ width:7, height:7, borderRadius:'50%', background:statusColor,
+                           display:'inline-block', flexShrink:0 }}/>
+            <span style={{ fontSize:11, fontWeight:600, color:statusColor }}>{onlineLabel}</span>
+          </div>
+        </div>
+
         {/* Avatar */}
         <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
                       background: chat.avatarUrl ? 'transparent' : chat.color, display:'flex', alignItems:'center',
@@ -5291,19 +5304,6 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
           <div style={{ position:'absolute', bottom:1, right:1, width:9, height:9,
                         borderRadius:'50%', background:'#10B981',
                         border:'2px solid #fff' }}/>
-        </div>
-
-        {/* Name + status */}
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:14, fontWeight:800, letterSpacing:-0.3, color:C.ink,
-                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-            {chat.name}
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:1 }}>
-            <span style={{ width:7, height:7, borderRadius:'50%', background:statusColor,
-                           display:'inline-block', flexShrink:0 }}/>
-            <span style={{ fontSize:11, fontWeight:600, color:statusColor }}>{onlineLabel}</span>
-          </div>
         </div>
 
         {/* Action icons */}
@@ -5528,28 +5528,18 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
             />
           </div>
 
-          {/* Send / mic toggle */}
-          {(draft.trim() || pendingAttachment) ? (
-            <button onClick={send} disabled={sending} style={{ width:44, height:44, border:'none', borderRadius:'50%',
-              background:C.grad, display:'flex', alignItems:'center', justifyContent:'center',
-              cursor: sending ? 'default' : 'pointer', flexShrink:0, opacity: sending ? 0.7 : 1,
-              boxShadow:'0 4px 12px rgba(2,162,240,0.4)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M22 2 11 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          ) : (
-            <button onClick={() => showToast('Hold to record')} style={{ width:44, height:44,
-              border:'none', borderRadius:'50%', background:C.chip, display:'flex',
-              alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <rect x="9" y="2" width="6" height="11" rx="3" stroke="#7B8499" strokeWidth="1.9"/>
-                <path d="M5 10a7 7 0 0 0 14 0" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
-                <path d="M12 19v3M9 22h6" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>
-              </svg>
-            </button>
-          )}
+          {/* Send -- no mic/recording placeholder, since voice messages aren't
+              actually implemented; the button did nothing but show a toast. */}
+          <button onClick={send} disabled={sending || (!draft.trim() && !pendingAttachment)} style={{ width:44, height:44, border:'none', borderRadius:'50%',
+            background:C.grad, display:'flex', alignItems:'center', justifyContent:'center',
+            cursor: sending ? 'default' : 'pointer', flexShrink:0,
+            opacity: (sending || (!draft.trim() && !pendingAttachment)) ? 0.5 : 1,
+            boxShadow:'0 4px 12px rgba(2,162,240,0.4)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M22 2 11 13" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
 

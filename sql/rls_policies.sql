@@ -641,6 +641,13 @@ begin
     raise exception 'must be an admin of this group';
   end if;
 
+  if not exists (
+    select 1 from public.group_members
+    where group_id = p_group_id and user_id = p_target_user_id
+  ) then
+    raise exception 'target user has no membership record for this group';
+  end if;
+
   select name into v_group_name from public.groups where id = p_group_id;
 
   insert into public.notifications(user_id, type, title, body)

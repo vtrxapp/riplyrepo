@@ -9634,6 +9634,13 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
 
   const resolve = async (r, accept) => {
     setDone(s => ({ ...s, [r.userId]: true }));
+    // Notify before mutating membership -- the RPC requires the target's
+    // group_members row to still exist (it verifies a real pending request
+    // was on file), and decline deletes that row rather than just updating it.
+    const { error: notifErr } = await supabase.rpc('notify_membership_decision', {
+      p_group_id: groupId, p_target_user_id: r.userId, p_accepted: accept,
+    });
+    if (notifErr) console.error('[pending-requests] notify failed:', notifErr);
     const { error } = accept
       ? await supabase.from('group_members').update({ role: 'member' }).eq('group_id', groupId).eq('user_id', r.userId)
       : await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', r.userId);
@@ -9642,13 +9649,6 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
       showToast(`Failed to ${accept ? 'accept' : 'decline'}: ` + error.message);
       return;
     }
-    // Best-effort: the membership decision itself already succeeded above, so
-    // a failure just to notify the requester shouldn't undo it or block the
-    // admin's flow -- log and move on.
-    const { error: notifErr } = await supabase.rpc('notify_membership_decision', {
-      p_group_id: groupId, p_target_user_id: r.userId, p_accepted: accept,
-    });
-    if (notifErr) console.error('[pending-requests] notify failed:', notifErr);
     showToast(accept ? `${r.name} accepted` : `${r.name} declined`);
   };
   const acceptAll = async () => {

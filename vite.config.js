@@ -2,16 +2,20 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
 
-// Renders src/firebase-messaging-sw.template.js into a real service worker
+// Renders src/firebase-messaging-sw.template.txt into a real service worker
 // with the VITE_FIREBASE_* values substituted in, so the actual config
 // values don't live as a literal, easily-stale copy in a committed file --
 // see the template's own comment for why the apiKey itself is fine to be
 // client-visible. Vite always runs this config with cwd at the project
 // root, so this literal relative path (no variable, no path-joining) is
 // all that's needed -- nothing here is attacker-influenced.
+// .txt (not .js) so linters/static analysis don't try to parse this as
+// standalone JavaScript -- it isn't valid JS until these placeholders are
+// substituted, so a JS parser sees __VITE_FIREBASE_API_KEY__ etc. as
+// undefined-variable references and flags them.
 function firebaseMessagingSw(env) {
   const render = () => {
-    const template = fs.readFileSync('src/firebase-messaging-sw.template.js', 'utf-8')
+    const template = fs.readFileSync('src/firebase-messaging-sw.template.txt', 'utf-8')
     // JSON.stringify (not raw string substitution) so a value containing a
     // quote, backslash, or newline can't produce invalid JS or change the
     // meaning of the generated file -- the template embeds these

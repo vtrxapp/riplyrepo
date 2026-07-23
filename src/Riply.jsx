@@ -11797,7 +11797,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
       </div>
 
       {/* Event list */}
-      <div style={{ flex:1, overflowY:'auto', padding:'10px 16px 20px',
+      <div style={{ flex:1, overflowY:'auto', padding:'10px 16px 60px',
                     display:'flex', flexDirection:'column', gap:14 }}>
 
         {loading && (
@@ -11839,8 +11839,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
             : 'Not scheduled';
           return (
             <div key={e.id} style={{ background:'#fff', borderRadius:20,
-                                      boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
-                                      overflow:'hidden' }}>
+                                      boxShadow:'0 4px 16px rgba(16,24,40,0.06)' }}>
               {/* Top */}
               <div style={{ display:'flex', gap:13, padding:14 }}>
                 <div style={{ width:64, height:64, borderRadius:15, flexShrink:0,

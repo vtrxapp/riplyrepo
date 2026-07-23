@@ -12967,7 +12967,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   };
 
   return (
-    <div style={{ width:'100%', height:'100vh', position:'relative', background:C.pageBg,
+    <div style={{ width:'100%', height:'100dvh', position:'relative', background:C.pageBg,
                   fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden' }}>
       <div style={{ height:'100%' }}>
         {renderScreen()}

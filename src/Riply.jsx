@@ -5669,7 +5669,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           }
           if (!import.meta.env.VITE_FIREBASE_API_KEY) { showToast('Firebase not configured'); return; }
           const { requestNotificationPermission } = await import('./lib/firebase.js');
-          const token = await requestNotificationPermission(currentUser?.userId, currentUser?.updateProfile);
+          const token = await requestNotificationPermission(currentUser?.userId);
           if (token) { setPush(true); showToast('Push notifications enabled!'); }
           else { showToast('Could not enable notifications — please try again'); }
         }},

@@ -877,3 +877,52 @@ begin
   where t.event_id = p_event_id;
 end;
 $$;
+
+-- Web push notifications: forwards every new notifications row to the
+-- send-push Edge Function (supabase/functions/send-push), which sends an
+-- FCM push to the user's registered devices. Needs pg_net plus two Vault
+-- secrets set once via SQL (never committed): `edge_function_base_url`
+-- (e.g. https://<project-ref>.supabase.co/functions/v1) and
+-- `edge_function_secret` (a random string also set as the Edge Function's
+-- EDGE_FUNCTION_SECRET env var, so the function can verify the caller).
+-- The Edge Function itself also needs a FIREBASE_SERVICE_ACCOUNT secret
+-- (the full Firebase service-account JSON) to authenticate to FCM.
+create extension if not exists pg_net;
+
+create or replace function public.trigger_send_push()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_url text;
+  v_secret text;
+begin
+  select decrypted_secret into v_url from vault.decrypted_secrets where name = 'edge_function_base_url';
+  select decrypted_secret into v_secret from vault.decrypted_secrets where name = 'edge_function_secret';
+
+  if v_url is null or v_secret is null then
+    return new;
+  end if;
+
+  perform net.http_post(
+    url := v_url || '/send-push',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || v_secret
+    ),
+    body := jsonb_build_object(
+      'user_id', new.user_id,
+      'title', new.title,
+      'body', new.body
+    )
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists notifications_send_push on public.notifications;
+create trigger notifications_send_push
+  after insert on public.notifications
+  for each row execute function public.trigger_send_push();

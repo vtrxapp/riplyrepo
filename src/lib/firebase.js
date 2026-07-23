@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getMessaging, getToken, onMessage } from 'firebase/messaging'
+import { supabase } from './supabase'
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,7 +14,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const messaging = getMessaging(app)
 
-export async function requestNotificationPermission(userId, updateProfile) {
+export async function requestNotificationPermission(userId) {
   try {
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return null
@@ -22,7 +23,13 @@ export async function requestNotificationPermission(userId, updateProfile) {
       vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
     })
     if (token && userId) {
-      await updateProfile({ fcm_token: token })
+      // fcm_tokens is a text[] — a user can have multiple registered
+      // devices/browsers, so append rather than overwrite.
+      const { data } = await supabase.from('users').select('fcm_tokens').eq('id', userId).single()
+      const existing = data?.fcm_tokens || []
+      if (!existing.includes(token)) {
+        await supabase.from('users').update({ fcm_tokens: [...existing, token] }).eq('id', userId)
+      }
     }
     return token
   } catch (err) {

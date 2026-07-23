@@ -819,3 +819,61 @@ $$;
 drop trigger if exists group_members_enforce_ban on public.group_members;
 create trigger group_members_enforce_ban before insert or update on public.group_members
   for each row execute function public.enforce_group_ban();
+
+-- ─────────────────────────────────────────────────────────────
+-- Event editing: cancellation + ticket-holder notifications.
+-- events.status previously only allowed published/upcoming/draft/pending --
+-- widened to include 'cancelled' so a cancelled event can be soft-deleted
+-- (status flips, row stays) rather than hard-deleted. A hard delete isn't an
+-- option once tickets exist anyway: tickets_event_id_fkey is NO ACTION, so
+-- deleting an event with any sold tickets would just fail with a foreign
+-- key violation.
+-- ─────────────────────────────────────────────────────────────
+alter table public.events drop constraint if exists events_status_check;
+alter table public.events add constraint events_status_check
+  check (status = any (array['published','upcoming','draft','pending','cancelled']));
+
+-- Notifies every ticket holder for an event when the organizer changes its
+-- price or cancels it. Same reasoning as notify_membership_decision/
+-- notify_ticket_purchase above: a ticket holder generally isn't a co-admin
+-- of any group the organizer belongs to, so notifications_insert's RLS
+-- fan-out branch doesn't cover "organizer notifies their own attendees" --
+-- this RPC covers it instead, scoped to the caller actually owning the event.
+create or replace function public.notify_event_change(p_event_id uuid, p_change_type text, p_detail text default null)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_title text;
+  v_organizer text;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+
+  select title, user_id into v_title, v_organizer from public.events where id = p_event_id;
+  if v_title is null then
+    raise exception 'event not found';
+  end if;
+  if v_organizer is distinct from current_user_id() then
+    raise exception 'not authorized to notify for this event';
+  end if;
+
+  insert into public.notifications(user_id, type, title, body)
+  select distinct t.user_id, 'event',
+    case p_change_type
+      when 'cancelled' then 'Event cancelled'
+      when 'price_changed' then 'Ticket price updated'
+      else 'Event updated'
+    end,
+    case p_change_type
+      when 'cancelled' then format('%s has been cancelled by the organizer.', v_title)
+      when 'price_changed' then format('The price for %s has changed%s', v_title, coalesce(': ' || p_detail, '.'))
+      else format('%s was updated.', v_title)
+    end
+  from public.tickets t
+  where t.event_id = p_event_id;
+end;
+$$;

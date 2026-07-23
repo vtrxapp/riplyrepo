@@ -8391,7 +8391,8 @@ function EventCounterBtn({ onClick, minus }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE EVENT
 // ─────────────────────────────────────────────────────────────
-function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: sourceGroupId }) {
+function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: sourceGroupId, eventId }) {
+  const isEditing = !!eventId;
   const CATS = [
     { id:'social',   label:'Social',   grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
     { id:'career',   label:'Career',   grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)' },
@@ -8444,6 +8445,75 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
   const isPaid = pricing === 'paid';
   const canPublish = title.trim().length > 0;
 
+  // Edit mode: load the existing event and prefill every field. originalPrice
+  // is kept around (not just displayed) so submitEvent can tell whether the
+  // organizer actually changed it and only then notify ticket holders.
+  const [loadingEvent, setLoadingEvent] = useState(isEditing);
+  const [originalPrice, setOriginalPrice] = useState(null);
+  const [eventStatus, setEventStatus] = useState('published');
+
+  // Converts a stored "6:00 PM"-style string back to the 24-hour "18:00"
+  // a native <input type="time"> needs to show it as prefilled.
+  const to24Hr = (t12) => {
+    const m = String(t12 || '').trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!m) return '';
+    let h = parseInt(m[1], 10);
+    const min = m[2];
+    const ampm = m[3].toUpperCase();
+    if (ampm === 'AM') { if (h === 12) h = 0; } else if (h !== 12) { h += 12; }
+    return `${String(h).padStart(2, '0')}:${min}`;
+  };
+
+  useEffect(() => {
+    if (!eventId) return;
+    let cancelled = false;
+    (async () => {
+      const { data: ev, error } = await supabase.from('events').select('*').eq('id', eventId).single();
+      if (cancelled) return;
+      if (error || !ev) {
+        showToast('Could not load event');
+        goBack();
+        return;
+      }
+      setCat(ev.category || 'social');
+      setTitle(ev.title || '');
+      setDate(ev.date || ev.full_date || '');
+      setStartTime(to24Hr(ev.start_time));
+      const [, endLabel] = (ev.time_range || '').split(' – ');
+      setEndTime(to24Hr(endLabel));
+      setRepeat(!!ev.repeat_weeks);
+      setRepeatWeeks(ev.repeat_weeks ? String(ev.repeat_weeks) : '');
+      setVenue(ev.venue || '');
+      setRoom(ev.room || '');
+      setCoverUrl(ev.image_url || null);
+      const parsedPrice = parseEventPrice(ev.price);
+      setPricing(parsedPrice.isFree ? 'free' : 'paid');
+      setPrice(parsedPrice.isFree ? '' : String(parsedPrice.amount));
+      setOriginalPrice(parsedPrice.isFree ? 0 : parsedPrice.amount);
+      setUnlimited(ev.capacity == null);
+      setCapacity(ev.capacity ?? 50);
+      setAbout(ev.description || ev.full_desc || '');
+      setRules(Object.fromEntries((ev.rules || []).map(r => [r, true])));
+      setGuests(ev.guests || []);
+      setIsPublic(ev.is_public !== false);
+      setEventStatus(ev.status || 'published');
+      setLoadingEvent(false);
+    })();
+    return () => { cancelled = true; };
+  }, [eventId]);
+
+  const handleCancelEvent = async () => {
+    if (!window.confirm(`Cancel "${title}"? Everyone with a ticket will be notified. This can't be undone.`)) return;
+    setSubmittingStatus('cancel');
+    const { error } = await supabase.from('events').update({ status: 'cancelled' }).eq('id', eventId);
+    if (error) { setSubmittingStatus(null); showToast('Failed to cancel: ' + error.message); return; }
+    const { error: notifErr } = await supabase.rpc('notify_event_change', { p_event_id: eventId, p_change_type: 'cancelled' });
+    if (notifErr) console.error('[handleCancelEvent] notify failed:', notifErr);
+    setSubmittingStatus(null);
+    showToast('Event cancelled');
+    navigate('event-manager');
+  };
+
   const submitEvent = async (status) => {
     if (!canPublish) { showToast('Add an event title first'); return; }
     if (!currentUser.userId) { showToast('You must be logged in to save an event'); return; }
@@ -8455,11 +8525,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
     const location = [venue, room].filter(Boolean).join(' · ');
     const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
     const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
-    const { data: event, error } = await supabase.from('events').insert({
-      user_id: currentUser.userId,
+    const newPrice = isPaid ? parseEventPrice(price).amount : 0;
+    const sharedFields = {
       title: title.trim(),
-      org: currentUser.name || 'Organizer',
-      org_initial: (currentUser.name || 'O')[0].toUpperCase(),
       description: about.trim(),
       full_desc: about.trim(),
       category: cat,
@@ -8478,21 +8546,56 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       // need to bake a display artifact into the stored value.
       // parseEventPrice (not a bare parseFloat) so a user who typed
       // "$15" into the field doesn't silently become a free event.
-      price: isPaid ? String(parseEventPrice(price).amount) : 'Free',
+      price: isPaid ? String(newPrice) : 'Free',
       capacity: unlimited ? null : capacity,
-      attendee_count: 0,
-      likes: 0,
-      saves: 0,
-      shares: 0,
-      trending: false,
       badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
       rules: selectedRules.length ? selectedRules : null,
       guests: guests.length ? guests : null,
-      group_id: sourceGroupId || null,
-      is_public: sourceGroupId ? isPublic : true,
-      status,
-    }).select().single();
-    if (error) { setSubmittingStatus(null); showToast(`Failed to ${status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }
+    };
+
+    let event, error;
+    if (isEditing) {
+      // Editing never touches attendee_count/likes/saves/shares/trending --
+      // those are live counters this screen has no business resetting.
+      ({ data: event, error } = await supabase.from('events')
+        .update(sharedFields)
+        .eq('id', eventId)
+        .select().single());
+    } else {
+      ({ data: event, error } = await supabase.from('events').insert({
+        ...sharedFields,
+        user_id: currentUser.userId,
+        org: currentUser.name || 'Organizer',
+        org_initial: (currentUser.name || 'O')[0].toUpperCase(),
+        attendee_count: 0,
+        likes: 0,
+        saves: 0,
+        shares: 0,
+        trending: false,
+        group_id: sourceGroupId || null,
+        is_public: sourceGroupId ? isPublic : true,
+        status,
+      }).select().single());
+    }
+    if (error) { setSubmittingStatus(null); showToast(`Failed to ${isEditing ? 'save changes' : status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }
+
+    if (isEditing) {
+      // Only notify ticket holders if the price actually changed -- not on
+      // every unrelated edit (fixing a typo in the description shouldn't
+      // spam everyone who bought a ticket).
+      if (originalPrice !== null && newPrice !== originalPrice) {
+        const detail = newPrice === 0 ? 'now free' : `now $${newPrice.toFixed(2)}`;
+        const { error: notifErr } = await supabase.rpc('notify_event_change', {
+          p_event_id: eventId, p_change_type: 'price_changed', p_detail: detail,
+        });
+        if (notifErr) console.error('[submitEvent] price-change notify failed:', notifErr);
+      }
+      setSubmittingStatus(null);
+      showToast('Changes saved');
+      navigate('event-details', { eventId });
+      return;
+    }
+
     // Drafts aren't visible to anyone else yet, so skip the group
     // announcement post entirely -- only a published event should notify.
     if (status === 'published' && sourceGroupId && event) {
@@ -8563,10 +8666,18 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           </svg>
         </button>
         <div style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
-                      letterSpacing:-0.4, color:C.ink }}>Create Event</div>
+                      letterSpacing:-0.4, color:C.ink }}>{isEditing ? 'Edit Event' : 'Create Event'}</div>
         <div style={{ width:40 }} />
       </div>
 
+      {loadingEvent ? (
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ width:36, height:36, borderRadius:'50%', border:'3.5px solid #E1E6EE',
+                        borderTopColor:C.primary, animation:'riplySpin .8s linear infinite' }}/>
+          <style>{`@keyframes riplySpin{to{transform:rotate(360deg);}}`}</style>
+        </div>
+      ) : (
+      <>
       {/* ── Scroll body ────────────────────────────────────── */}
       <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
 
@@ -8956,6 +9067,36 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             </span>
           </div>
         )}
+        {isEditing ? (
+          <div style={{ display:'flex', gap:10 }}>
+            <button
+              onClick={handleCancelEvent}
+              disabled={submitting}
+              style={{
+                flex:'0 0 auto', height:50, padding:'0 20px', borderRadius:15,
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                border:`1.5px solid #FFD3CC`, background:'#FFF1ED', color:C.danger,
+                fontSize:14, fontWeight:800,
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                opacity: submitting ? 0.7 : 1,
+              }}>
+              {submittingStatus === 'cancel' ? 'Cancelling…' : 'Cancel Event'}
+            </button>
+            <button
+              onClick={() => submitEvent(eventStatus)}
+              disabled={!canPublish || submitting}
+              style={{
+                flex:1, height:50, border:'none', borderRadius:15,
+                cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
+                background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
+                color:'#fff', fontSize:14, fontWeight:800,
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                opacity: submitting ? 0.7 : 1,
+              }}>
+              {submittingStatus === eventStatus ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        ) : (
         <div style={{ display:'flex', gap:10 }}>
           <button
             disabled={!canPublish || submitting}
@@ -8994,8 +9135,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             )}
           </button>
         </div>
+        )}
       </div>
-
+      </>
+      )}
     </div>
   );
 }
@@ -11248,7 +11391,7 @@ const EVENT_MANAGER_GRADIENTS = [
 ];
 
 function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
-  const TABS = ['live','draft','past'];
+  const TABS = ['live','draft','past','cancelled'];
 
   const [tab,      setTab]      = useState('live');
   const [events,   setEvents]   = useState([]);
@@ -11307,6 +11450,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
 
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const eventTab = (ev) => {
+    if (ev.status === 'cancelled') return 'cancelled';
     if (ev.status === 'draft') return 'draft';
     const d = new Date(ev.full_date || ev.date || '');
     if (!isNaN(d) && d < todayStart) return 'past';
@@ -11326,7 +11470,29 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
   const fmtMoney = (n) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n}`;
   const fmtCount = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
+  // An event with sold tickets can't be hard-deleted -- tickets_event_id_fkey
+  // is NO ACTION, so the delete would just fail with a foreign key
+  // violation. Cancel it instead (status flip + notify every ticket holder
+  // via the same RPC CreateEventScreen's Cancel Event button uses); only an
+  // event with zero tickets sold is actually removed.
   const handleDelete = async (ev) => {
+    if (ev.sold > 0) {
+      if (!window.confirm(`Cancel "${ev.title}"? Everyone with a ticket will be notified. This can't be undone.`)) return;
+      setDeleting(s => ({ ...s, [ev.id]: true }));
+      const { error } = await supabase.from('events').update({ status: 'cancelled' }).eq('id', ev.id);
+      if (error) {
+        console.error('[event-manager] failed to cancel event:', error);
+        showToast('Could not cancel event: ' + error.message);
+        setDeleting(s => { const n = { ...s }; delete n[ev.id]; return n; });
+        return;
+      }
+      const { error: notifErr } = await supabase.rpc('notify_event_change', { p_event_id: ev.id, p_change_type: 'cancelled' });
+      if (notifErr) console.error('[event-manager] cancel notify failed:', notifErr);
+      setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, status: 'cancelled' } : e));
+      setDeleting(s => { const n = { ...s }; delete n[ev.id]; return n; });
+      showToast('Event cancelled');
+      return;
+    }
     if (!window.confirm(`Delete "${ev.title}"? This cannot be undone.`)) return;
     setDeleting(s => ({ ...s, [ev.id]: true }));
     const { error } = await supabase.from('events').delete().eq('id', ev.id);
@@ -11341,11 +11507,12 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
   };
 
   const STATUS = {
-    live:  { bg:'#E4F7EC', color:'#15A34A', text:'● Live'  },
-    draft: { bg:'#FFF6EC', color:'#F59E0B', text:'Draft'   },
-    past:  { bg:'#F1F3F7', color:'#7B8499', text:'Ended'   },
+    live:      { bg:'#E4F7EC', color:'#15A34A', text:'● Live'   },
+    draft:     { bg:'#FFF6EC', color:'#F59E0B', text:'Draft'    },
+    past:      { bg:'#F1F3F7', color:'#7B8499', text:'Ended'    },
+    cancelled: { bg:'#FFF1ED', color:C.danger,  text:'Cancelled' },
   };
-  const EMPTY_WORD = { live:'live', draft:'draft', past:'past' };
+  const EMPTY_WORD = { live:'live', draft:'draft', past:'past', cancelled:'cancelled' };
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column',
@@ -11531,7 +11698,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                     Check-in
                   </button>
                 )}
-                <button onClick={() => navigate('create-event')} style={{
+                <button onClick={() => navigate('create-event', { eventId: e.id })} style={{
                   flex:1, height:40, border:'none', borderRadius:12,
                   background:'#F1F3F7', color:C.muted,
                   fontSize:12.5, fontWeight:800, cursor:'pointer',
@@ -12536,7 +12703,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
-      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
+      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;

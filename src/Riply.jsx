@@ -284,6 +284,11 @@ function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWi
   const axisRef = useRef(null);
 
   const onPointerDown = (e) => {
+    // Without this, a fast mouse drag that exits the row's bounds before
+    // pointerup stops receiving pointermove/pointerup on this element --
+    // the row would see a premature pointerleave and the drag would just
+    // stick wherever the cursor left it.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     startRef.current = { x: e.clientX, y: e.clientY, base: dragX };
     axisRef.current = null;
   };

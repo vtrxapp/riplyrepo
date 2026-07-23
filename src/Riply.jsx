@@ -1084,9 +1084,6 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
             <button onClick={()=>{ setSearchOpen(v=>!v); setChatQuery(''); }} aria-label="Search chats" aria-expanded={searchOpen && !isNotif} aria-pressed={searchOpen && !isNotif} style={{ width:40, height:40, border:'none', borderRadius:'50%', background: searchOpen ? C.grad : C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2" strokeLinecap="round"/></svg>
             </button>
-            <button onClick={()=>showToast('Start a new conversation')} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/></svg>
-            </button>
           </div>
         </div>
         {/* Tabs */}
@@ -5619,6 +5616,106 @@ function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColo
 }
 
 // ─────────────────────────────────────────────────────────────
+// COMPONENT: CHANGE EMAIL
+// ─────────────────────────────────────────────────────────────
+// Actually updates the Clerk auth email (the one used to sign in), not just
+// the app's own copy in the `users` table -- that copy alone was never wired
+// to anything real. Clerk requires a new email address to be verified by
+// code before it can become primary, so this is a two-step sheet: enter the
+// new address, then enter the code sent to it.
+function ChangeEmailSheet({ onClose, showToast, currentUser, chipBg, borderColor, textColor, subColor }) {
+  const { user } = useUser();
+  const [step, setStep] = useState('email'); // 'email' | 'code'
+  const [newEmail, setNewEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const pendingEmailRef = useRef(null);
+
+  const sendCode = async () => {
+    const email = newEmail.trim();
+    if (!email.includes('@')) { showToast('Enter a valid email'); return; }
+    if (email.toLowerCase() === (currentUser.email || '').toLowerCase()) { showToast('That\'s already your email'); return; }
+    setLoading(true);
+    try {
+      const emailAddress = await user.createEmailAddress({ email });
+      await emailAddress.prepareVerification({ strategy: 'email_code' });
+      pendingEmailRef.current = emailAddress;
+      setStep('code');
+    } catch (err) {
+      showToast(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Could not start email change');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyCode = async () => {
+    if (!code || code.length < 6) { showToast('Enter the full 6-digit code'); return; }
+    const emailAddress = pendingEmailRef.current;
+    if (!emailAddress) { showToast('Session expired -- start again'); setStep('email'); return; }
+    setLoading(true);
+    try {
+      const result = await emailAddress.attemptVerification({ code });
+      if (result.verification?.status !== 'verified') {
+        showToast('Invalid or expired code. Try again.');
+        return;
+      }
+      // Old email address objects (if any, beyond the new one) become
+      // orphaned once a different one is primary -- Clerk keeps them around
+      // as secondary addresses otherwise, which would let sign-in with the
+      // old address keep working after the user meant to replace it.
+      const oldAddresses = user.emailAddresses.filter(e => e.id !== emailAddress.id);
+      await user.update({ primaryEmailAddressId: emailAddress.id });
+      await Promise.all(oldAddresses.map(e => e.destroy().catch(() => {})));
+      await currentUser.updateProfile({ email: emailAddress.emailAddress });
+      showToast('Email updated ✓');
+      onClose();
+    } catch (err) {
+      showToast(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Invalid code. Try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputStyle = { width:'100%', boxSizing:'border-box', height:50, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:17, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" };
+  const labelStyle = { fontSize:13, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 };
+
+  return (
+    <Sheet onClose={onClose} title="Change Email">
+      {step === 'email' ? (
+        <>
+          <div style={{ fontSize:14, color:subColor, marginBottom:16, lineHeight:1.5 }}>
+            Current email: <span style={{ fontWeight:700, color:textColor }}>{currentUser.email || '—'}</span>
+          </div>
+          <div style={{ marginBottom:14 }}>
+            <div style={labelStyle}>New Email</div>
+            <input type="email" value={newEmail} onChange={e=>setNewEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
+          </div>
+          <button onClick={sendCode} disabled={loading} style={{ width:'100%', height:54, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:18, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
+            {loading ? 'Sending…' : 'Send Verification Code'}
+          </button>
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize:14, color:subColor, marginBottom:16, lineHeight:1.5 }}>
+            Enter the code we sent to <span style={{ fontWeight:700, color:textColor }}>{newEmail.trim()}</span>
+          </div>
+          <div style={{ marginBottom:14 }}>
+            <div style={labelStyle}>Verification Code</div>
+            <input value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))} inputMode="numeric" maxLength={6} placeholder="123456" style={inputStyle} />
+          </div>
+          <button onClick={verifyCode} disabled={loading} style={{ width:'100%', height:54, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:18, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
+            {loading ? 'Verifying…' : 'Verify & Save'}
+          </button>
+          <button onClick={()=>{ setStep('email'); setCode(''); }} disabled={loading} style={{ width:'100%', height:44, marginTop:10, border:'none', background:'none', color:subColor, fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+            Use a different email
+          </button>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // SCREEN: PROFILE
 // ─────────────────────────────────────────────────────────────
 function ProfileScreen({ navigate, showToast, currentUser, saved }) {
@@ -5627,6 +5724,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = profileScrollTop; }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
   const [push, setPush] = useState(() => {
     if (typeof Notification === 'undefined') return false;
@@ -5655,7 +5753,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const email = cu.email || '';
   const [profileRole, setProfileRole] = useState(cu.role || 'student');
   const [draftName, setDraftName] = useState('');
-  const [draftEmail, setDraftEmail] = useState('');
   const [draftUniversity, setDraftUniversity] = useState('');
   const [draftYear, setDraftYear] = useState('');
   const [draftProgram, setDraftProgram] = useState('');
@@ -5681,7 +5778,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
     {
       title:'Account',
       rows: [
-        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); } },
+        { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', iconPath2:'M14 7.5v9', iconPath2Dash:true, title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved', hasChevron:true, onClick:()=>navigate('saved-events') },
         { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 6.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-11Z', iconPath2:'M3 10h18M6.5 15h1.5', iconPath2Dash:false, title:'Payment Methods', hasChevron:true, onClick:()=>setPayOpen(true) },
@@ -5726,6 +5823,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       rows: [
         { icon:'#F1F3F7', iconStroke:C.muted, iconPath:'M12 1a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5z', title:'Private Profile', isToggle:true, toggleVal:privateProfile, onToggle: async ()=>{ const v=!privateProfile; setPrivateProfile(v); localStorage.setItem('pref_private',v); await currentUser.updateProfile({ private: v }); showToast(v ? 'Profile set to private' : 'Profile set to public'); } },
         { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4', title:'Change Password', hasChevron:true, onClick:()=>setPwOpen(true) },
+        { icon:'#E4F7EC', iconStroke:'#15A34A', iconPath:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z', iconPath2:'m22 6-10 7L2 6', title:'Change Email', hasChevron:true, onClick:()=>setEmailOpen(true) },
       ],
     },
     {
@@ -5741,11 +5839,8 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'background .3s' }}>
       {/* Header */}
-      <div style={{ flexShrink:0, background:cardBg, padding:'52px 16px 10px', boxShadow:'0 1px 0 rgba(16,24,40,0.04)', zIndex:4, display:'flex', alignItems:'center', justifyContent:'space-between', transition:'background .3s' }}>
+      <div style={{ flexShrink:0, background:cardBg, padding:'52px 16px 10px', boxShadow:'0 1px 0 rgba(16,24,40,0.04)', zIndex:4, transition:'background .3s' }}>
         <span style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:textColor }}>Profile & Settings</span>
-        <button onClick={()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); }} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={iconStroke} strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke={iconStroke} strokeWidth="1.9" strokeLinecap="round"/></svg>
-        </button>
       </div>
 
       {/* Content */}
@@ -5891,7 +5986,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             { label:'University', val:draftUniversity, set:setDraftUniversity, type:'text', mode:undefined },
             { label:'Year', val:draftYear, set:setDraftYear, type:'text', mode:undefined, placeholder:'e.g. Sophomore, 2nd Year' },
             { label:'Program / Major', val:draftProgram, set:setDraftProgram, type:'text', mode:undefined, placeholder:'e.g. Computer Science' },
-            { label:'Email', val:draftEmail, set:setDraftEmail, type:'text', mode:'email' },
           ].map(f => (
             <div key={f.label} style={{ marginBottom:14 }}>
               <div style={{ fontSize:11, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>{f.label}</div>
@@ -5905,7 +5999,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           <button onClick={async ()=>{
             if(draftName.trim().length<2){showToast('Name must be at least 2 characters');return;}
             setSaving(true);
-            const { error } = await currentUser.updateProfile({ name: draftName.trim(), email: draftEmail.trim(), university: draftUniversity.trim(), year: draftYear.trim(), program: draftProgram.trim() });
+            const { error } = await currentUser.updateProfile({ name: draftName.trim(), university: draftUniversity.trim(), year: draftYear.trim(), program: draftProgram.trim() });
             setSaving(false);
             if(error){ showToast('Failed to save: ' + (error.message || 'Unknown error')); return; }
             await currentUser.refetchProfile();
@@ -5918,6 +6012,9 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
 
       {/* Change Password Sheet */}
       {pwOpen && <ChangePasswordSheet onClose={()=>setPwOpen(false)} showToast={showToast} chipBg={chipBg} borderColor={borderColor} textColor={textColor} subColor={subColor} />}
+
+      {/* Change Email Sheet */}
+      {emailOpen && <ChangeEmailSheet onClose={()=>setEmailOpen(false)} showToast={showToast} currentUser={currentUser} chipBg={chipBg} borderColor={borderColor} textColor={textColor} subColor={subColor} />}
 
       {/* Payment Methods Sheet */}
       {payOpen && (

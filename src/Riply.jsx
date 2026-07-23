@@ -178,13 +178,6 @@ const GROUPS = [
   { id:1, name:'History Club', desc:'Explore the stories that shaped our world through talks, archives, and campus walking tours.', count:'2.4K', initial:'H', logoColor:'linear-gradient(135deg,#7C5CFF,#02B6FE)', cat:['culture'], state:'join', members:[{initial:'A',color:'#FF5A8A'},{initial:'J',color:'#0098F0'},{initial:'M',color:'#10B981'}] },
 ];
 
-const NOTIFICATIONS = [
-  { id:1, title:'UofM Economics Society', body:'Capture the beauty of campus life and improve your photography skills.', time:'2h', initial:'E', color:'linear-gradient(135deg,#0E1726,#3A4252)', hasAlert:true, alertCount:5, alertText:'Mike: The new mockups are ready for the pre…' },
-  { id:2, title:'Career Center', body:'Spring Career Fair starts in 2 days — 80+ employers confirmed. Tap to RSVP.', time:'5h', initial:'C', color:'linear-gradient(135deg,#19BFFF,#0078E0)', hasAlert:false },
-  { id:3, title:'VW Social Club', body:'Karaoke Night is tonight at 8PM. Your spot is saved — see you there!', time:'1d', initial:'V', color:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', hasAlert:false },
-  { id:4, title:'Rec Sports', body:'A spot just opened in Seasonal Basketball 5v5. Grab it before it fills up.', time:'2d', initial:'R', color:'linear-gradient(135deg,#10B981,#06B6D4)', hasAlert:false },
-];
-
 const CHATS = [
   { id:1, name:'Campus Community', initial:'C', color:'linear-gradient(135deg,#7C5CFF,#02B6FE)', preview:'Welcome to Riply!', time:'just now', unread:false, unreadCount:0, type:'group', memberCount:1 },
 ];

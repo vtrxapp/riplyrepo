@@ -41,10 +41,7 @@ export function useChats() {
     // Supabase/PostgREST caps rows per request (commonly 1000) -- a client-side
     // scan would silently undercount for a user in long-running, active chats.
     const { data: unreadCounts } = await supabase.rpc('get_unread_chat_counts')
-    const unreadCountMap = {}
-    ;(unreadCounts || []).forEach(row => {
-      unreadCountMap[row.chat_id] = row.unread_count
-    })
+    const unreadCountMap = new Map((unreadCounts || []).map(row => [row.chat_id, row.unread_count]))
 
     // A chat with no group_id is a plain 1:1 DM -- look up the other
     // participant's profile so the list shows their name/avatar rather than
@@ -63,8 +60,8 @@ export function useChats() {
 
       if (gen !== loadGenRef.current) return
 
-      const partMap = Object.fromEntries((otherParts || []).map(p => [p.chat_id, p.user_id]))
-      const uniqueIds = [...new Set(Object.values(partMap).filter(Boolean))]
+      const partMap = new Map((otherParts || []).map(p => [p.chat_id, p.user_id]))
+      const uniqueIds = [...new Set([...partMap.values()].filter(Boolean))]
       otherParticipantIds.push(...uniqueIds)
 
       if (uniqueIds.length > 0) {
@@ -75,11 +72,11 @@ export function useChats() {
 
         if (gen !== loadGenRef.current) return
 
-        const profileMap = Object.fromEntries((profiles || []).map(u => [u.id, u]))
+        const profileMap = new Map((profiles || []).map(u => [u.id, u]))
 
         const enriched = (chatRows || []).map(c => {
-          const otherId = partMap[c.id]
-          const profile = otherId ? profileMap[otherId] : null
+          const otherId = partMap.get(c.id)
+          const profile = otherId ? profileMap.get(otherId) : null
           const displayName = c.name || profile?.name || 'Chat'
           const avatarColor = profile?.avatar_color || deriveAvatarColor(otherId || c.id)
           return {
@@ -90,8 +87,8 @@ export function useChats() {
             avatar_url: profile?.avatar_url || null,
             preview: c.last_message || 'No messages yet',
             time: formatTime(c.last_message_at),
-            unread: !!unreadCountMap[c.id],
-            unreadCount: unreadCountMap[c.id] || 0,
+            unread: !!unreadCountMap.get(c.id),
+            unreadCount: unreadCountMap.get(c.id) || 0,
           }
         })
         setChats(enriched)
@@ -104,8 +101,8 @@ export function useChats() {
       ...c,
       preview: c.last_message || 'No messages yet',
       time:    formatTime(c.last_message_at),
-      unread:  !!unreadCountMap[c.id],
-      unreadCount: unreadCountMap[c.id] || 0,
+      unread:  !!unreadCountMap.get(c.id),
+      unreadCount: unreadCountMap.get(c.id) || 0,
     })))
     setLoading(false)
   }, [])

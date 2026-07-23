@@ -35,15 +35,19 @@ export function useGroupActivity() {
       supabase.rpc('get_group_unread_post_counts'),
     ])
 
-    const groupMap = Object.fromEntries((groups || []).map(g => [g.id, g]))
-    const latestByGroup = Object.fromEntries((latestPosts || []).map(p => [p.group_id, p]))
-    const missedCountByGroup = Object.fromEntries((unreadCounts || []).map(r => [r.group_id, r.unread_count]))
+    // Map (not a plain object) for these lookups -- id/group_id are UUIDs we
+    // fetched ourselves, never user-controlled property names, but keyed
+    // object access still reads as an object-injection sink to static
+    // analysis. Map.get/set sidesteps that entirely.
+    const groupMap = new Map((groups || []).map(g => [g.id, g]))
+    const latestByGroup = new Map((latestPosts || []).map(p => [p.group_id, p]))
+    const missedCountByGroup = new Map((unreadCounts || []).map(r => [r.group_id, r.unread_count]))
 
     const activity = groupIds
-      .filter(id => latestByGroup[id] && groupMap[id])
+      .filter(id => latestByGroup.has(id) && groupMap.has(id))
       .map(id => {
-        const g = groupMap[id]
-        const post = latestByGroup[id]
+        const g = groupMap.get(id)
+        const post = latestByGroup.get(id)
         const preview = post.content || post.text || ''
         return {
           id,
@@ -54,7 +58,7 @@ export function useGroupActivity() {
           avatarUrl: g.avatar_url || null,
           preview: post.author_name ? `${post.author_name}: ${preview}` : preview,
           time: formatTime(post.created_at),
-          missedCount: missedCountByGroup[id] || 0,
+          missedCount: missedCountByGroup.get(id) || 0,
         }
       })
       .sort((a, b) => (b.missedCount > 0) - (a.missedCount > 0))

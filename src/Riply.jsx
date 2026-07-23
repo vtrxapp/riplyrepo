@@ -19,7 +19,7 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   : null;
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
-import { uploadImage } from "./hooks/useUpload";
+import { uploadImage, safeExt } from "./hooks/useUpload";
 import { supabase } from "./lib/supabase";
 import QRCode from "qrcode";
 import jsQR from "jsqr";
@@ -7522,7 +7522,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             if (!file) return;
             setUploadingCover(true);
             try {
-              const ext = file.name.split('.').pop() || 'jpg';
+              const ext = safeExt(file.name);
               const url = await uploadImage(file, 'post-media', Date.now() + '.' + ext);
               setCoverUrl(url);
               showToast('Cover photo uploaded ✓');
@@ -7575,7 +7575,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             if (!file) return;
             setUploadingAvatar(true);
             try {
-              const ext = file.name.split('.').pop() || 'jpg';
+              const ext = safeExt(file.name);
               const url = await uploadImage(file, 'post-media', Date.now() + '.' + ext);
               setAvatarUrl(url);
               showToast('Group icon uploaded ✓');
@@ -10487,7 +10487,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                   const file = e.target.files?.[0]; if (!file) return;
                   setUploadingCoverEdit(true);
                   try {
-                    const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${file.name.split('.').pop()}`);
+                    const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${safeExt(file.name)}`);
                     await supabase.from('groups').update({ cover_url: url }).eq('id', groupId);
                     setCoverUrl(url);
                     showToast('Cover photo updated ✓');

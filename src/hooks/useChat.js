@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
+import { safeExt } from './useUpload'
 
 // Cache user profiles so we don't re-fetch on every message
 const profileCache = {}
@@ -149,7 +150,7 @@ export function useChat(chatId) {
     if (!file) return new Error('Attachment file is required')
     if (!user?.id) return new Error('Not signed in')
     if (!realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
-    const ext = file.name.split('.').pop()
+    const ext = safeExt(file.name)
     const path = `chat-attachments/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
     const { error: upErr } = await supabase.storage.from('attachments').upload(path, file)
     if (upErr) return upErr

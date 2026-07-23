@@ -49,6 +49,14 @@ function markRead(chatId, userId) {
     .eq('user_id', userId)
 }
 
+// One-directional and global -- see sql/chat_mute_and_block.sql for how this
+// is actually enforced (messages_insert RLS + create_direct_chat both check
+// it). The insert here just records the block; hiding the chat from the
+// blocker's list happens client-side in useChats.js.
+export function blockUser(blockerId, blockedId) {
+  return supabase.from('blocked_users').insert({ blocker_id: blockerId, blocked_id: blockedId })
+}
+
 export function useChat(chatId) {
   const { user } = useUser()
   const [messages, setMessages] = useState([])
@@ -57,6 +65,8 @@ export function useChat(chatId) {
   const [resolveError, setResolveError] = useState(null)
   const [messagesError, setMessagesError] = useState(null)
   const [realChatId, setRealChatId] = useState(null)
+  const [muted, setMuted] = useState(false)
+  const [otherParticipantIds, setOtherParticipantIds] = useState([])
   const channelRef = useRef(null)
 
   useEffect(() => {
@@ -65,6 +75,8 @@ export function useChat(chatId) {
     setNotFound(false)
     setResolveError(null)
     setMessagesError(null)
+    setMuted(false)
+    setOtherParticipantIds([])
     if (!chatId || !user?.id) {
       setLoading(false)
       return
@@ -78,6 +90,14 @@ export function useChat(chatId) {
       if (resolveErr) { setLoading(false); setResolveError(resolveErr); return }
       if (!resolved) { setLoading(false); setNotFound(true); return }
       setRealChatId(resolved)
+
+      const [{ data: ownRow }, { data: otherRows }] = await Promise.all([
+        supabase.from('chat_participants').select('muted').eq('chat_id', resolved).eq('user_id', user.id).maybeSingle(),
+        supabase.from('chat_participants').select('user_id').eq('chat_id', resolved).neq('user_id', user.id),
+      ])
+      if (cancelled) return
+      setMuted(!!ownRow?.muted)
+      setOtherParticipantIds((otherRows || []).map(r => r.user_id))
 
       const { data, error: messagesErr } = await supabase
         .from('messages')
@@ -182,5 +202,18 @@ export function useChat(chatId) {
     }
   }
 
-  return { messages, loading, notFound, resolveError, messagesError, sendMessage, sendAttachment, currentUserId: user?.id || null }
+  const toggleMute = async () => {
+    if (!user?.id || !realChatId || realChatId !== chatId) return new Error('Chat membership has not been resolved')
+    const next = !muted
+    setMuted(next)
+    const { error } = await supabase
+      .from('chat_participants')
+      .update({ muted: next })
+      .eq('chat_id', realChatId)
+      .eq('user_id', user.id)
+    if (error) setMuted(!next)
+    return error
+  }
+
+  return { messages, loading, notFound, resolveError, messagesError, sendMessage, sendAttachment, muted, toggleMute, otherParticipantIds, currentUserId: user?.id || null }
 }

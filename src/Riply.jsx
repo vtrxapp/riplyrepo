@@ -4,7 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
-import { useChat } from "./hooks/useChat";
+import { useChat, blockUser } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
 import { useGroupActivity } from "./hooks/useGroupActivity";
 import { useEvents, useEvent } from "./hooks/useEvents";
@@ -5171,7 +5171,7 @@ function GifPickerSheet({ onClose, onSelect }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
-function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, isGroup, goBack, showToast, currentUser }) {
+function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, isGroup, goBack, showToast, currentUser, deleteChat }) {
   const found = CHATS.find(c => c.id === chatId);
   const chat = found || {
     id: chatId,
@@ -5182,7 +5182,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
     type: isGroup ? 'group' : 'dm',
   };
 
-  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
+  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError, muted, toggleMute, otherParticipantIds } = useChat(chatId)
   const [draft,       setDraft]       = useState('');
   const [menuOpen,    setMenuOpen]    = useState(false);
   // { kind: 'file', file: File } | { kind: 'gif', url: string } | null
@@ -5288,6 +5288,39 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   // Auto-scroll when messages change
   useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
+  const deletingChatRef = useRef(false);
+  const handleDeleteChat = async () => {
+    setMenuOpen(false);
+    if (!window.confirm(`Delete this chat with ${chat.name}? This can't be undone.`)) return;
+    if (deletingChatRef.current) return;
+    deletingChatRef.current = true;
+    const { error } = await deleteChat(chatId);
+    if (error) { showToast("Couldn't delete chat. Try again."); deletingChatRef.current = false; return; }
+    showToast('Chat deleted');
+    goBack();
+  };
+
+  const handleToggleMute = async () => {
+    setMenuOpen(false);
+    const error = await toggleMute();
+    if (error) { showToast("Couldn't update notifications. Try again."); return; }
+    showToast(muted ? 'Notifications unmuted' : 'Notifications muted');
+  };
+
+  const blockingRef = useRef(false);
+  const handleBlockUser = async () => {
+    setMenuOpen(false);
+    const otherUserId = otherParticipantIds[0];
+    if (!otherUserId) return;
+    if (!window.confirm(`Block ${chat.name}? They won't be able to message you again, and this chat will be removed from your list.`)) return;
+    if (blockingRef.current) return;
+    blockingRef.current = true;
+    const { error } = await blockUser(currentUserId, otherUserId);
+    if (error) { showToast("Couldn't block user. Try again."); blockingRef.current = false; return; }
+    showToast(`Blocked ${chat.name}`);
+    goBack();
+  };
+
   // Online status — group chats (id 4) show member count, DMs show 'Active recently'.
   // Groups and a currently-online DM read as "active now" (blue, matches the
   // app's theme color); a last-seen/recency label reads as grey since it's
@@ -5359,15 +5392,25 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
           <div style={{ position:'absolute', top:56, right:13, background:C.card,
                         borderRadius:14, boxShadow:'0 8px 24px rgba(16,24,40,0.14)',
                         overflow:'hidden', zIndex:20, minWidth:170 }}>
-            {['View Profile','Mute Notifications','Search in Chat','Clear Chat','Block'].map((item,i) => (
-              <div key={item} onClick={()=>{ setMenuOpen(false); showToast(item); }}
+            <div onClick={handleToggleMute}
+              style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
+                       color:C.body, borderBottom:`1px solid ${C.divider}`,
+                       cursor:'pointer', background:C.card }}>
+              {muted ? 'Unmute Notifications' : 'Mute Notifications'}
+            </div>
+            {!isGroupChat && otherParticipantIds.length === 1 && (
+              <div onClick={handleBlockUser}
                 style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
-                         color: item==='Block' ? C.danger : C.body,
-                         borderBottom: i<4 ? `1px solid ${C.divider}` : 'none',
+                         color:C.danger, borderBottom:`1px solid ${C.divider}`,
                          cursor:'pointer', background:C.card }}>
-                {item}
+                Block
               </div>
-            ))}
+            )}
+            <div onClick={handleDeleteChat}
+              style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
+                       color:C.danger, cursor:'pointer', background:C.card }}>
+              Delete Chat
+            </div>
           </div>
         )}
       </div>
@@ -12946,7 +12989,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
-      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
+      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} />;

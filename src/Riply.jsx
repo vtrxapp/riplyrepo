@@ -11413,6 +11413,14 @@ function CheckInScreen({ eventId, goBack, showToast, navigate }) {
 function CheckedInListScreen({ eventId, goBack, showToast }) {
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const filtered = q ? attendees.filter(a => a.name.toLowerCase().includes(q)) : attendees;
+
+  // This screen isn't remounted by eventId (unlike EventDetailsScreen), so a
+  // leftover search from a previous event would otherwise persist if this
+  // instance is reused for a different one.
+  useEffect(() => { setQuery(''); }, [eventId]);
 
   const load = useCallback(async () => {
     if (!eventId) { setLoading(false); return; }
@@ -11485,18 +11493,28 @@ function CheckedInListScreen({ eventId, goBack, showToast }) {
           </svg>
         </button>
         <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>
-          Checked In ({attendees.length})
+          Checked In ({q ? `${filtered.length}/${attendees.length}` : attendees.length})
         </div>
       </div>
 
+      <div style={{ flexShrink:0, padding:'14px 16px 0' }}>
+        <SearchBar placeholder="Search attendees" value={query} onChange={e=>setQuery(e.target.value)} />
+      </div>
+
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 30px' }}>
-        {loading ? (
-          <SkeletonRows />
-        ) : attendees.length === 0 ? (
-          <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:60 }}>
-            No one has checked in yet.
-          </div>
-        ) : attendees.map(a => (
+        {(() => {
+          if (loading) return <SkeletonRows />;
+          if (attendees.length === 0) return (
+            <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:60 }}>
+              No one has checked in yet.
+            </div>
+          );
+          if (filtered.length === 0) return (
+            <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:60 }}>
+              No attendees match "{query.trim()}".
+            </div>
+          );
+          return filtered.map(a => (
           <div key={a.id} style={{ display:'flex', alignItems:'center', gap:12,
                                     background:C.card, borderRadius:16,
                                     boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
@@ -11514,7 +11532,8 @@ function CheckedInListScreen({ eventId, goBack, showToast }) {
             </div>
             {a.time && <span style={{ fontSize:11, fontWeight:600, color:C.subtle, flexShrink:0 }}>{a.time}</span>}
           </div>
-        ))}
+          ));
+        })()}
       </div>
     </div>
   );

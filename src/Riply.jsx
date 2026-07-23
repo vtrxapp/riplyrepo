@@ -2812,7 +2812,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
                   stroke={cOpen?C.primary:C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
@@ -2887,7 +2887,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                                  cursor: replies.length ? 'pointer' : 'default', padding:0,
                                  opacity: replies.length ? 1 : 0.4 }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" stroke={C.subtle} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" stroke={C.subtle} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                         <span style={{ fontSize:12, fontWeight:700, color:C.subtle }}>{replies.length}</span>
                       </button>

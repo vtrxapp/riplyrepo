@@ -643,6 +643,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 };
                 const cardImg = ev.image_url || ev.imageUrl || ev.cover_url || CARD_IMGS[ev.primary] || CARD_IMGS[ev.category] || CARD_IMGS.social;
                 const { isFree, amount: priceAmount } = parseEventPrice(ev.price);
+                const isReduced = !isFree && ev.original_price != null && priceAmount < ev.original_price;
                 const eventAge = ev.created_at ? Date.now() - new Date(ev.created_at).getTime() : NaN;
                 const isNew = Number.isFinite(eventAge) && eventAge >= 0 && eventAge < 2 * 24 * 60 * 60 * 1000;
                 return (
@@ -662,10 +663,18 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                       {isFree
                         ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(2,162,240,0.88)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
                         : ev.price
-                          ? <span style={{ display:'inline-flex', alignItems:'center', gap:5, height:26, padding:'0 11px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" strokeWidth="1.8"/><path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round"/></svg>
-                              Paid · ${priceAmount}
-                            </span>
+                          ? <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:5, height:26, padding:'0 11px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" strokeWidth="1.8"/><path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                                Paid · ${priceAmount}
+                              </span>
+                              {isReduced && (
+                                <span style={{ display:'inline-flex', alignItems:'center', gap:4, height:24, padding:'0 9px', borderRadius:8, background:'rgba(239,68,68,0.92)', fontSize:10.5, fontWeight:800, color:'#fff', backdropFilter:'blur(6px)' }}>
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M6 12l6 6 6-6" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                  Reduced
+                                </span>
+                              )}
+                            </div>
                           : <span/>}
                       {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
                     </div>
@@ -4295,6 +4304,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           {/* Price */}
           {(() => {
             const { isFree: isFreeEv, amount: evPriceAmount } = parseEventPrice(ev.price);
+            const isReducedEv = !isFreeEv && ev.original_price != null && evPriceAmount < ev.original_price;
             return (
               <div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 0' }}>
                 <div style={{ width:36, height:36, borderRadius:10, flexShrink:0,
@@ -4316,17 +4326,31 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                                 textTransform:'uppercase', color:C.subtle }}>Price</div>
-                  <div style={{ fontSize:13, fontWeight:800, marginTop:3,
-                                color: isFreeEv ? '#10B981' : '#F59E0B' }}>
-                    {isFreeEv ? 'Free for students' : `$${evPriceAmount}`}
+                  <div style={{ display:'flex', alignItems:'baseline', gap:7, marginTop:3 }}>
+                    <div style={{ fontSize:13, fontWeight:800,
+                                  color: isFreeEv ? '#10B981' : '#F59E0B' }}>
+                      {isFreeEv ? 'Free for students' : `$${evPriceAmount}`}
+                    </div>
+                    {isReducedEv && (
+                      <div style={{ fontSize:11, fontWeight:700, color:C.subtle, textDecoration:'line-through' }}>
+                        ${ev.original_price}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <span style={{ fontSize:10, fontWeight:800,
-                               color: isFreeEv ? '#0E9F6E' : '#D97706',
-                               background: isFreeEv ? '#E6F8F0' : '#FFF6E9',
-                               padding:'4px 10px', borderRadius:999 }}>
-                  Spots open
-                </span>
+                {isReducedEv ? (
+                  <span style={{ fontSize:10, fontWeight:800, color:'#fff', background:'#EF4444',
+                                 padding:'4px 10px', borderRadius:999 }}>
+                    Reduced Price
+                  </span>
+                ) : (
+                  <span style={{ fontSize:10, fontWeight:800,
+                                 color: isFreeEv ? '#0E9F6E' : '#D97706',
+                                 background: isFreeEv ? '#E6F8F0' : '#FFF6E9',
+                                 padding:'4px 10px', borderRadius:999 }}>
+                    Spots open
+                  </span>
+                )}
               </div>
             );
           })()}
@@ -8796,6 +8820,14 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         trending: false,
         group_id: effectiveGroupId || null,
         is_public: effectiveGroupId ? isPublic : true,
+        // Set once at creation and never touched again (not part of
+        // sharedFields, so later edits can't overwrite it) -- the "Reduced
+        // Price" badge compares the current price against this baseline.
+        // > 0, not just isPaid: a paid event saved as a draft before a real
+        // price is entered has newPrice === 0 (parseEventPrice's fallback),
+        // which would otherwise lock in a baseline of 0 that no later price
+        // could ever be "reduced" below.
+        original_price: isPaid && newPrice > 0 ? newPrice : null,
       }).select().single());
     }
     if (error) { setSubmittingStatus(null); showToast(`Failed to ${isEditing ? 'save changes' : status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }

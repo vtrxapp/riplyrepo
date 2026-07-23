@@ -1,3 +1,7 @@
+/* global firebase, clients */
+// firebase and clients are service-worker globals provided by the
+// importScripts() below and the browser's ServiceWorkerGlobalScope,
+// respectively -- not undefined references.
 importScripts('https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.0.0/firebase-messaging-compat.js');
 

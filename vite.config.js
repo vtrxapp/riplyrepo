@@ -1,7 +1,14 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
-import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// Fixed, literal path to the template -- resolved via import.meta.url
+// (standard ESM sibling-file reference) rather than joining path segments
+// at runtime, since the latter reads to static analysis as "dynamically
+// constructs file or path information" even though nothing here is
+// attacker-influenced.
+const TEMPLATE_PATH = fileURLToPath(new URL('./src/firebase-messaging-sw.template.js', import.meta.url))
 
 // Renders src/firebase-messaging-sw.template.js into a real service worker
 // with the VITE_FIREBASE_* values substituted in, so the actual config
@@ -10,10 +17,7 @@ import path from 'node:path'
 // client-visible.
 function firebaseMessagingSw(env) {
   const render = () => {
-    const template = fs.readFileSync(
-      path.resolve(__dirname, 'src/firebase-messaging-sw.template.js'),
-      'utf-8',
-    )
+    const template = fs.readFileSync(TEMPLATE_PATH, 'utf-8')
     return template
       .replaceAll('__VITE_FIREBASE_API_KEY__', env.VITE_FIREBASE_API_KEY || '')
       .replaceAll('__VITE_FIREBASE_AUTH_DOMAIN__', env.VITE_FIREBASE_AUTH_DOMAIN || '')

@@ -19,8 +19,10 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   : null;
 import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
-import { uploadImage } from "./hooks/useUpload";
+import { uploadImage, safeExt } from "./hooks/useUpload";
 import { supabase } from "./lib/supabase";
+import QRCode from "qrcode";
+import jsQR from "jsqr";
 
 // ─────────────────────────────────────────────────────────────
 // DESIGN TOKENS
@@ -62,6 +64,15 @@ function addToCalendar({ title, location, description, dateStr, timeStr, duratio
   }
 }
 
+// ProfileScreen (Settings) fully unmounts when navigating to one of its
+// sub-pages (My Tickets, Help Center, etc.) since only the top of the nav
+// stack renders -- so its scroll position was always lost, resetting to the
+// top on every return. Module-scope rather than component state/a ref passed
+// down from the app root, since that would mean threading it through the
+// whole navigate/goBack stack just for this one screen; this is reset on a
+// full page reload, which is the expected/acceptable boundary for it.
+let profileScrollTop = 0;
+
 // Format any parseable date value as "13 Jan 2026" (the app-wide default),
 // falling back to the raw value if it isn't a real date, or to `empty` (a
 // caller-supplied placeholder, "" by default) if there's no value at all.
@@ -70,6 +81,25 @@ function fmtDate(raw, empty = '') {
   const d = new Date(raw);
   if (isNaN(d)) return raw;
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// Renders plain text with any http(s) URLs turned into clickable links --
+// post bodies are stored/rendered as plain text, so a pasted link previously
+// just sat there unclickable.
+const URL_RE = /(https?:\/\/[^\s]+)/g;
+function Linkify({ text }) {
+  if (!text) return null;
+  // A capturing group in the split pattern puts each matched URL at an odd
+  // index and the surrounding plain text at even indices, so no separate
+  // regex test (stateful/unreliable with the `g` flag) is needed to tell them
+  // apart -- plain strings render fine directly inside an array, no Fragment
+  // wrapper required.
+  return String(text).split(URL_RE).map((part, i) => i % 2 === 1
+    ? <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+        style={{ color: C.primary, wordBreak: 'break-all' }}
+        onClick={e => e.stopPropagation()}>{part}</a>
+    : part
+  );
 }
 
 // Convert "HH:MM" (24-hr) to "H:MM AM/PM". Passes through anything else.
@@ -148,13 +178,6 @@ const GROUPS = [
   { id:1, name:'History Club', desc:'Explore the stories that shaped our world through talks, archives, and campus walking tours.', count:'2.4K', initial:'H', logoColor:'linear-gradient(135deg,#7C5CFF,#02B6FE)', cat:['culture'], state:'join', members:[{initial:'A',color:'#FF5A8A'},{initial:'J',color:'#0098F0'},{initial:'M',color:'#10B981'}] },
 ];
 
-const NOTIFICATIONS = [
-  { id:1, title:'UofM Economics Society', body:'Capture the beauty of campus life and improve your photography skills.', time:'2h', initial:'E', color:'linear-gradient(135deg,#0E1726,#3A4252)', hasAlert:true, alertCount:5, alertText:'Mike: The new mockups are ready for the pre…' },
-  { id:2, title:'Career Center', body:'Spring Career Fair starts in 2 days — 80+ employers confirmed. Tap to RSVP.', time:'5h', initial:'C', color:'linear-gradient(135deg,#19BFFF,#0078E0)', hasAlert:false },
-  { id:3, title:'VW Social Club', body:'Karaoke Night is tonight at 8PM. Your spot is saved — see you there!', time:'1d', initial:'V', color:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', hasAlert:false },
-  { id:4, title:'Rec Sports', body:'A spot just opened in Seasonal Basketball 5v5. Grab it before it fills up.', time:'2d', initial:'R', color:'linear-gradient(135deg,#10B981,#06B6D4)', hasAlert:false },
-];
-
 const CHATS = [
   { id:1, name:'Campus Community', initial:'C', color:'linear-gradient(135deg,#7C5CFF,#02B6FE)', preview:'Welcome to Riply!', time:'just now', unread:false, unreadCount:0, type:'group', memberCount:1 },
 ];
@@ -177,6 +200,122 @@ function Toast({ msg }) {
   );
 }
 
+// Twitter/Instagram-style swipe-left-to-reveal-delete. Wraps a row (chat,
+// notification, etc.) so a horizontal drag reveals a red delete action
+// underneath, while a vertical drag falls through untouched so the
+// surrounding list still scrolls normally. Additive, not a replacement --
+// any delete button already inside `children` keeps working via mouse/tap
+// for desktop users who can't swipe.
+function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWidth = 76 }) {
+  const [dragX, setDragX] = useState(0);
+  const startRef = useRef(null);
+  const draggingRef = useRef(false);
+  const axisRef = useRef(null);
+
+  const onTouchStart = (e) => {
+    startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, base: dragX };
+    axisRef.current = null;
+  };
+  const onTouchMove = (e) => {
+    if (!startRef.current) return;
+    const dx = e.touches[0].clientX - startRef.current.x;
+    const dy = e.touches[0].clientY - startRef.current.y;
+    if (axisRef.current === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      axisRef.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    }
+    if (axisRef.current !== 'x') return;
+    draggingRef.current = true;
+    setDragX(Math.min(0, Math.max(-revealWidth, startRef.current.base + dx)));
+  };
+  const onTouchEnd = () => {
+    if (draggingRef.current) {
+      setDragX(prev => (prev < -revealWidth / 2 ? -revealWidth : 0));
+    }
+    startRef.current = null;
+    draggingRef.current = false;
+    axisRef.current = null;
+  };
+
+  return (
+    <div style={{ position:'relative', overflow:'hidden', borderRadius:18 }}>
+      <div style={{ position:'absolute', top:0, right:0, bottom:0, width:revealWidth, display:'flex' }}>
+        <button onClick={() => { onDelete(); setDragX(0); }} aria-label={deleteLabel} style={{
+          flex:1, border:'none', background:'#FF3B6B', color:'#fff', fontSize:11.5, fontWeight:800,
+          cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+          Delete
+        </button>
+      </div>
+      <div
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        onClickCapture={e => { if (dragX !== 0) { e.stopPropagation(); setDragX(0); } }}
+        style={{ transform:`translateX(${dragX}px)`,
+                 transition: draggingRef.current ? 'none' : 'transform .2s ease',
+                 touchAction:'pan-y' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Pull-to-refresh: IS the scrollable container (not a wrapper around one),
+// so callers just swap their usual `overflowY:'auto'` div for this and pass
+// an async onRefresh. Only starts tracking a pull when the container is
+// already scrolled to the very top, so it never fights a normal scroll
+// gesture partway down the list.
+function PullToRefresh({ onRefresh, style, children, onTouchStart: extraStart, onTouchEnd: extraEnd }) {
+  const [pullY, setPullY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const containerRef = useRef(null);
+  const startYRef = useRef(null);
+  const draggingRef = useRef(false);
+  const THRESHOLD = 64;
+  const MAX_PULL = 96;
+
+  const onTouchStart = (e) => {
+    extraStart?.(e);
+    if (refreshing) return;
+    startYRef.current = (containerRef.current?.scrollTop ?? 0) <= 0 ? e.touches[0].clientY : null;
+  };
+  const onTouchMove = (e) => {
+    if (startYRef.current == null || refreshing) return;
+    if ((containerRef.current?.scrollTop ?? 0) > 0) { setPullY(0); draggingRef.current = false; return; }
+    const dy = e.touches[0].clientY - startYRef.current;
+    if (dy <= 0) { setPullY(0); draggingRef.current = false; return; }
+    draggingRef.current = true;
+    setPullY(Math.min(MAX_PULL, dy * 0.5));
+  };
+  const onTouchEnd = async (e) => {
+    extraEnd?.(e);
+    startYRef.current = null;
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    if (pullY >= THRESHOLD) {
+      setRefreshing(true);
+      setPullY(THRESHOLD);
+      try { await onRefresh?.(); } finally { setRefreshing(false); setPullY(0); }
+    } else {
+      setPullY(0);
+    }
+  };
+
+  return (
+    <div ref={containerRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+      style={{ ...style, overflowY:'auto', overscrollBehavior:'contain' }}>
+      <div style={{ height: refreshing ? THRESHOLD : pullY,
+                    transition: draggingRef.current ? 'none' : 'height .2s ease',
+                    display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+        <div style={{ width:20, height:20, borderRadius:'50%', border:'2.5px solid #E1E6EE',
+                      borderTopColor:C.primary,
+                      animation: (refreshing || pullY > 8) ? 'riplySpin .8s linear infinite' : 'none',
+                      opacity: refreshing ? 1 : Math.min(1, pullY / THRESHOLD) }}/>
+        <style>{`@keyframes riplySpin{to{transform:rotate(360deg);}}`}</style>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:11, background:C.chip, borderRadius:18, padding:'11px 11px 11px 15px', boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
@@ -191,7 +330,17 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
       </div>
       {onFilter && (
         <button onClick={onFilter} style={{ flexShrink:0, width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 4.5h18l-7 8.5v6.5l-4-2V13L3 4.5Z" fill="rgba(255,255,255,0.25)" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <line x1="3" y1="6" x2="10.5" y2="6" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <line x1="15.5" y1="6" x2="21" y2="6" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <circle cx="13" cy="6" r="2.5" stroke="#fff" strokeWidth="1.9"/>
+            <line x1="3" y1="12" x2="7.5" y2="12" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <line x1="12.5" y1="12" x2="21" y2="12" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <circle cx="10" cy="12" r="2.5" stroke="#fff" strokeWidth="1.9"/>
+            <line x1="3" y1="18" x2="13.5" y2="18" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <line x1="18.5" y1="18" x2="21" y2="18" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <circle cx="16" cy="18" r="2.5" stroke="#fff" strokeWidth="1.9"/>
+          </svg>
         </button>
       )}
     </div>
@@ -287,15 +436,15 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
     <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(255,255,255,0.94)', backdropFilter:'blur(16px)', boxShadow:'0 -1px 0 rgba(16,24,40,0.07)', padding:'11px 6px 24px', display:'flex', justifyContent:'space-around', alignItems:'flex-end', zIndex:5 }}>
       {/* Home */}
       <button onClick={()=>setScreen('home')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 11 12 4l8 7" stroke={navColor('home')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 9.8V19a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1V9.8" stroke={navColor('home')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 11c0-.8.3-1.6.9-2.1l6-5.4a1.7 1.7 0 0 1 2.2 0l6 5.4c.6.5.9 1.3.9 2.1" stroke={navColor('home')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 10v8a2 2 0 0 0 2 2h2v-4a2 2 0 0 1 4 0v4h2a2 2 0 0 0 2-2v-8" stroke={navColor('home')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         <span style={{ fontSize:8, fontWeight:navWeight('home'), color:navColor('home'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Home</span>
       </button>
       {/* Spaces */}
       <button onClick={()=>setScreen('spaces')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M12 4.5 15 10H9l3-5.5Z" fill={navColor('spaces')}/>
-          <path d="M5.5 13.5l3 5.5h-6l3-5.5Z" fill={navColor('spaces')}/>
-          <path d="M18.5 13.5l3 5.5h-6l3-5.5Z" fill={navColor('spaces')}/>
+          <circle cx="12" cy="7" r="3.3" stroke={navColor('spaces')} strokeWidth="2"/>
+          <circle cx="6" cy="17" r="3.3" stroke={navColor('spaces')} strokeWidth="2"/>
+          <circle cx="18" cy="17" r="3.3" stroke={navColor('spaces')} strokeWidth="2"/>
         </svg>
         <span style={{ fontSize:8, fontWeight:navWeight('spaces'), color:navColor('spaces'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Spaces</span>
       </button>
@@ -316,7 +465,9 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
       </button>
       {/* Profile */}
       <button onClick={()=>setScreen('profile')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke={navColor('profile')} strokeWidth="2"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke={navColor('profile')} strokeWidth="2" strokeLinecap="round"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path fillRule="evenodd" clipRule="evenodd" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4 0a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill={navColor('profile')}/>
+        </svg>
         <span style={{ fontSize:8, fontWeight:navWeight('profile'), color:navColor('profile'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Profile</span>
       </button>
     </div>
@@ -326,7 +477,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, filters, setFilters, activeCat, setActiveCat, query, setQuery, createOpen, setCreateOpen, role, setRole, navigate, showToast }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, role, navigate }) {
   const CATS = [
     {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
@@ -346,7 +497,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
     const next = dx < 0 ? Math.min(i + 1, ids.length - 1) : Math.max(i - 1, 0);
     setActiveCat(ids[next]);
   };
-  const { events: liveEvents, loading: eventsLoading } = useEvents({ category: (activeCat === 'all' || activeCat === 'trending') ? null : activeCat, search: query, filters });
+  const { events: liveEvents, loading: eventsLoading, refetch: refetchEvents } = useEvents({ category: (activeCat === 'all' || activeCat === 'trending') ? null : activeCat, search: query, filters });
   const eventData = eventsLoading ? [] : liveEvents;
   let list = eventData.slice();
   if (activeCat==='new') list = [...list].reverse();
@@ -371,7 +522,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
       </div>
 
       {/* Feed */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
+      <PullToRefresh onRefresh={refetchEvents} style={{ flex:1, padding:'14px 16px 104px' }}
         onTouchStart={handleHomeSwipeStart} onTouchEnd={handleHomeSwipeEnd}>
 
         {list.length===0 && !query?.trim() && !eventsLoading && (
@@ -388,7 +539,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
           const isLiked = !!liked[ev.id];
           const isSaved = !!saved[ev.id];
           const isSharedEv = !!shared[ev.id];
-          const isFollowing = !!following[ev.id];
           return (
             <div key={ev.id} style={{ background:C.card, borderRadius:24, boxShadow:'0 8px 24px rgba(16,24,40,0.07),0 1px 2px rgba(16,24,40,0.04)', marginBottom:16, overflow:'hidden' }}>
               {/* Banner */}
@@ -404,14 +554,19 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 };
                 const cardImg = ev.image_url || ev.imageUrl || ev.cover_url || CARD_IMGS[ev.primary] || CARD_IMGS[ev.category] || CARD_IMGS.social;
                 const { isFree, amount: priceAmount } = parseEventPrice(ev.price);
+                const eventAge = ev.created_at ? Date.now() - new Date(ev.created_at).getTime() : NaN;
+                const isNew = Number.isFinite(eventAge) && eventAge >= 0 && eventAge < 2 * 24 * 60 * 60 * 1000;
                 return (
                   <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ position:'relative', height:172, overflow:'hidden', cursor:'pointer' }}>
                     <img src={cardImg} alt={ev.title}
                       style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0.22) 0%,transparent 35%,transparent 55%,rgba(0,0,0,0.48) 100%)' }} />
-                    {/* Top row: category chip + trending */}
+                    {/* Top row: category chip + new badge + trending */}
                     <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                      <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
+                        {isNew && <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:C.grad, fontSize:9, fontWeight:800, letterSpacing:0.3, color:'#fff' }}>New</span>}
+                      </div>
                       <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)', boxShadow:'0 2px 6px rgba(0,0,0,0.12)' }}>
                         <svg width="17" height="17" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l1-8Z" fill={ev.trending?'#FFB020':'rgba(255,255,255,0)'} stroke={ev.trending?'#F59E0B':'#7B8499'} strokeWidth="1.6" strokeLinejoin="round"/></svg>
                       </div>
@@ -421,7 +576,10 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                       {isFree
                         ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(2,162,240,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
                         : ev.price
-                          ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Paid · ${priceAmount}</span>
+                          ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" strokeWidth="1.8"/><path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                              Paid · ${priceAmount}
+                            </span>
                           : <span/>}
                       {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
                     </div>
@@ -446,20 +604,25 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 </div>
                 <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
 
-                {/* Organizer row */}
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:13 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:9, minWidth:0 }}>
-                    <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color:'#fff', background: ev.org_avatar ? 'transparent' : (ev.org_color || th.org) }}>
-                      {ev.org_avatar ? <img src={ev.org_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : ev.orgInitial}
-                    </div>
-                    <div style={{ minWidth:0 }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:C.body, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.org}</div>
-                      <div style={{ fontSize:9, color:C.subtle }}>Organizer</div>
-                    </div>
+                {/* Organizer row -- tapping through to the group page only
+                    when the event actually belongs to one; a solo organizer
+                    (no group_id) has no profile page to show. The old
+                    "Follow" button here was wired to toggleRsvp (event
+                    RSVPs), so tapping it silently created a fake RSVP row
+                    and fired the organizer's "someone's attending your
+                    event" notification -- removed rather than reused, since
+                    GroupProfileScreen already has its own real join/request
+                    state for this group. */}
+                <div onClick={() => ev.group_id && navigate('group-profile', { groupId: ev.group_id })}
+                  style={{ display:'flex', alignItems:'center', gap:9, minWidth:0, marginTop:13,
+                           cursor: ev.group_id ? 'pointer' : 'default' }}>
+                  <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color:'#fff', background: ev.org_avatar ? 'transparent' : (ev.org_color || th.org) }}>
+                    {ev.org_avatar ? <img src={ev.org_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : ev.orgInitial}
                   </div>
-                  <button onClick={()=>toggleFollowing(ev.id)} style={{ flexShrink:0, border: isFollowing?'1.5px solid #E3E7EE':'none', background: isFollowing?'#fff':C.primary, color: isFollowing?'#7B8499':'#fff', height:32, padding:'0 17px', borderRadius:999, fontSize:10.5, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </button>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:C.body, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.org}</div>
+                    <div style={{ fontSize:9, color:C.subtle }}>Organizer</div>
+                  </div>
                 </div>
 
                 {/* Divider */}
@@ -493,7 +656,13 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     }
                     if (didShare) recordShare(ev.id);
                   }} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+                      <circle cx="18" cy="5" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <circle cx="6" cy="12" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <circle cx="18" cy="19" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                    </svg>
                     <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : '#7B8499' }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
@@ -505,7 +674,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
             </div>
           );
         })}
-      </div>
+      </PullToRefresh>
 
       {/* Expandable FAB */}
       <div style={{ position:'absolute', bottom:94, right:18, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:10, zIndex:6 }}>
@@ -528,18 +697,55 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
             </button>
           </div>
         )}
-        {fabOpen && (
-          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .13s ease' }}>
+        {fabOpen && role === 'admin' && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .1s ease' }}>
             <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
               fontSize:12, fontWeight:700, color:C.ink,
-              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Add Event</span>
-            <button onClick={() => { setFabOpen(false); setCreateOpen(true); }}
+              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Campus Group</span>
+            <button onClick={() => { setFabOpen(false); navigate('create-group'); }}
               style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
                 display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
                 boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
-              </svg>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="#fff" strokeWidth="1.8"/><circle cx="16" cy="9" r="2.6" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        )}
+        {fabOpen && role !== 'student' && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .13s ease' }}>
+            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
+              fontSize:12, fontWeight:700, color:C.ink,
+              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Event</span>
+            <button onClick={() => { setFabOpen(false); navigate('create-event'); }}
+              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
+                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        )}
+        {fabOpen && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .16s ease' }}>
+            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
+              fontSize:12, fontWeight:700, color:C.ink,
+              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Post</span>
+            <button onClick={() => { setFabOpen(false); navigate('create-post'); }}
+              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
+                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        )}
+        {fabOpen && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .19s ease' }}>
+            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
+              fontSize:12, fontWeight:700, color:C.ink,
+              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Student Space</span>
+            <button onClick={() => { setFabOpen(false); navigate('create-space'); }}
+              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
+                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#fff" strokeWidth="1.8"/></svg>
             </button>
           </div>
         )}
@@ -556,90 +762,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
         <style>{`@keyframes fabItemIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
       </div>
 
-      {/* Create Sheet */}
-      {createOpen && (
-        <Sheet onClose={()=>setCreateOpen(false)} title="Create something">
-          <div style={{ fontSize:10.5, color:C.subtle, marginBottom:14 }}>Signed in as <span style={{ fontWeight:700, color:C.primary }}>{role==='admin'?'Group Admin':role==='organizer'?'Event Organizer':'Student'}</span></div>
-          {/* Role switcher */}
-          <div style={{ display:'flex', gap:6, background:'#E9ECF2', borderRadius:13, padding:4, marginBottom:16 }}>
-            {(['student','organizer','admin']).map(r => (
-              <button key={r} onClick={()=>setRole(r)} style={{ flex:1, height:36, border:'none', borderRadius:10, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:9.5, fontWeight:700, background: role===r?C.card:'none', color: role===r?C.primary:'#7B8499', boxShadow: role===r?'0 2px 6px rgba(16,24,40,0.08)':'none' }}>
-                {r==='admin'?'Admin':r==='organizer'?'Organizer':'Student'}
-              </button>
-            ))}
-          </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
-            {/* Space — all */}
-            <div onClick={()=>{setCreateOpen(false);navigate('create-space');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
-              <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#E4F7EC', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <svg width="23" height="23" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#15A34A" strokeWidth="2"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#15A34A" strokeWidth="2"/></svg>
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Student Space</div>
-                <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>A small recurring group — open to all students</div>
-              </div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            {/* Post — all roles */}
-            <div onClick={()=>{setCreateOpen(false);navigate('create-post');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
-              <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#FFF6EC', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#F59E0B" strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke="#F59E0B" strokeWidth="1.9" strokeLinecap="round"/></svg>
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Post</div>
-                <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>Share something with a group</div>
-              </div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            {/* Event — organizer/admin only */}
-            {role!=='student' ? (
-              <div onClick={()=>{setCreateOpen(false);navigate('create-event');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
-                <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#E9F6FF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="23" height="23" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/></svg>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Event</div>
-                  <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>Ticketed campus event with RSVPs & check-in</div>
-                </div>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            ) : (
-              <div style={{ display:'flex', alignItems:'center', gap:13, background:'#F1F3F7', borderRadius:16, padding:15, opacity:0.85 }}>
-                <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#E4E8EF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5" stroke={C.subtle} strokeWidth="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke={C.subtle} strokeWidth="2" strokeLinecap="round"/></svg>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.muted }}>Event</div>
-                  <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>Only organizers & group admins can post events</div>
-                </div>
-              </div>
-            )}
-            {/* Campus Group — admin only */}
-            {role==='admin' ? (
-              <div onClick={()=>{setCreateOpen(false);navigate('create-group');}} style={{ display:'flex', alignItems:'center', gap:13, background:C.card, borderRadius:16, padding:15, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', cursor:'pointer' }}>
-                <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#F1ECFF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="23" height="23" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="#7C5CFF" strokeWidth="2"/><circle cx="16" cy="9" r="2.6" stroke="#7C5CFF" strokeWidth="2"/><path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2" stroke="#7C5CFF" strokeWidth="2" strokeLinecap="round"/></svg>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Campus Group</div>
-                  <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>A community with members, posts & moderation</div>
-                </div>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            ) : (
-              <div style={{ display:'flex', alignItems:'center', gap:13, background:'#F1F3F7', borderRadius:16, padding:15, opacity:0.85 }}>
-                <div style={{ width:46, height:46, borderRadius:13, flexShrink:0, background:'#E4E8EF', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5" stroke={C.subtle} strokeWidth="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke={C.subtle} strokeWidth="2" strokeLinecap="round"/></svg>
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.muted }}>Campus Group</div>
-                  <div style={{ fontSize:10, color:C.subtle, marginTop:2 }}>Only group admins can create groups</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </Sheet>
-      )}
     </div>
   );
 }
@@ -664,7 +786,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
     setSpaceTab(ids[next]);
   };
 
-  const { spaces: liveSpaces, loading: spacesLoading } = useSpaces();
+  const { spaces: liveSpaces, loading: spacesLoading, refetch: refetchSpaces } = useSpaces();
   const spaceData = spacesLoading ? [] : liveSpaces;
   let list = spaceData.slice();
   if(spaceTab==='today'||spaceTab==='tomorrow') list=list.filter(s=>s.day===spaceTab);
@@ -687,7 +809,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
       </div>
 
       {/* Spaces list */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}
+      <PullToRefresh onRefresh={refetchSpaces} style={{ flex:1, padding:'14px 16px 104px' }}
         onTouchStart={handleSpacesSwipeStart} onTouchEnd={handleSpacesSwipeEnd}>
         {list.length===0 && !spacesLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No spaces in this category right now.</div>}
         {spacesLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>}
@@ -797,7 +919,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
             </div>
           );
         })}
-      </div>
+      </PullToRefresh>
 
       {/* FAB */}
       <button onClick={()=>navigate('create-space')} style={{ position:'absolute', bottom:94, right:18, width:60, height:60, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 10px 24px rgba(2,162,240,0.45)', zIndex:6 }}>
@@ -824,7 +946,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   // against each other and potentially leaving the UI and DB disagreeing.
   const joinMutatingRef = useRef({});
 
-  const { groups: liveGroups, loading: groupsLoading } = useGroups();
+  const { groups: liveGroups, loading: groupsLoading, refetch: refetchGroups } = useGroups();
   const groupData = groupsLoading ? [] : liveGroups;
   let list = groupData.slice();
   if(discoverTab==='popular') list=[...list].sort((a,b)=>(b.member_count||0)-(a.member_count||0));
@@ -847,7 +969,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
       </div>
 
       {/* Groups */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <PullToRefresh onRefresh={refetchGroups} style={{ flex:1, padding:'14px 16px 104px' }}>
         {list.length===0 && !groupsLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
         {groupsLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>Loading…</div>}
         {list.map(g => {
@@ -883,8 +1005,12 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
               </div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:13 }}>
                 <div style={{ display:'flex', alignItems:'center' }}>
-                 {['S','M','J','A','R'].slice(0, 5).map((initial,i)=>(
-                    <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:9, fontWeight:800, background:['#FF5A8A','#0098F0','#10B981','#7C5CFF','#FF8A3D'][i] }}>{initial}</div>
+                 {(g.member_previews || []).map((m,i)=>(
+                    <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:9, fontWeight:800, overflow:'hidden', position:'relative', background: m.avatar_url ? 'transparent' : (m.avatar_color || '#7C5CFF') }}>
+                      {m.avatar_url
+                        ? <img src={m.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                        : m.initial}
+                    </div>
                   ))}
                   <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.member_count || 0}</span>
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
@@ -918,7 +1044,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
             </div>
           );
         })}
-      </div>
+      </PullToRefresh>
 
       {/* FAB */}
       <button onClick={()=>navigate('create-group')} style={{ position:'absolute', bottom:94, right:18, width:60, height:60, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 10px 24px rgba(2,162,240,0.45)', zIndex:6 }}>
@@ -933,10 +1059,17 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 // ─────────────────────────────────────────────────────────────
 function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
   const isNotif = msgTab==='notifications';
-  const { chats, loading: chatsLoading } = useChats();
-  const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification } = notifs;
+  const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = useChats();
+  const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification, refetch: refetchNotifs } = notifs;
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
+
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [chatQuery,  setChatQuery]  = useState('');
+  const q = chatQuery.trim().toLowerCase();
+  const filteredChats = q
+    ? chats.filter(c => c.name?.toLowerCase().includes(q) || c.preview?.toLowerCase().includes(q))
+    : chats;
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -945,8 +1078,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>My Messages</span>
           <div style={{ display:'flex', gap:9 }}>
-            <button onClick={()=>showToast('Search your messages')} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#39414F" strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke="#39414F" strokeWidth="2" strokeLinecap="round"/></svg>
+            <button onClick={()=>{ setSearchOpen(v=>!v); setChatQuery(''); }} aria-label="Search chats" aria-expanded={searchOpen && !isNotif} aria-pressed={searchOpen && !isNotif} style={{ width:40, height:40, border:'none', borderRadius:'50%', background: searchOpen ? C.grad : C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2" strokeLinecap="round"/></svg>
             </button>
             <button onClick={()=>showToast('Start a new conversation')} style={{ width:40, height:40, border:'none', borderRadius:'50%', background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/></svg>
@@ -954,20 +1087,22 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
           </div>
         </div>
         {/* Tabs */}
-        <div style={{ display:'flex', gap:26 }}>
+        <div style={{ display:'flex', gap:26, marginBottom:11 }}>
           <button onClick={()=>setMsgTab('notifications')} style={isNotif?activeTabStyle:idleTabStyle}>
             Notifications
             {unreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:8, fontWeight:800, verticalAlign:'middle' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
           <button onClick={()=>setMsgTab('chats')} style={isNotif?idleTabStyle:activeTabStyle}>Chats</button>
         </div>
-        <div style={{ position:'relative', height:2, background:'#EEF0F4', marginTop:11 }}>
-          <div style={{ position:'absolute', bottom:0, height:2.5, borderRadius:2, background:C.primary, width: isNotif?'108px':'52px', left: isNotif?'0px':'134px', transition:'all .25s ease' }} />
-        </div>
+        {searchOpen && !isNotif && (
+          <div style={{ marginTop:12 }}>
+            <SearchBar placeholder="Search chats…" value={chatQuery} onChange={e=>setChatQuery(e.target.value)} />
+          </div>
+        )}
       </div>
 
       {/* Body */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 104px' }}>
+      <PullToRefresh onRefresh={isNotif ? refetchNotifs : refetchChats} style={{ flex:1, padding:'14px 16px 104px' }}>
         {isNotif ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {/* Mark all read */}
@@ -992,29 +1127,31 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                 <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>No notifications yet</div>
               </div>
             ) : notifications.map(n => (
-              <div key={n.id} onClick={() => markRead(n.id)}
-                style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
-                         boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
-                         cursor:'pointer', position:'relative',
-                         borderLeft: n.read ? 'none' : `3px solid ${C.primary}` }}>
-                <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
-                  <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color,
-                                display:'flex', alignItems:'center', justifyContent:'center',
-                                color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
-                    <span>{n.initial}</span>
-                    <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} />
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
-                    <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
-                  </div>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
-                    <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
-                    <button onClick={e => { e.stopPropagation(); deleteNotification(n.id); }}
-                      style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
+              <SwipeToDeleteRow key={n.id} onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
+                <div onClick={() => markRead(n.id)}
+                  style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
+                           boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
+                           cursor:'pointer', position:'relative',
+                           borderLeft: n.read ? 'none' : `3px solid ${C.primary}` }}>
+                  <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                    <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color,
+                                  display:'flex', alignItems:'center', justifyContent:'center',
+                                  color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
+                      <span>{n.initial}</span>
+                      <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} />
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
+                      <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
+                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
+                      <button onClick={e => { e.stopPropagation(); deleteNotification(n.id); }}
+                        style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </SwipeToDeleteRow>
             ))}
           </div>
         ) : (
@@ -1030,30 +1167,47 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                 <div style={{ fontSize:14, fontWeight:700, color:C.ink, marginTop:12 }}>No conversations yet</div>
                 <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>Start a chat to connect with someone</div>
               </div>
-            ) : chats.map(c => (
-              <div key={c.id} onClick={()=>navigate('chat',{chatId:c.id})} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
-                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
-                  {c.avatar_url
-                    ? <img src={c.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
-                    : <><span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
-                        <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} /></>
-                  }
-                </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                    <span style={{ fontSize:13, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
-                    <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
-                    <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
-                    {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
-                  </div>
-                </div>
+            ) : filteredChats.length === 0 ? (
+              <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:60 }}>
+                No chats match "{chatQuery.trim()}"
               </div>
+            ) : filteredChats.map(c => (
+              <SwipeToDeleteRow key={c.id} deleteLabel={`Delete chat with ${c.name}`} onDelete={async () => {
+                const { error } = await deleteChat(c.id);
+                if (error) showToast("Couldn't delete chat. Try again.");
+              }}>
+                <div onClick={()=>navigate('chat',{
+                  chatId: c.id, chatName: c.name, chatInitial: c.initial, chatColor: c.color, isGroup: !!c.group_id,
+                })} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
+                  <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
+                    {c.avatar_url
+                      ? <img src={c.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
+                      : <><span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
+                          <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} /></>
+                    }
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                      <span style={{ fontSize:13, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
+                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
+                      <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
+                      {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
+                    </div>
+                  </div>
+                  <button onClick={async e => {
+                    e.stopPropagation();
+                    const { error } = await deleteChat(c.id);
+                    if (error) showToast("Couldn't delete chat. Try again.");
+                  }} aria-label={`Delete chat with ${c.name}`} style={{ flexShrink:0, border:'none',
+                    background:'none', cursor:'pointer', padding:4, color:C.subtle, fontSize:16, lineHeight:1 }}>×</button>
+                </div>
+              </SwipeToDeleteRow>
             ))}
           </div>
         )}
-      </div>
+      </PullToRefresh>
     </div>
   );
 }
@@ -1096,11 +1250,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
-    supabase.from('group_members').select('group_id, groups(id, name, initial, logo_color, avatar_url)')
-      .eq('user_id', user.id).in('role', ['member', 'admin', 'owner'])
+    supabase.from('group_members').select('group_id, role, groups(id, name, initial, logo_color, avatar_url, permissions)')
+      .eq('user_id', user.id).eq('status', 'approved').in('role', ['member', 'admin', 'owner'])
       .then(({ data }) => {
         if (cancelled) return;
-        const groups = (data || []).map(r => r.groups).filter(Boolean);
+        // Keep the member's own role alongside the group so the composer can
+        // tell "membersPost:false" apart from "but I'm an admin, so I still can".
+        const groups = (data || []).filter(r => r.groups).map(r => ({ ...r.groups, myRole: r.role }));
         setMyGroups(groups);
         setSelectedGroupId(prev => prev || groupId || groups[0]?.id || null);
       });
@@ -1136,12 +1292,20 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     ? text.trim().length > 0 && pollOpts.filter(o => o.trim()).length >= 2
     : !!(text.trim() || hasPhoto || hasFile || linkedEvent);
 
+  // membersPost defaults to true when a group hasn't set permissions at all
+  // (undefined shouldn't read as "locked"); admins/owners can always post
+  // regardless of the toggle, since they're the ones who'd have set it.
+  const isGroupAdminHere = selectedGroup?.myRole === 'admin' || selectedGroup?.myRole === 'owner';
+  const membersCanPost = selectedGroup?.permissions?.membersPost !== false;
+  const postingLocked = !!selectedGroup && !isGroupAdminHere && !membersCanPost;
+
   const handlePost = async () => {
     if (!canPost) {
       showToast(hasPoll ? 'Write a question and add at least 2 options' : 'Write something or add a photo, file, or event');
       return;
     }
     if (!selectedGroupId) { showToast('Select a group to post to'); return; }
+    if (postingLocked) { showToast('Only admins can post in this group'); return; }
     if (photosUploading) { showToast('Photos are still uploading'); return; }
     setPosting(true);
     const authorName = currentUser.name || user?.username || 'Member';
@@ -1170,7 +1334,10 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     if (linkedEvent?.title)payload.linked_event_title= linkedEvent.title;
     if (hasPoll) {
       const opts = pollOpts.filter(o => o.trim());
-      if (opts.length >= 2) payload.poll_options = opts;
+      if (opts.length >= 2) {
+        payload.poll_options = opts;
+        payload.poll_expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      }
     }
 
     const { error } = await supabase.from('posts').insert(payload);
@@ -1235,12 +1402,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         </div>
 
         <button onClick={handlePost} style={{
-          height:40, padding:'0 18px', border:'none', borderRadius:13, cursor:'pointer',
+          height:40, padding:'0 18px', border:'none', borderRadius:13,
+          cursor: canPost && !postingLocked ? 'pointer' : 'not-allowed',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           fontSize:13, fontWeight:800, flexShrink:0,
-          background: canPost ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#E4E8EF',
-          color: canPost ? '#fff' : '#A8B0BD',
-          boxShadow: canPost ? '0 4px 10px rgba(2,162,240,0.3)' : 'none',
+          background: canPost && !postingLocked ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#E4E8EF',
+          color: canPost && !postingLocked ? '#fff' : '#A8B0BD',
+          boxShadow: canPost && !postingLocked ? '0 4px 10px rgba(2,162,240,0.3)' : 'none',
           transition: 'all .18s',
         }}>
           Post
@@ -1249,6 +1417,19 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
 
       {/* ── Body ───────────────────────────────────────────── */}
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 30px' }}>
+
+        {postingLocked && (
+          <div style={{ display:'flex', alignItems:'center', gap:7, background:'#FFF6EC',
+                        borderRadius:11, padding:'10px 13px', marginBottom:13 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+              <circle cx="12" cy="12" r="9" stroke="#F59E0B" strokeWidth="2"/>
+              <path d="M12 8v5M12 16h.01" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize:12, fontWeight:600, color:'#92400E' }}>
+              Only admins can post in {selectedGroup?.name || 'this group'}
+            </span>
+          </div>
+        )}
 
         {/* Author + group picker */}
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
@@ -1563,14 +1744,14 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
     { topic:'Account', q:'How do I update my profile?', a:"Go to the Profile tab → tap your name or avatar at the top → Edit Profile. You can update your name, university, year, programme, bio, and profile photo." },
     { topic:'Account', q:'How do I change my password?', a:"Go to Profile & Settings → Privacy & Security → Change Password. Enter your current password and your new one twice, then tap Save." },
     { topic:'Account', q:'How do I make my profile private?', a:"Go to Profile & Settings → Privacy & Security → toggle on Private Profile. When private, only people you approve can see your activity and details." },
-    { topic:'Account', q:'How do I delete my account?', a:"Account deletion is handled by our support team to ensure your data is fully removed. Email us at support@riply.app with the subject \"Delete My Account\" and we'll process it within 7 days." },
+    { topic:'Account', q:'How do I delete my account?', a:"Account deletion is handled by our support team to ensure your data is fully removed. Email us at riplyapp@outlook.com with the subject \"Delete My Account\" and we'll process it within 7 days." },
     { topic:'Account', q:'I forgot my password — what do I do?', a:"On the login screen tap \"Forgot Password\". Enter your email and we'll send a reset link. If you signed up with Google or Apple, use that login method instead." },
     { topic:'Account', q:'Can I change my university after signing up?', a:"Yes — go to Edit Profile and update the University field. This helps us show you relevant events and groups for your campus." },
     // Payments
     { topic:'Payments', q:'What payment methods are accepted?', a:"Riply accepts major credit and debit cards. Apple Pay and Google Pay support is coming soon. All payments are processed securely." },
     { topic:'Payments', q:'Is it safe to pay through Riply?', a:"Yes. All payments are encrypted and processed through a secure payment provider. Riply never stores your full card details." },
     { topic:'Payments', q:'Where can I see my payment history?', a:"Go to Profile & Settings → Payment Methods → Payment History to see all past transactions and receipts." },
-    { topic:'Payments', q:'I was charged but didn\'t receive my ticket — what do I do?', a:"This can happen if your connection dropped during checkout. Check My Tickets first — your ticket may already be there. If not, email support@riply.app with your order details and we'll resolve it quickly." },
+    { topic:'Payments', q:'I was charged but didn\'t receive my ticket — what do I do?', a:"This can happen if your connection dropped during checkout. Check My Tickets first — your ticket may already be there. If not, email riplyapp@outlook.com with your order details and we'll resolve it quickly." },
     { topic:'Payments', q:'Are there booking fees on top of the ticket price?', a:"Any fees are shown clearly during checkout before you confirm payment. The price you see on the event page is the base ticket price." },
   ];
   const TOPICS = [
@@ -1706,7 +1887,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
                       color:C.subtle, margin:'24px 4px 10px' }}>Still need help?</div>
         <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
           {[
-            { title:'Email Support', sub:'support@riply.app', iconBg:'#F1ECFF',
+            { title:'Email Support', sub:'riplyapp@outlook.com', iconBg:'#F1ECFF',
               icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="3" stroke="#7C5CFF" strokeWidth="1.9"/><path d="m4.5 7 7.5 5.5L19.5 7" stroke="#7C5CFF" strokeWidth="1.9" strokeLinejoin="round"/></svg>,
               onClick:() => navigate('feedback') },
           ].map((item,i) => (
@@ -2354,6 +2535,10 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
   const [replyTo, setReplyTo] = useState(null);
   const [likedComments, setLikedComments] = useState({});
   const [showOptions, setShowOptions] = useState(false);
+  const [commentSearchOpen, setCommentSearchOpen] = useState(false);
+  const [commentQuery, setCommentQuery] = useState('');
+  const [commentSort, setCommentSort] = useState('top'); // 'top' | 'newest'
+  const [expandedReplies, setExpandedReplies] = useState({});
   const inputRef = useRef(null);
 
   const isOwner = !!(currentUser?.userId && p.user_id === currentUser.userId);
@@ -2399,9 +2584,12 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
     return typeof voter === 'object' ? voter.opt : null;
   });
 
+  const pollExpired = !!p.poll_expires_at && new Date(p.poll_expires_at).getTime() < Date.now();
+
   const castVote = async (optIdx) => {
     if (!currentUser?.userId) { showToast('Sign in to vote'); return; }
     if (myVote !== null) { showToast('You already voted'); return; }
+    if (pollExpired) { showToast('This poll has closed'); return; }
     const newVotes = { ...pollVotes, [optIdx]: ((pollVotes[optIdx] || 0) + 1) };
     setPollVotes(newVotes);
     setMyVote(optIdx);
@@ -2421,12 +2609,16 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
     await addComment(t, currentUser, rt);
   };
 
+  // Group-announcement posts (e.g. "New Event Alert") always show the
+  // group's own identity, even when the viewer is the member who created the
+  // underlying event -- so skip the "it's me" live-profile override for those.
+  const isMe = !p.author_is_group && !!(currentUser?.userId && p.user_id === currentUser.userId);
+
   return (
     <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:15 }}>
       {/* Author */}
       <div style={{ display:'flex', alignItems:'center', gap:11 }}>
         {(() => {
-          const isMe = currentUser?.userId && p.user_id === currentUser.userId;
           const avatarUrl = isMe ? currentUser.avatarUrl : (p.avatar_url || null);
           const avatarColor = isMe ? (currentUser.avatarColor || p.aColor) : p.aColor;
           const initial = isMe ? (currentUser.name?.[0] || p.aInitial) : p.aInitial;
@@ -2446,7 +2638,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>
-              {currentUser?.userId && p.user_id === currentUser.userId ? (currentUser.name || p.author) : p.author}
+              {isMe ? (currentUser.name || p.author) : p.author}
             </span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
               <path d="M12 2.5l2.2 1.6 2.7-.2 1 2.5 2.3 1.4-.6 2.6.6 2.6-2.3 1.4-1 2.5-2.7-.2L12 21.5 9.8 19.9l-2.7.2-1-2.5-2.3-1.4.6-2.6L3.8 11l2.3-1.4 1-2.5 2.7.2L12 2.5Z" fill="#02B6FE"/>
@@ -2458,8 +2650,10 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         {p.is_pinned && (
           <div style={{ display:'flex', alignItems:'center', gap:4, marginRight:6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
-              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+              <g transform="rotate(45 12 12)">
+                <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
+                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+              </g>
             </svg>
             <span style={{ fontSize:10.5, fontWeight:800, color:C.primary }}>Pinned</span>
           </div>
@@ -2474,18 +2668,21 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
       </div>
 
       {/* Post text */}
-      <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}>{p.text}</div>
+      <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}><Linkify text={p.text} /></div>
 
       {/* Poll */}
       {pollOptions && pollOptions.length >= 2 && (() => {
         const totalVotes = Object.values(pollVotes).reduce((s, n) => s + n, 0);
+        const daysLeft = p.poll_expires_at
+          ? Math.max(0, Math.ceil((new Date(p.poll_expires_at).getTime() - Date.now()) / 86400000))
+          : null;
         return (
           <div style={{ marginTop:14, display:'flex', flexDirection:'column', gap:9 }}>
             {pollOptions.map((opt, i) => {
               const count  = pollVotes[i] || 0;
               const pct    = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
               const isMyV  = myVote === i;
-              const voted  = myVote !== null;
+              const voted  = myVote !== null || pollExpired;
               return (
                 <button key={i} onClick={() => castVote(i)} disabled={voted}
                   style={{ position:'relative', width:'100%', textAlign:'left', border:'none',
@@ -2516,10 +2713,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                         {isMyV && <div style={{ width:7, height:7, borderRadius:'50%', background:'#fff' }}/>}
                       </div>
                       <span style={{ fontSize:13.5, fontWeight: isMyV ? 800 : 600,
+                                     fontFamily:"'Montserrat',-apple-system,sans-serif",
                                      color: isMyV ? '#fff' : C.ink }}>{opt}</span>
                     </div>
                     {voted && (
-                      <span style={{ fontSize:12, fontWeight:700, color: isMyV ? '#fff' : C.subtle }}>
+                      <span style={{ fontSize:12, fontWeight:700, fontFamily:"'Montserrat',-apple-system,sans-serif", color: isMyV ? '#fff' : C.subtle }}>
                         {pct}%
                       </span>
                     )}
@@ -2527,8 +2725,12 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                 </button>
               );
             })}
-            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>
-              {totalVotes} vote{totalVotes !== 1 ? 's' : ''}{myVote === null ? ' · Tap to vote' : ''}
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2, textAlign:'center', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+              {totalVotes} vote{totalVotes !== 1 ? 's' : ''}
+              {pollExpired ? ' · Poll closed'
+                : daysLeft !== null ? ` · ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`
+                : ''}
+              {!pollExpired && myVote === null ? ' · Tap to vote' : ''}
             </div>
           </div>
         );
@@ -2545,7 +2747,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         </div>
       ) : p.image_url && (
         <div style={{ borderRadius:14, overflow:'hidden', marginTop:11 }}>
-          <img src={p.image_url} alt="" style={{ width:'100%', display:'block', objectFit:'cover', maxHeight:240 }} />
+          <img src={p.image_url} alt="" style={{ width:'100%', display:'block', maxHeight:420 }} />
         </div>
       )}
 
@@ -2592,16 +2794,18 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
           <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
-            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
               {p.linked_event_title}
             </div>
             {(p.linked_event_date || p.linked_event_time) && (
-              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, marginTop:2 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:2 }}>
                 {[p.linked_event_date, p.linked_event_time].filter(Boolean).join(' · ')}
               </div>
             )}
           </div>
-          <span style={{ fontSize:11, fontWeight:600, color:C.subtle, whiteSpace:'nowrap', flexShrink:0 }}>View event →</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+            <path d="M9 6l6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
       )}
 
@@ -2618,7 +2822,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
                   stroke={cOpen?C.primary:C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
@@ -2640,91 +2844,187 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         </button>
       </div>
 
-      {/* Comments section */}
-      {cOpen && (
-        <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
-          {comments.length === 0 && (
-            <div style={{ fontSize:12, color:C.subtle, textAlign:'center', paddingBottom:8 }}>No comments yet. Be the first!</div>
-          )}
-          {comments.map((c) => {
-            const isLiked = !!likedComments[c.id];
-            const likeCount = (c.likes || 0) + (isLiked ? 1 : 0);
-            const isReply = !!c.replyToId;
-            return (
-              <div key={c.id} style={{ display:'flex', gap:8, marginBottom:12, marginLeft: isReply ? 38 : 0 }}>
-                <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, background:c.aColor,
+      {/* Comments popup — opens as a bottom sheet over the page when the
+          comment icon is tapped, rather than expanding inline in the feed. */}
+      {cOpen && (() => {
+        const q = commentQuery.trim().toLowerCase();
+        const topLevel = comments.filter(c => !c.replyToId);
+        const repliesByParent = {};
+        comments.filter(c => c.replyToId).forEach(c => {
+          (repliesByParent[c.replyToId] ||= []).push(c);
+        });
+        const matches = (c) => !q || c.author?.toLowerCase().includes(q) || c.text?.toLowerCase().includes(q);
+        const visible = topLevel
+          .filter(c => matches(c) || (repliesByParent[c.id] || []).some(matches))
+          .slice()
+          .sort((a, b) => commentSort === 'top'
+            ? ((b.likes || 0) - (a.likes || 0))
+            : (new Date(b.created_at || 0) - new Date(a.created_at || 0)));
+
+        const CommentRow = ({ c, isReply }) => {
+          const isLiked = !!likedComments[c.id];
+          const likeCount = (c.likes || 0) + (isLiked ? 1 : 0);
+          const replies = repliesByParent[c.id] || [];
+          const expanded = !!expandedReplies[c.id];
+          return (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ display:'flex', gap:10 }}>
+                <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background:c.aColor,
                               display:'flex', alignItems:'center', justifyContent:'center',
-                              color:'#fff', fontSize:11, fontWeight:800 }}>{c.aInitial}</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ background:C.chip, borderRadius:12, padding:'8px 11px' }}>
-                    {c.replyToName && (
-                      <div style={{ fontSize:10.5, color:C.primary, fontWeight:700, marginBottom:2 }}>↩ {c.replyToName}</div>
-                    )}
-                    <div style={{ fontSize:12, fontWeight:700, color:C.ink }}>{c.author}</div>
-                    <div style={{ fontSize:13, color:C.body, marginTop:2 }}>{c.text}</div>
+                              color:'#fff', fontSize:12, fontWeight:800 }}>{c.aInitial}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
+                    <span style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>{c.author}</span>
+                    <span style={{ fontSize:11, color:C.subtle }}>{c.time}</span>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:4, paddingLeft:4 }}>
-                    <span style={{ fontSize:10, color:C.subtle }}>{c.time}</span>
+                  {c.replyToName && (
+                    <div style={{ fontSize:10.5, color:C.primary, fontWeight:700, marginTop:2 }}>↩ {c.replyToName}</div>
+                  )}
+                  <div style={{ fontSize:13.5, color:C.body, marginTop:3, lineHeight:1.4 }}><Linkify text={c.text} /></div>
+                  <div style={{ display:'flex', alignItems:'center', gap:16, marginTop:7 }}>
                     <button onClick={() => handleLikeComment(c.id)}
-                      style={{ display:'flex', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', padding:0 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24">
+                      style={{ display:'flex', alignItems:'center', gap:5, border:'none', background:'none', cursor:'pointer', padding:0 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
                               fill={isLiked?'#FF3B6B':'none'} stroke={isLiked?'#FF3B6B':C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
                       </svg>
-                      {likeCount > 0 && <span style={{ fontSize:10, fontWeight:700, color: isLiked?'#FF3B6B':C.subtle }}>{likeCount}</span>}
+                      <span style={{ fontSize:12, fontWeight:700, color: isLiked?'#FF3B6B':C.subtle }}>{likeCount}</span>
                     </button>
+                    {!isReply && (
+                      <button onClick={() => setExpandedReplies(s => ({ ...s, [c.id]: !s[c.id] }))}
+                        disabled={replies.length === 0}
+                        style={{ display:'flex', alignItems:'center', gap:5, border:'none', background:'none',
+                                 cursor: replies.length ? 'pointer' : 'default', padding:0,
+                                 opacity: replies.length ? 1 : 0.4 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" stroke={C.subtle} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span style={{ fontSize:12, fontWeight:700, color:C.subtle }}>{replies.length}</span>
+                      </button>
+                    )}
                     <button onClick={() => startReply(c)}
-                      style={{ fontSize:10, fontWeight:700, color:C.subtle, border:'none', background:'none', cursor:'pointer', padding:0 }}>
-                      Reply
+                      style={{ display:'flex', alignItems:'center', gap:5, border:'none', cursor:'pointer',
+                               padding:'3px 10px', borderRadius:999, background:C.chip }}>
+                      <span style={{ fontSize:11.5, fontWeight:700, color:C.body }}>reply</span>
                     </button>
+                    {!isReply && replies.length > 0 && (
+                      <button onClick={() => setExpandedReplies(s => ({ ...s, [c.id]: !s[c.id] }))}
+                        style={{ marginLeft:'auto', border:'none', background:'none', cursor:'pointer', padding:0,
+                                 display:'flex', alignItems:'center' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                          style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition:'transform .15s' }}>
+                          <path d="m6 9 6 6 6-6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
-            );
-          })}
-
-          {/* Reply indicator */}
-          {replyTo && (
-            <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(0,152,240,0.07)',
-                          borderRadius:8, padding:'5px 10px', marginBottom:6 }}>
-              <span style={{ fontSize:11, color:C.primary, fontWeight:600 }}>↩ Replying to {replyTo.author}</span>
-              <button onClick={() => { setReplyTo(null); setDraft(''); }}
-                style={{ border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto',
-                         fontSize:12, color:C.subtle, lineHeight:1 }}>✕</button>
+              {!isReply && expanded && replies.map(r => (
+                <div key={r.id} style={{ marginLeft:44, marginTop:12 }}>
+                  <CommentRow c={r} isReply />
+                </div>
+              ))}
             </div>
-          )}
+          );
+        };
 
-          {/* Input */}
-          <div style={{ display:'flex', gap:8, marginTop:4, alignItems:'center' }}>
-            <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0,
-                          background:currentUser?.avatarUrl ? 'none' : (currentUser?.avatarColor || C.grad),
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          color:'#fff', fontSize:11, fontWeight:800, overflow:'hidden' }}>
-              {currentUser?.avatarUrl
-                ? <img src={currentUser.avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
-                : (currentUser?.name?.[0] || 'Y').toUpperCase()}
+        return (
+          <div onClick={() => setCOpen(false)} style={{
+            position:'fixed', inset:0, zIndex:55,
+            background:'rgba(14,23,38,0.45)', display:'flex', alignItems:'flex-end',
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:'100%', maxHeight:'82vh', display:'flex', flexDirection:'column',
+              background:'#fff', borderRadius:'24px 24px 0 0',
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+            }}>
+              <div style={{ width:38, height:4, borderRadius:99, background:'#D1D8E4', margin:'10px auto 0', flexShrink:0 }}/>
+              {/* Header */}
+              <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:8, padding:'14px 16px 12px' }}>
+                <span style={{ flex:1, fontSize:18, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>Top comments</span>
+                <button onClick={() => setCommentSearchOpen(v => !v)} aria-label="Search comments" style={{
+                  width:36, height:36, border:'none', borderRadius:'50%', background: commentSearchOpen ? C.grad : C.chip,
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={commentSearchOpen?'#fff':'#39414F'} strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke={commentSearchOpen?'#fff':'#39414F'} strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+                <button onClick={() => setCommentSort(s => s === 'top' ? 'newest' : 'top')} aria-label="Sort comments" style={{
+                  width:36, height:36, border:'none', borderRadius:'50%', background:C.chip,
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M7 12h10M10 17h4" stroke="#39414F" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+                <button onClick={() => setCOpen(false)} aria-label="Close comments" style={{
+                  width:36, height:36, border:'none', borderRadius:'50%', background:C.chip,
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#39414F" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+              </div>
+              {commentSearchOpen && (
+                <div style={{ flexShrink:0, padding:'0 16px 12px' }}>
+                  <input autoFocus value={commentQuery} onChange={e => setCommentQuery(e.target.value)}
+                    placeholder="Search comments…"
+                    style={{ width:'100%', boxSizing:'border-box', height:38, border:`1.5px solid ${C.border}`,
+                             borderRadius:999, background:C.chip, padding:'0 14px', fontSize:12.5, outline:'none',
+                             fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+                </div>
+              )}
+              <div style={{ height:1, background:C.divider, flexShrink:0 }}/>
+
+              {/* List */}
+              <div style={{ flex:1, overflowY:'auto', padding:'14px 16px' }}>
+                {comments.length === 0 && (
+                  <div style={{ fontSize:12.5, color:C.subtle, textAlign:'center', padding:'24px 0' }}>No comments yet. Be the first!</div>
+                )}
+                {comments.length > 0 && visible.length === 0 && (
+                  <div style={{ fontSize:12.5, color:C.subtle, textAlign:'center', padding:'24px 0' }}>No comments match "{commentQuery.trim()}"</div>
+                )}
+                {visible.map(c => <CommentRow key={c.id} c={c} isReply={false} />)}
+              </div>
+
+              {/* Reply indicator */}
+              {replyTo && (
+                <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:6, background:'rgba(0,152,240,0.07)',
+                              margin:'0 16px', borderRadius:8, padding:'5px 10px' }}>
+                  <span style={{ fontSize:11, color:C.primary, fontWeight:600 }}>↩ Replying to {replyTo.author}</span>
+                  <button onClick={() => { setReplyTo(null); setDraft(''); }}
+                    style={{ border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto',
+                             fontSize:12, color:C.subtle, lineHeight:1 }}>✕</button>
+                </div>
+              )}
+
+              {/* Input */}
+              <div style={{ flexShrink:0, display:'flex', gap:8, alignItems:'center', padding:'10px 16px calc(14px + env(safe-area-inset-bottom))', borderTop:`1px solid ${C.divider}` }}>
+                <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0,
+                              background:currentUser?.avatarUrl ? 'none' : (currentUser?.avatarColor || C.grad),
+                              display:'flex', alignItems:'center', justifyContent:'center',
+                              color:'#fff', fontSize:12, fontWeight:800, overflow:'hidden' }}>
+                  {currentUser?.avatarUrl
+                    ? <img src={currentUser.avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+                    : (currentUser?.name?.[0] || 'Y').toUpperCase()}
+                </div>
+                <input
+                  ref={inputRef}
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitComment(); } }}
+                  placeholder={replyTo ? `Reply to ${replyTo.author}…` : 'Write a comment…'}
+                  style={{ flex:1, height:38, border:`1.5px solid ${C.border}`, borderRadius:999,
+                           background:'#fff', padding:'0 13px', fontSize:12.5, outline:'none',
+                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+                />
+                {draft.trim() && (
+                  <button onClick={submitComment} style={{ width:38, height:38, border:'none', borderRadius:'50%',
+                    background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitComment(); } }}
-              placeholder={replyTo ? `Reply to ${replyTo.author}…` : 'Write a comment…'}
-              style={{ flex:1, height:36, border:`1.5px solid ${C.border}`, borderRadius:999,
-                       background:'#fff', padding:'0 13px', fontSize:12, outline:'none',
-                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}
-            />
-            {draft.trim() && (
-              <button onClick={submitComment} style={{ width:36, height:36, border:'none', borderRadius:'50%',
-                background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Post options sheet */}
       {showOptions && (
@@ -2740,7 +3040,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             {[
               ...(isGroupAdmin ? [{
                 label: p.is_pinned ? 'Unpin Post' : 'Pin Post',
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="12" y1="17" x2="12" y2="22" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><g transform="rotate(45 12 12)"><line x1="12" y1="17" x2="12" y2="22" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></g></svg>,
                 action: handleTogglePin,
               }] : []),
               ...(canModerate ? [{
@@ -3210,7 +3510,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           <>
           {/* Primary button */}
           <button onClick={handlePrimary} disabled={membershipMutating} style={{
-            flex:'0 1 260px', height:46, borderRadius:999, border:btn.border||'none',
+            flex:'0 1 auto', height:46, padding:'0 24px', borderRadius:999, border:btn.border||'none',
             background:btn.bg, color:btn.color, boxShadow:btn.shadow,
             fontSize:15, fontWeight:800, cursor: membershipMutating ? 'default' : 'pointer',
             opacity: membershipMutating ? 0.7 : 1,
@@ -3509,7 +3809,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                               </svg>
                             )}
                           </div>
-                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>{fmtDate(ev.full_date || ev.date)}</div>
+                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>
+                            {fmtDate(ev.full_date || ev.date)}{(ev.start_time || ev.time_range) ? ` · ${fmtRange(ev.time_range) || fmt12(ev.start_time)}` : ''}
+                          </div>
+                          {(ev.location || ev.venue) && (
+                            <div style={{ fontSize:11.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
+                                          overflow:'hidden', textOverflow:'ellipsis' }}>{ev.venue || ev.location}</div>
+                          )}
                           <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                               <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
@@ -3523,8 +3829,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                             background: ev.is_pinned ? '#EAF6FF' : C.chip, display:'flex', alignItems:'center',
                             justifyContent:'center', cursor:'pointer', flexShrink:0, alignSelf:'flex-start' }}>
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                              <line x1="12" y1="17" x2="12" y2="22" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
-                              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                              <g transform="rotate(45 12 12)">
+                                <line x1="12" y1="17" x2="12" y2="22" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
+                                <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={ev.is_pinned ? C.primary : C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                              </g>
                             </svg>
                           </button>
                         )}
@@ -3647,7 +3955,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
-function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, following, toggleFollowing, navigate, goBack, showToast, role }) {
+function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, navigate, goBack, showToast, role }) {
   const [dbEvent, setDbEvent] = useState(null);
   useEffect(() => {
     if (!eventId) return;
@@ -3671,7 +3979,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   const ev = dbEvent || EVENTS.find(e => e.id === eventId) || EVENTS[0];
   const th = THEME[ev.primary || ev.category] || THEME.social;
   const [expanded, setExpanded] = useState(false);
-  const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isFollowing = !!following[ev.id], isShared = !!shared[ev.id];
+  const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isShared = !!shared[ev.id];
 
   const attendeeCount = ev.attendee_count || ev.attendees || 0;
 
@@ -3737,10 +4045,11 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           if (didShare) recordShare(ev.id);
         }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-              fill={isShared ? '#FF8A3D' : 'none'}
-              stroke={isShared ? '#FF8A3D' : '#39414F'}
-              strokeWidth="1.8" strokeLinejoin="round"/>
+            <circle cx="18" cy="5" r="3" fill={isShared ? '#FF8A3D' : 'none'} stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
+            <circle cx="6" cy="12" r="3" fill={isShared ? '#FF8A3D' : 'none'} stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
+            <circle cx="18" cy="19" r="3" fill={isShared ? '#FF8A3D' : 'none'} stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
           </svg>
         </HeaderBtn>
         <HeaderBtn onClick={() => { toggleSave(ev.id); showToast(isSaved ? 'Removed from saved' : 'Event saved!'); }}>
@@ -3800,10 +4109,19 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           );
         })()}
 
-        {/* Organizer card */}
-        <div style={{ marginTop:13, background:C.card, borderRadius:16,
+        {/* Organizer card — tapping through to the group page only makes
+            sense when the event actually belongs to a group; a solo
+            organizer (no group_id) has no profile page to show here.
+            The old "Follow" button here was wired to toggleRsvp (event
+            RSVPs), so tapping it silently created a fake RSVP row and fired
+            the organizer's "someone's attending your event" notification --
+            removed rather than reusing that, since GroupProfileScreen
+            already has its own real join/request state for this group. */}
+        <div onClick={() => ev.group_id && navigate('group-profile', { groupId: ev.group_id })}
+          style={{ marginTop:13, background:C.card, borderRadius:16,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'12px 15px',
-                      display:'flex', alignItems:'center', gap:11 }}>
+                      display:'flex', alignItems:'center', gap:11,
+                      cursor: ev.group_id ? 'pointer' : 'default' }}>
           <div style={{ width:44, height:44, borderRadius:13, flexShrink:0,
                         background: ev.org_avatar ? 'transparent' : (ev.org_color || th.grad),
                         display:'flex', alignItems:'center', overflow:'hidden',
@@ -3822,15 +4140,11 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             </div>
             <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Verified Organizer</div>
           </div>
-          <button onClick={() => toggleFollowing(ev.id)}
-            style={{ flexShrink:0, height:30, padding:'0 14px', borderRadius:999,
-                     border: isFollowing ? `1.5px solid ${C.border}` : 'none',
-                     background: isFollowing ? '#fff' : C.primary,
-                     color: isFollowing ? '#7B8499' : '#fff',
-                     fontSize:11, fontWeight:700, cursor:'pointer',
-                     fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-            {isFollowing ? 'Following' : 'Follow'}
-          </button>
+          {ev.group_id && (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+              <path d="M9 6l6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
         </div>
 
         {/* Info card */}
@@ -3953,12 +4267,14 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                               display:'flex', alignItems:'center', justifyContent:'center' }}>
                   {isFreeEv ? (
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      <line x1="4" y1="20" x2="20" y2="4" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/>
+                      <circle cx="12" cy="12" r="9" stroke="#10B981" strokeWidth="1.8"/>
+                      <path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#10B981" strokeWidth="1.6" strokeLinecap="round"/>
+                      <line x1="5.5" y1="18.5" x2="18.5" y2="5.5" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
                   ) : (
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="12" r="9" stroke="#F59E0B" strokeWidth="1.8"/>
+                      <path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#F59E0B" strokeWidth="1.6" strokeLinecap="round"/>
                     </svg>
                   )}
                 </div>
@@ -4285,7 +4601,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
     const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
     if (raw === todayStr) return 'Today';
     if (raw === tomorrowStr) return 'Tomorrow';
-    return spDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return fmtDate(spDate);
   })();
 
 
@@ -4319,8 +4635,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
           else { try { await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`); showToast('Space link copied to clipboard'); } catch { showToast('Could not share'); } }
         }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-              fill="none" stroke="#39414F" strokeWidth="1.8" strokeLinejoin="round"/>
+            <circle cx="18" cy="5" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <circle cx="6" cy="12" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <circle cx="18" cy="19" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#39414F" strokeWidth="1.8"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#39414F" strokeWidth="1.8"/>
           </svg>
         </HeaderBtn>
         <HeaderBtn onClick={() => toggleSaveSpace && toggleSaveSpace(spaceId)}>
@@ -4817,14 +5136,14 @@ function GifPickerSheet({ onClose, onSelect }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
-function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToast, currentUser }) {
+function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack, showToast, currentUser }) {
   const found = CHATS.find(c => c.id === chatId);
   const chat = found || {
     id: chatId,
     name: chatName || 'Chat',
     initial: chatInitial || (chatName?.[0]?.toUpperCase() || '?'),
     color: chatColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
-    type: 'dm',
+    type: isGroup ? 'group' : 'dm',
   };
 
   const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
@@ -4865,25 +5184,30 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
     }
   }, [resolveError, messagesError]);
 
+  // Group chats have no single "other person" to fall back to, so an
+  // unresolved profile shows as a generic member; DMs fall back to the
+  // chat's own display name, which is already the other participant's name.
+  const isGroupChat = chat.type === 'group' || chat.isGroup
   // Map Supabase shape → UI shape
   const messages = rawMessages.map(msg => {
     const isOut = msg.sender_id === currentUserId
     const profile = msg._senderProfile || null
     const senderName = isOut
       ? (currentUser?.name || profile?.name || 'You')
-      : (profile?.name || chatName || '?')
+      : (profile?.name || (isGroupChat ? 'Member' : chatName) || '?')
     const senderAvatar = isOut ? (currentUser?.avatarUrl || profile?.avatar_url || null) : (profile?.avatar_url || null)
-    const senderColor  = isOut ? (currentUser?.avatarColor || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)') : (profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)')
+    const senderColor  = (isOut ? currentUser?.avatarColor : null) || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)'
     return {
       id:         msg.id,
       side:       isOut ? 'out' : 'in',
       text:       msg.content,
-      time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }),
+      time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'numeric', minute:'2-digit', hour12:true }),
       hasText:    !!msg.content,
       hasImage:   !!(msg.attachment_url && /\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
       hasFile:    !!(msg.attachment_url && !/\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
       attachUrl:  msg.attachment_url || null,
       sender:     msg.sender_id,
+      aName:      senderName,
       aInitial:   senderName[0]?.toUpperCase() || '?',
       aColor:     senderColor,
       aAvatar:    senderAvatar,
@@ -4929,9 +5253,8 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
   useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
   // Online status — group chats (id 4) show member count, DMs show 'Active recently'
-  const isGroup = chat.type === 'group' || chat.isGroup;
   const memberCount = chat.memberCount || chat.members;
-  const onlineLabel = isGroup
+  const onlineLabel = isGroupChat
     ? memberCount ? `Online · ${memberCount} members` : 'Online'
     : 'Active recently';
 
@@ -4980,14 +5303,6 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
         </div>
 
         {/* Action icons */}
-        <button onClick={() => showToast('Voice call')} style={{ width:36, height:36, border:'none',
-          background:'none', display:'flex', alignItems:'center', justifyContent:'center',
-          cursor:'pointer', flexShrink:0 }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1A19.5 19.5 0 0 1 5.6 13a19.8 19.8 0 0 1-3.1-8.7 2 2 0 0 1 2-2.2h3a1 1 0 0 1 1 .9 12.8 12.8 0 0 0 .7 2.8 1 1 0 0 1-.2 1.1L7.6 8.3a16 16 0 0 0 6 6l1.4-1.4a1 1 0 0 1 1.1-.2 12.8 12.8 0 0 0 2.8.7 1 1 0 0 1 .9 1.1Z"
-                  stroke="#39414F" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
         <button onClick={() => setMenuOpen(v => !v)} style={{ width:32, height:36, border:'none',
           background:'none', display:'flex', alignItems:'center', justifyContent:'center',
           cursor:'pointer', flexShrink:0 }}>
@@ -5035,7 +5350,8 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
         {messages.map((m, i) => {
           const isOut = m.side === 'out';
           const prev  = messages[i - 1];
-          const firstOfGroup = !prev || prev.side !== m.side;
+          const firstOfGroup = !prev || prev.side !== m.side ||
+            (!isOut && isGroupChat && prev.sender !== m.sender);
 
           return (
             <div key={m.id} style={{ display:'flex', gap:7, marginTop: firstOfGroup ? 10 : 2,
@@ -5045,7 +5361,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
                 <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
                               background: m.aAvatar ? 'transparent' : m.aColor, display:'flex', alignItems:'center',
                               justifyContent:'center', color:'#fff', fontSize:10,
-                              fontWeight:800, alignSelf:'flex-end', position:'relative',
+                              fontWeight:800, alignSelf:'flex-start', position:'relative',
                               overflow:'hidden' }}>
                   {m.aAvatar
                     ? <img src={m.aAvatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
@@ -5063,7 +5379,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, goBack, showToas
                 {/* Sender name */}
                 {!isOut && firstOfGroup && (
                   <span style={{ fontSize:10, fontWeight:700, color:'#8A93A6',
-                                 marginBottom:3, marginLeft:4 }}>{chatName || m.aInitial}</span>
+                                 marginBottom:3, marginLeft:4 }}>{m.aName}</span>
                 )}
 
                 {/* Bubble */}
@@ -5296,6 +5612,8 @@ function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColo
 // ─────────────────────────────────────────────────────────────
 function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const cu = currentUser || {};
+  const scrollRef = useRef(null);
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = profileScrollTop; }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
@@ -5353,9 +5671,9 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       title:'Account',
       rows: [
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); } },
-        { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
+        { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', iconPath2:'M14 7.5v9', iconPath2Dash:true, title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved', hasChevron:true, onClick:()=>navigate('saved-events') },
-        { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>setPayOpen(true) },
+        { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 6.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-11Z', iconPath2:'M3 10h18M6.5 15h1.5', iconPath2Dash:false, title:'Payment Methods', hasChevron:true, onClick:()=>setPayOpen(true) },
         ...(profileRole!=='student'?[{ icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M3 5h18M3 10h18M3 15h10', title:'Manage Events', hasChevron:true, onClick:()=>navigate('event-manager') }]:[]),
       ],
     },
@@ -5375,13 +5693,21 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           }
           if (!import.meta.env.VITE_FIREBASE_API_KEY) { showToast('Firebase not configured'); return; }
           const { requestNotificationPermission } = await import('./lib/firebase.js');
-          const token = await requestNotificationPermission(currentUser?.userId, currentUser?.updateProfile);
+          const token = await requestNotificationPermission(currentUser?.userId);
           if (token) { setPush(true); showToast('Push notifications enabled!'); }
           else { showToast('Could not enable notifications — please try again'); }
         }},
         { icon:'#E4F7EC', iconStroke:'#15A34A', iconPath:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z', iconPath2:'m22 6-10 7L2 6', title:'Email Notifications', isToggle:true, toggleVal:emailNotif, onToggle:()=>{ const v=!emailNotif; setEmailNotif(v); localStorage.setItem('pref_email_notif', v); showToast(v ? 'Email notifications enabled' : 'Email notifications disabled'); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', title:'Reminders', isToggle:true, toggleVal:reminders, onToggle:()=>{ const v=!reminders; setReminders(v); localStorage.setItem('pref_reminders', v); showToast(v ? 'Reminders enabled' : 'Reminders disabled'); } },
-        { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z', iconPath2:'', title:'Location Services', isToggle:true, toggleVal:location, onToggle:()=>{ const v=!location; if(v && navigator.geolocation) { navigator.geolocation.getCurrentPosition(()=>{ setLocation(true); localStorage.setItem('pref_location','true'); showToast('Location enabled'); }, ()=>showToast('Location permission denied')); } else { setLocation(false); localStorage.setItem('pref_location','false'); showToast('Location disabled'); } } },
+        { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z', iconPath2:'', title:'Location Services', isToggle:true, toggleVal:location, onToggle:()=>{
+          const v=!location;
+          if (!v) { setLocation(false); localStorage.setItem('pref_location','false'); showToast('Location disabled'); return; }
+          if (!navigator.geolocation) { showToast('Location services are not available on this device'); return; }
+          navigator.geolocation.getCurrentPosition(
+            ()=>{ setLocation(true); localStorage.setItem('pref_location','true'); showToast('Location enabled'); },
+            ()=>showToast('Location permission denied'),
+          );
+        } },
       ],
     },
     {
@@ -5412,7 +5738,8 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }}>
+      <div ref={scrollRef} onScroll={e => { profileScrollTop = e.currentTarget.scrollTop; }}
+        style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }}>
         {/* Identity */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
           <button onClick={() => {
@@ -5485,7 +5812,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
                     style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px',
                              cursor: r.hasChevron ? 'pointer' : 'default' }}>
                     <div style={{ width:38, height:38, borderRadius:11, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:r.icon }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d={r.iconPath} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>{r.iconPath2&&<path d={r.iconPath2} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>}</svg>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d={r.iconPath} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>{r.iconPath2&&<path d={r.iconPath2} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={r.iconPath2Dash?'0.5 3':undefined}/>}</svg>
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:12.5, fontWeight:700, color:textColor }}>{r.title}</div>
@@ -5850,10 +6177,14 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
   // code-entry step, so leftover digits from a previous attempt don't
   // briefly flash before clearing.
   const go = (s) => {
-    if (s === 'second-factor') { setCode(['','','','','','']); setBackupCode(''); }
+    if (s === 'second-factor' || s === 'reset-password') { setCode(['','','','','','']); setBackupCode(''); }
     setStep(s); setAnimKey(k => k+1);
   };
-  const { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
+  const { login, signup, verify, completeOnboarding, secondFactor, verifySecondFactor, resendSecondFactor, requestPasswordReset, resendPasswordReset, resetPassword } = useClerkAuth(showToast, setScreen, go, currentUser?.refetchProfile);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode,  setResetCode]  = useState('');
+  const [newPw,      setNewPw]      = useState('');
+  const [confirmNewPw, setConfirmNewPw] = useState('');
 
   // ── field state ───────────────────────────────────────────
   const [name,     setName]     = useState('');
@@ -5925,7 +6256,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
           />
         </div>
         {/* Forgot */}
-        <span onClick={()=>showToast('Password reset coming soon')}
+        <span onClick={()=>{ setResetEmail(email); go('forgot-password'); }}
           style={{ fontSize:13, fontWeight:700, color:'#19BFFF', marginTop:14,
                    cursor:'pointer', alignSelf:'flex-end' }}>
           Forgot Password?
@@ -6029,11 +6360,6 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
           {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
           {loading ? 'Creating account…' : 'Sign Up'}
         </button>
-        <span onClick={()=>showToast('Password reset coming soon')}
-          style={{ fontSize:13, fontWeight:700, color:'#19BFFF', marginTop:12,
-                   cursor:'pointer', textAlign:'center', display:'block' }}>
-          Forgot Password?
-        </span>
         <div style={{ textAlign:'center', fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:10 }}>
           Already have an account?{' '}
           <span onClick={()=>go('login')} style={{ color:'#19BFFF', fontWeight:800, cursor:'pointer' }}>
@@ -6127,6 +6453,145 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </div>
         <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
         <AuthBigBtn onClick={withLoading(()=>verify(code.join('')))} loading={loading} fullWidth>Verify</AuthBigBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // ── FORGOT PASSWORD: request a reset code ────────────────
+  if (step === 'forgot-password') {
+    return (
+      <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+                    background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                    overflow:'hidden', ...slideStyle }}>
+        <div style={bgWash}/>
+        <div style={{ position:'relative', flexShrink:0, padding:'52px 16px 0',
+                      display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={()=>go('login')} style={{ width:38, height:38, border:'none',
+            borderRadius:999, background:'#fff', boxShadow:`0 2px 8px rgba(16,24,40,0.08)`,
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
+                         letterSpacing:1.5, color:C.ink, marginRight:38 }}>
+            RESET PASSWORD
+          </span>
+        </div>
+        <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
+                      alignItems:'center', padding:'40px 32px 0' }}>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink, textAlign:'center' }}>
+            Forgot your password?
+          </div>
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+                        marginTop:10, maxWidth:280 }}>
+            Enter your student email and we'll send you a code to reset it.
+          </div>
+          <div style={{ width:'100%', marginTop:26 }}>
+            <input value={resetEmail} onChange={e=>setResetEmail(e.target.value)}
+              placeholder="student email" inputMode="email"
+              style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
+                       color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+          </div>
+        </div>
+        <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
+          <AuthBigBtn onClick={withLoading(()=>requestPasswordReset(resetEmail))} loading={loading} fullWidth>
+            Send Reset Code
+          </AuthBigBtn>
+        </div>
+      </div>
+    );
+  }
+
+  // ── RESET PASSWORD: enter code + new password ────────────
+  if (step === 'reset-password') {
+    const inputs = Array.from({length:6},(_,i)=>i);
+    const handleKey = (i,e) => {
+      const v = e.target.value.replace(/\D/g,'').slice(-1);
+      const nc=[...code]; nc[i]=v; setCode(nc);
+      if(v&&i<5) codeRefs[i+1].current?.focus();
+      if(!v&&i>0&&e.nativeEvent.inputType==='deleteContentBackward') codeRefs[i-1].current?.focus();
+    };
+    const handlePaste = (e) => {
+      const digits = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6).split('');
+      if(!digits.length) return;
+      e.preventDefault();
+      const nc=['','','','','',''];
+      digits.forEach((d,i)=>{ nc[i]=d; });
+      setCode(nc);
+      const focusIdx = Math.min(digits.length, 5);
+      codeRefs[focusIdx].current?.focus();
+    };
+    return (
+      <div key={animKey} style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative',
+                    background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                    overflow:'hidden', ...slideStyle }}>
+        <div style={bgWash}/>
+        <div style={{ position:'relative', flexShrink:0, padding:'52px 16px 0',
+                      display:'flex', alignItems:'center', gap:10 }}>
+          <button onClick={()=>go('forgot-password')} style={{ width:38, height:38, border:'none',
+            borderRadius:999, background:'#fff', boxShadow:`0 2px 8px rgba(16,24,40,0.08)`,
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
+                         letterSpacing:1.5, color:C.ink, marginRight:38 }}>
+            RESET PASSWORD
+          </span>
+        </div>
+        <div style={{ position:'relative', flex:1, overflowY:'auto', display:'flex', flexDirection:'column',
+                      alignItems:'center', padding:'32px 32px 0' }}>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink,
+                        textAlign:'center' }}>Enter the code</div>
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+                        marginTop:10, maxWidth:280 }}>
+            We've sent a 6-digit code to {resetEmail || 'your email'}. Enter it below with your new password.
+          </div>
+          <div style={{ display:'flex', gap:11, marginTop:24 }}>
+            {inputs.map(i=>(
+              <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                <div style={{ width:14, height:14, borderRadius:'50%',
+                              background: code[i] ? C.primary : '#E4E8EF',
+                              transition:'background .2s', pointerEvents:'none' }}/>
+                <input ref={codeRefs[i]} value={code[i]} onChange={e=>handleKey(i,e)}
+                  onPaste={i===0 ? handlePaste : undefined}
+                  maxLength={1} inputMode="numeric"
+                  style={{ width:44, height:44, border:'none',
+                           borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,
+                           background:'none', outline:'none', textAlign:'center',
+                           fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary,
+                           transition:'border-color 0.15s' }}/>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize:13, color:'#7B8499', marginTop:18 }}>
+            Didn't receive the code?{' '}
+            <span onClick={resendPasswordReset} style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>Resend</span>
+          </div>
+          <div style={{ width:'100%', marginTop:22, display:'flex', flexDirection:'column', gap:12 }}>
+            <input value={newPw} onChange={e=>setNewPw(e.target.value)} type="password"
+              placeholder="new password"
+              style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
+                       color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+            <input value={confirmNewPw} onChange={e=>setConfirmNewPw(e.target.value)} type="password"
+              placeholder="confirm new password"
+              style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
+                       color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+          </div>
+        </div>
+        <div style={{ position:'relative', flexShrink:0, padding:'14px 26px 32px' }}>
+          <AuthBigBtn onClick={withLoading(async ()=>{
+            if (newPw !== confirmNewPw) { showToast("Passwords don't match"); return; }
+            await resetPassword(code.join(''), newPw);
+          })} loading={loading} fullWidth>
+            Reset Password
+          </AuthBigBtn>
         </div>
       </div>
     );
@@ -6445,28 +6910,20 @@ const TICKETS_DATA = [
   },
 ];
 
-// Deterministic pseudo-QR matrix (17×17 cells)
-function makeQR(seed) {
-  const N = 17;
-  let x = (seed * 2654435761) >>> 0;
-  const rnd = () => { x = ((x * 1103515245) + 12345) & 0x7fffffff; return x / 0x7fffffff; };
-  const cells = [];
-  for (let r = 0; r < N; r++) {
-    for (let c = 0; c < N; c++) {
-      // Simple finder-pattern corners
-      const inCorner = (br, bc) => r>=br && r<br+5 && c>=bc && c<bc+5;
-      let val;
-      if (inCorner(0,0) || inCorner(0,N-5) || inCorner(N-5,0)) {
-        const lr = r % 5 === 0 || r % 5 === 4 || c % 5 === 0 || c % 5 === 4;
-        const mid = r % 5 >= 1 && r % 5 <= 3 && c % 5 >= 1 && c % 5 <= 3;
-        val = lr || mid;
-      } else {
-        val = rnd() > 0.48;
-      }
-      cells.push(val);
-    }
-  }
-  return cells;
+// Real, scannable QR code encoding the ticket's id -- CheckInScreen decodes
+// this via camera + jsQR and looks the ticket up by that id.
+function TicketQRCode({ value, active }) {
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    QRCode.toDataURL(value, {
+      width: 136, margin: 0,
+      color: { dark: active ? '#0B1420' : '#9AA3B2', light: '#0000' },
+    }).then(u => { if (!cancelled) setUrl(u); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [value, active]);
+  if (!url) return <div style={{ width:136, height:136 }} />;
+  return <img src={url} width={136} height={136} alt="Ticket QR code" style={{ display:'block' }} />;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -6641,13 +7098,17 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
     // time/location captured at purchase time), so no join is needed.
     supabase
       .from('tickets')
-      .select('id, event_id, event_title, access, location, date, time, status, purchased_at')
+      .select('id, event_id, event_title, access, location, date, time, status, purchased_at, amount_paid')
       .eq('user_id', user.id)
       .order('purchased_at', { ascending: false })
       .then(({ data, error }) => {
         if (error) { console.error('[MyTickets] fetch error:', error); setLoading(false); return; }
         const mapped = (data || []).map(t => {
-          const evDate = t.date ? new Date(t.date) : null;
+          const evDate = t.date
+            ? /^\d{4}-\d{2}-\d{2}$/.test(t.date)
+              ? new Date(`${t.date}T00:00:00`)
+              : new Date(t.date)
+            : null;
           const dateValid = evDate && !isNaN(evDate);
           // Compare calendar days, not exact timestamps — otherwise an event
           // happening later today gets marked USED the moment midnight passes.
@@ -6659,9 +7120,13 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
             title: t.event_title || 'Event',
             access: t.access || 'General Admission',
             status: isPast ? 'USED' : (t.status || 'ACTIVE'),
-            date: dateValid ? evDate.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }) : (t.date || '–'),
-            time: t.time || '–',
+            date: dateValid ? evDate.toLocaleDateString('en-GB', { weekday:'short', month:'short', day:'numeric' }) : (t.date || '–'),
+            time: t.time ? fmt12(t.time) : '–',
             location: t.location || '–',
+            // Older tickets bought before this column existed have no
+            // recorded amount -- show a dash rather than a misleading "Free".
+            amountPaid: t.amount_paid == null ? null : t.amount_paid,
+            purchasedAt: t.purchased_at,
             isPast,
           };
         });
@@ -6747,9 +7212,8 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
           </div>
         )}
 
-        {list.map((tk, idx) => {
+        {list.map((tk) => {
           const isActive = tk.status === 'ACTIVE';
-          const cells = makeQR(idx * 17 + 3);
 
           return (
             <div key={tk.id} style={{ background:C.card, borderRadius:22,
@@ -6787,6 +7251,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                 {[
                   { label:'Date',     value:tk.date     },
                   { label:'Time',     value:tk.time     },
+                  { label:'Amount',   value: tk.amountPaid == null ? '–' : (tk.amountPaid === 0 ? 'Free' : `$${tk.amountPaid.toFixed(2)}`) },
                   { label:'Location', value:tk.location, full:true },
                 ].map(row => (
                   <div key={row.label}
@@ -6812,19 +7277,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                 <div style={{ background: isActive ? '#F4F8FF' : '#F4F6FA',
                               borderRadius:16, padding:14,
                               border: isActive ? `1.5px solid #D6EAFF` : `1.5px solid ${C.border}` }}>
-                  {/* QR grid */}
-                  <div style={{ display:'grid', gridTemplateColumns:`repeat(17,1fr)`,
-                                width:136, height:136, gap:0 }}>
-                    {cells.map((on, i) => (
-                      <div key={i} style={{
-                        width:'100%', height:'100%',
-                        background: on
-                          ? (isActive ? C.ink : '#9AA3B2')
-                          : 'transparent',
-                        borderRadius:1,
-                      }}/>
-                    ))}
-                  </div>
+                  <TicketQRCode value={tk.id} active={isActive} />
                 </div>
 
                 {/* Ticket ID */}
@@ -6907,6 +7360,70 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
 }
 
 
+
+// ─────────────────────────────────────────────────────────────
+// SCREEN: CREATION SUCCESS (shared by Create Event/Space/Group)
+// ─────────────────────────────────────────────────────────────
+// A dedicated confirmation screen after creating an event/space/group,
+// instead of just a toast + an immediate jump straight into the new
+// content -- reuses TicketsScreen's existing checkmark/riplyPop pattern for
+// visual consistency rather than inventing a second success animation.
+const CREATION_KIND_CONFIG = {
+  event: { noun: 'Event', verb: 'published', detailScreen: 'event-details', detailParam: 'eventId', rootScreen: 'home' },
+  space: { noun: 'Space', verb: 'created',   detailScreen: 'space-details', detailParam: 'spaceId', rootScreen: 'spaces' },
+  group: { noun: 'Group', verb: 'created',   detailScreen: 'group-profile', detailParam: 'groupId', rootScreen: 'discover' },
+};
+function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
+  const cfg = CREATION_KIND_CONFIG[kind] || CREATION_KIND_CONFIG.event;
+  return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column',
+                  background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column',
+                    alignItems:'center', justifyContent:'center', padding:'40px 24px' }}>
+        <div style={{ width:88, height:88, borderRadius:'50%', background:'#E4F7EC',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      animation:'riplyPop .5s cubic-bezier(.2,.8,.2,1)' }}>
+          <div style={{ width:60, height:60, borderRadius:'50%',
+                        background:'linear-gradient(135deg,#22C55E,#15A34A)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        boxShadow:'0 8px 20px rgba(21,163,74,0.4)' }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+              <path d="m5 12.5 4.5 4.5L19 7" stroke="#fff" strokeWidth="3"
+                    strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink,
+                      marginTop:20, textAlign:'center' }}>
+          {cfg.noun} {cfg.verb}! 🎉
+        </div>
+        <div style={{ fontSize:13.5, lineHeight:1.55, color:'#7B8499',
+                      textAlign:'center', marginTop:8, maxWidth:280 }}>
+          "{title}" is live. Anyone browsing {kind === 'event' ? 'events' : kind === 'space' ? 'spaces' : 'groups'} can find it now.
+        </div>
+
+        <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:10, marginTop:28 }}>
+          <button onClick={() => navigate(cfg.detailScreen, { [cfg.detailParam]: id })} style={{
+            width:'100%', height:50, border:'none', borderRadius:15,
+            background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
+            fontSize:14, fontWeight:800, cursor:'pointer',
+            fontFamily:"'Montserrat',-apple-system,sans-serif",
+            boxShadow:'0 8px 20px rgba(2,162,240,0.4)' }}>
+            View {cfg.noun}
+          </button>
+          <button onClick={() => setScreen(cfg.rootScreen)} style={{
+            width:'100%', height:50, border:'none', borderRadius:15,
+            background:'none', color:C.primary,
+            fontSize:13.5, fontWeight:700, cursor:'pointer',
+            fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+            Done
+          </button>
+        </div>
+        <style>{`@keyframes riplyPop{0%{transform:scale(0.6);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}`}</style>
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE CAMPUS GROUP
@@ -7005,7 +7522,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             if (!file) return;
             setUploadingCover(true);
             try {
-              const ext = file.name.split('.').pop() || 'jpg';
+              const ext = safeExt(file.name);
               const url = await uploadImage(file, 'post-media', Date.now() + '.' + ext);
               setCoverUrl(url);
               showToast('Cover photo uploaded ✓');
@@ -7058,7 +7575,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             if (!file) return;
             setUploadingAvatar(true);
             try {
-              const ext = file.name.split('.').pop() || 'jpg';
+              const ext = safeExt(file.name);
               const url = await uploadImage(file, 'post-media', Date.now() + '.' + ext);
               setAvatarUrl(url);
               showToast('Group icon uploaded ✓');
@@ -7074,7 +7591,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           border:`1.5px solid ${C.border}`, borderRadius:16, padding:12, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:12, textAlign:'left',
         }}>
-          <div style={{ width:54, height:54, borderRadius:16, flexShrink:0,
+          <div style={{ width:54, height:54, borderRadius:'50%', flexShrink:0,
                         background: avatarUrl ? 'transparent' : coverGrad, position:'relative', overflow:'hidden',
                         display:'flex', alignItems:'center', justifyContent:'center' }}>
             {avatarUrl
@@ -7324,8 +7841,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             role: 'admin',
           });
           setSubmitting(false);
-          showToast('Group created! 🎉');
-          navigate('group-profile', { groupId: group.id });
+          navigate('creation-success', { kind: 'group', id: group.id, title: name.trim() });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
@@ -7805,8 +8321,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           }).select().single();
           setSubmitting(false);
           if (error) { showToast('Failed to create space: ' + error.message); return; }
-          showToast('Space created! 🎉');
-          navigate('space-details', { spaceId: space.id });
+          navigate('creation-success', { kind: 'space', id: space.id, title: title.trim() });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
@@ -7900,7 +8415,8 @@ function EventCounterBtn({ onClick, minus }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE EVENT
 // ─────────────────────────────────────────────────────────────
-function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: sourceGroupId }) {
+function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: sourceGroupId, eventId }) {
+  const isEditing = !!eventId;
   const CATS = [
     { id:'social',   label:'Social',   grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
     { id:'career',   label:'Career',   grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)' },
@@ -7945,10 +8461,218 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
   const removeGuest = (i) => setGuests(g => g.filter((_, idx) => idx !== i));
 
   const [isPublic,   setIsPublic]   = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // Tracks *which* action is in flight ('draft' | 'published' | null) so each
+  // button can show its own "…ing" label instead of both going stale together.
+  const [submittingStatus, setSubmittingStatus] = useState(null);
+  const submitting = !!submittingStatus;
   const activeCat = CATS.find(c => c.id === cat) || CATS[0];
   const isPaid = pricing === 'paid';
   const canPublish = title.trim().length > 0;
+
+  // Edit mode: load the existing event and prefill every field. originalPrice
+  // is kept around (not just displayed) so submitEvent can tell whether the
+  // organizer actually changed it and only then notify ticket holders.
+  const [loadingEvent, setLoadingEvent] = useState(isEditing);
+  const [originalPrice, setOriginalPrice] = useState(null);
+  const [eventStatus, setEventStatus] = useState('published');
+
+  // Converts a stored "6:00 PM"-style string back to the 24-hour "18:00"
+  // a native <input type="time"> needs to show it as prefilled.
+  const to24Hr = (t12) => {
+    const m = String(t12 || '').trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!m) return '';
+    let h = parseInt(m[1], 10);
+    const min = m[2];
+    const ampm = m[3].toUpperCase();
+    if (ampm === 'AM') { if (h === 12) h = 0; } else if (h !== 12) { h += 12; }
+    return `${String(h).padStart(2, '0')}:${min}`;
+  };
+
+  useEffect(() => {
+    if (!eventId) return;
+    let cancelled = false;
+    (async () => {
+      const { data: ev, error } = await supabase.from('events').select('*').eq('id', eventId).single();
+      if (cancelled) return;
+      if (error || !ev) {
+        showToast('Could not load event');
+        goBack();
+        return;
+      }
+      setCat(ev.category || 'social');
+      setTitle(ev.title || '');
+      setDate(ev.date || ev.full_date || '');
+      setStartTime(to24Hr(ev.start_time));
+      const [, endLabel] = (ev.time_range || '').split(' – ');
+      setEndTime(to24Hr(endLabel));
+      setRepeat(!!ev.repeat_weeks);
+      setRepeatWeeks(ev.repeat_weeks ? String(ev.repeat_weeks) : '');
+      setVenue(ev.venue || '');
+      setRoom(ev.room || '');
+      setCoverUrl(ev.image_url || null);
+      const parsedPrice = parseEventPrice(ev.price);
+      setPricing(parsedPrice.isFree ? 'free' : 'paid');
+      setPrice(parsedPrice.isFree ? '' : String(parsedPrice.amount));
+      setOriginalPrice(parsedPrice.isFree ? 0 : parsedPrice.amount);
+      setUnlimited(ev.capacity == null);
+      setCapacity(ev.capacity ?? 50);
+      setAbout(ev.description || ev.full_desc || '');
+      setRules(Object.fromEntries((ev.rules || []).map(r => [r, true])));
+      setGuests(ev.guests || []);
+      setIsPublic(ev.is_public !== false);
+      setEventStatus(ev.status || 'published');
+      setLoadingEvent(false);
+    })();
+    return () => { cancelled = true; };
+  }, [eventId]);
+
+  const handleCancelEvent = async () => {
+    if (!window.confirm(`Cancel "${title}"? Everyone with a ticket will be notified. This can't be undone.`)) return;
+    setSubmittingStatus('cancel');
+    const { error } = await supabase.from('events').update({ status: 'cancelled' }).eq('id', eventId);
+    if (error) { setSubmittingStatus(null); showToast('Failed to cancel: ' + error.message); return; }
+    const { error: notifErr } = await supabase.rpc('notify_event_change', { p_event_id: eventId, p_change_type: 'cancelled' });
+    if (notifErr) console.error('[handleCancelEvent] notify failed:', notifErr);
+    setSubmittingStatus(null);
+    showToast('Event cancelled');
+    navigate('event-manager');
+  };
+
+  const submitEvent = async (status) => {
+    if (!canPublish) { showToast('Add an event title first'); return; }
+    if (!currentUser.userId) { showToast('You must be logged in to save an event'); return; }
+    if (status === 'published' && isPaid && parseEventPrice(price).amount <= 0) {
+      showToast('Enter a valid ticket price');
+      return;
+    }
+    setSubmittingStatus(status);
+    const location = [venue, room].filter(Boolean).join(' · ');
+    const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
+    const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
+    const newPrice = isPaid ? parseEventPrice(price).amount : 0;
+    const sharedFields = {
+      title: title.trim(),
+      description: about.trim(),
+      full_desc: about.trim(),
+      category: cat,
+      tags: [cat],
+      location: location || null,
+      venue: venue.trim() || null,
+      room: room.trim() || null,
+      date: date || null,
+      full_date: date || null,
+      start_time: startTime ? fmt12(startTime) : null,
+      time_range: timeRange || null,
+      repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
+      image_url: coverUrl || null,
+      // Store a clean numeric string, not a raw `$`-prefixed user
+      // string — every read site parses this defensively, but no
+      // need to bake a display artifact into the stored value.
+      // parseEventPrice (not a bare parseFloat) so a user who typed
+      // "$15" into the field doesn't silently become a free event.
+      price: isPaid ? String(newPrice) : 'Free',
+      capacity: unlimited ? null : capacity,
+      badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
+      rules: selectedRules.length ? selectedRules : null,
+      guests: guests.length ? guests : null,
+    };
+
+    let event, error;
+    if (isEditing) {
+      // Editing never touches attendee_count/likes/saves/shares/trending --
+      // those are live counters this screen has no business resetting.
+      ({ data: event, error } = await supabase.from('events')
+        .update(sharedFields)
+        .eq('id', eventId)
+        .select().single());
+    } else {
+      ({ data: event, error } = await supabase.from('events').insert({
+        ...sharedFields,
+        user_id: currentUser.userId,
+        org: currentUser.name || 'Organizer',
+        org_initial: (currentUser.name || 'O')[0].toUpperCase(),
+        attendee_count: 0,
+        likes: 0,
+        saves: 0,
+        shares: 0,
+        trending: false,
+        group_id: sourceGroupId || null,
+        is_public: sourceGroupId ? isPublic : true,
+        status,
+      }).select().single());
+    }
+    if (error) { setSubmittingStatus(null); showToast(`Failed to ${isEditing ? 'save changes' : status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }
+
+    if (isEditing) {
+      // Only notify ticket holders if the price actually changed -- not on
+      // every unrelated edit (fixing a typo in the description shouldn't
+      // spam everyone who bought a ticket).
+      if (originalPrice !== null && newPrice !== originalPrice) {
+        const detail = newPrice === 0 ? 'now free' : `now $${newPrice.toFixed(2)}`;
+        const { error: notifErr } = await supabase.rpc('notify_event_change', {
+          p_event_id: eventId, p_change_type: 'price_changed', p_detail: detail,
+        });
+        if (notifErr) console.error('[submitEvent] price-change notify failed:', notifErr);
+      }
+      setSubmittingStatus(null);
+      showToast('Changes saved');
+      navigate('event-details', { eventId });
+      return;
+    }
+
+    // Drafts aren't visible to anyone else yet, so skip the group
+    // announcement post entirely -- only a published event should notify.
+    if (status === 'published' && sourceGroupId && event) {
+      // Event-alert posts read as an announcement from the group itself,
+      // not a personal post from whichever member happened to create the
+      // event -- so attribute it to the group's own name/avatar rather
+      // than currentUser (unlike CreatePostScreen's regular posts, which
+      // are correctly attributed to the actual poster).
+      const { data: groupRow } = await supabase.from('groups')
+        .select('name, avatar_url, logo_color').eq('id', sourceGroupId).single();
+      const authorName = groupRow?.name || 'Group';
+      const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
+      // Not checked before: if this group has "members can post" turned off,
+      // a non-admin member creating an event here would have this insert
+      // silently rejected by posts_insert's RLS (membersPost/admin check) --
+      // the event itself still publishes fine, but the announcement post
+      // just vanishes with no feedback that it never made it to the feed.
+      const { error: announceError } = await supabase.from('posts').insert({
+        group_id:           sourceGroupId,
+        user_id:            currentUser.userId,
+        content:            eventPostText,
+        text:               eventPostText,
+        image_url:          coverUrl || null,
+        linked_event_id:    event.id,
+        linked_event_title: title.trim(),
+        linked_event_date:  fmtDate(date) || null,
+        linked_event_time:  timeRange || null,
+        likes_count:        0,
+        comment_count:      0,
+        author_name:        authorName,
+        author_initial:     authorName[0]?.toUpperCase() || 'G',
+        author_color:       groupRow?.logo_color || deriveAvatarColor(sourceGroupId),
+        avatar_url:         groupRow?.avatar_url || null,
+        author_is_group:    true,
+      });
+      if (announceError) {
+        console.error('[submitEvent] group announcement post failed:', announceError);
+        showToast('Event published, but the group announcement post could not be posted');
+      }
+      // increment event_count via RPC: groups.update() is admin-only
+      // now, so this (a member, not necessarily the admin, posting an
+      // event) goes through a security-definer function scoped to
+      // just this counter.
+      await supabase.rpc('increment_group_event_count', { p_group_id: sourceGroupId });
+    }
+    setSubmittingStatus(null);
+    if (status === 'draft') {
+      showToast('Draft saved');
+      navigate('event-manager');
+    } else {
+      navigate('creation-success', { kind: 'event', id: event.id, title: title.trim() });
+    }
+  };
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -7966,10 +8690,18 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           </svg>
         </button>
         <div style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
-                      letterSpacing:-0.4, color:C.ink }}>Create Event</div>
+                      letterSpacing:-0.4, color:C.ink }}>{isEditing ? 'Edit Event' : 'Create Event'}</div>
         <div style={{ width:40 }} />
       </div>
 
+      {loadingEvent ? (
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ width:36, height:36, borderRadius:'50%', border:'3.5px solid #E1E6EE',
+                        borderTopColor:C.primary, animation:'riplySpin .8s linear infinite' }}/>
+          <style>{`@keyframes riplySpin{to{transform:rotate(360deg);}}`}</style>
+        </div>
+      ) : (
+      <>
       {/* ── Scroll body ────────────────────────────────────── */}
       <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
 
@@ -8359,105 +9091,78 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             </span>
           </div>
         )}
-        <button
-          onClick={async () => {
-            if (!canPublish) { showToast('Add an event title first'); return; }
-            if (!currentUser.userId) { showToast('You must be logged in to publish an event'); return; }
-            if (isPaid && parseEventPrice(price).amount <= 0) { showToast('Enter a valid ticket price'); return; }
-            setSubmitting(true);
-            const location = [venue, room].filter(Boolean).join(' · ');
-            const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
-            const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
-            const { data: event, error } = await supabase.from('events').insert({
-              user_id: currentUser.userId,
-              title: title.trim(),
-              org: currentUser.name || 'Organizer',
-              org_initial: (currentUser.name || 'O')[0].toUpperCase(),
-              description: about.trim(),
-              full_desc: about.trim(),
-              category: cat,
-              tags: [cat],
-              location: location || null,
-              venue: venue.trim() || null,
-              room: room.trim() || null,
-              date: date || null,
-              full_date: date || null,
-              start_time: startTime ? fmt12(startTime) : null,
-              time_range: timeRange || null,
-              repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
-              image_url: coverUrl || null,
-              // Store a clean numeric string, not a raw `$`-prefixed user
-              // string — every read site parses this defensively, but no
-              // need to bake a display artifact into the stored value.
-              // parseEventPrice (not a bare parseFloat) so a user who typed
-              // "$15" into the field doesn't silently become a free event.
-              price: isPaid ? String(parseEventPrice(price).amount) : 'Free',
-              capacity: unlimited ? null : capacity,
-              attendee_count: 0,
-              likes: 0,
-              saves: 0,
-              shares: 0,
-              trending: false,
-              badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
-              rules: selectedRules.length ? selectedRules : null,
-              guests: guests.length ? guests : null,
-              group_id: sourceGroupId || null,
-              is_public: sourceGroupId ? isPublic : true,
-            }).select().single();
-            if (error) { setSubmitting(false); showToast('Failed to publish: ' + error.message); return; }
-            // If created from a group, also create a post so it appears in the Posts tab
-            if (sourceGroupId && event) {
-              const authorName = currentUser.name || 'Organizer';
-              const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
-              await supabase.from('posts').insert({
-                group_id:           sourceGroupId,
-                user_id:            currentUser.userId,
-                content:            eventPostText,
-                text:               eventPostText,
-                image_url:          coverUrl || null,
-                linked_event_id:    event.id,
-                linked_event_title: title.trim(),
-                linked_event_date:  fmtDate(date) || null,
-                linked_event_time:  timeRange || null,
-                likes_count:        0,
-                comment_count:      0,
-                author_name:        authorName,
-                author_initial:     authorName[0]?.toUpperCase() || 'O',
-                author_color:       currentUser?.avatarColor || deriveAvatarColor(currentUser?.userId || ''),
-              });
-              // increment event_count via RPC: groups.update() is admin-only
-              // now, so this (a member, not necessarily the admin, posting an
-              // event) goes through a security-definer function scoped to
-              // just this counter.
-              await supabase.rpc('increment_group_event_count', { p_group_id: sourceGroupId });
-            }
-            setSubmitting(false);
-            showToast('Event published! 🎉');
-            navigate('event-details', { eventId: event.id });
-          }}
-          style={{
-            width:'100%', height:50, border:'none', borderRadius:15,
-            cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
-            background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-            color:'#fff', fontSize:14, fontWeight:800,
-            fontFamily:"'Montserrat',-apple-system,sans-serif",
-            display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-            boxShadow: canPublish ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
-            opacity: submitting ? 0.7 : 1,
-          }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
-                  stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
-          </svg>
-          {submitting ? 'Publishing…' : 'Publish Event'}
-          {canPublish && !submitting && (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+        {isEditing ? (
+          <div style={{ display:'flex', gap:10 }}>
+            <button
+              onClick={handleCancelEvent}
+              disabled={submitting}
+              style={{
+                flex:'0 0 auto', height:50, padding:'0 20px', borderRadius:15,
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                border:`1.5px solid #FFD3CC`, background:'#FFF1ED', color:C.danger,
+                fontSize:14, fontWeight:800,
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                opacity: submitting ? 0.7 : 1,
+              }}>
+              {submittingStatus === 'cancel' ? 'Cancelling…' : 'Cancel Event'}
+            </button>
+            <button
+              onClick={() => submitEvent(eventStatus)}
+              disabled={!canPublish || submitting}
+              style={{
+                flex:1, height:50, border:'none', borderRadius:15,
+                cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
+                background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
+                color:'#fff', fontSize:14, fontWeight:800,
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                opacity: submitting ? 0.7 : 1,
+              }}>
+              {submittingStatus === eventStatus ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        ) : (
+        <div style={{ display:'flex', gap:10 }}>
+          <button
+            disabled={!canPublish || submitting}
+            onClick={() => submitEvent('draft')}
+            style={{
+              flex:'0 0 auto', height:50, padding:'0 20px', borderRadius:15,
+              cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
+              border:`1.5px solid ${C.border}`, background:C.card, color:C.body,
+              fontSize:14, fontWeight:800,
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+              opacity: submitting ? 0.7 : 1,
+            }}>
+            {submittingStatus === 'draft' ? 'Saving…' : 'Save Draft'}
+          </button>
+          <button
+            onClick={() => submitEvent('published')}
+            style={{
+              flex:1, height:50, border:'none', borderRadius:15,
+              cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
+              background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
+              color:'#fff', fontSize:14, fontWeight:800,
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+              display:'flex', alignItems:'center', justifyContent:'center', gap:9,
+              boxShadow: canPublish ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
+              opacity: submitting ? 0.7 : 1,
+            }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
+                    stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
-          )}
-        </button>
+            {submittingStatus === 'published' ? 'Publishing…' : 'Publish Event'}
+            {canPublish && !submitting && (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h13M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+        </div>
+        )}
       </div>
-
+      </>
+      )}
     </div>
   );
 }
@@ -8583,7 +9288,10 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
         try {
           const { data: chatId, error } = await supabase.rpc('create_admin_thread', { p_group_id: groupId });
           if (error || !chatId) { showToast('Failed to reach UMSU support'); return; }
-          navigate('chat', { chatId, chatName: 'UMSU Support', chatInitial: 'U', chatColor: 'linear-gradient(135deg,#19BFFF,#0098F0)' });
+          // isGroup: true -- this is a shared thread with every UMSU admin for
+          // the campus, not a 1:1 DM, so incoming messages need per-sender
+          // names/avatars rather than all showing "UMSU Support".
+          navigate('chat', { chatId, chatName: 'UMSU Support', chatInitial: 'U', chatColor: 'linear-gradient(135deg,#19BFFF,#0098F0)', isGroup: true });
         } catch {
           showToast('Failed to reach UMSU support');
         }
@@ -8917,11 +9625,14 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
 
   const open = requests.filter(r => !done[r.userId]);
 
+  // notify_membership_decision now performs the accept/decline mutation
+  // itself (atomically with the notification) so the two can never diverge
+  // -- see the SQL function's comment for why that matters.
   const resolve = async (r, accept) => {
     setDone(s => ({ ...s, [r.userId]: true }));
-    const { error } = accept
-      ? await supabase.from('group_members').update({ role: 'member' }).eq('group_id', groupId).eq('user_id', r.userId)
-      : await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', r.userId);
+    const { error } = await supabase.rpc('notify_membership_decision', {
+      p_group_id: groupId, p_target_user_id: r.userId, p_accepted: accept,
+    });
     if (error) {
       setDone(s => { const n = { ...s }; delete n[r.userId]; return n; });
       showToast(`Failed to ${accept ? 'accept' : 'decline'}: ` + error.message);
@@ -8932,11 +9643,18 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
   const acceptAll = async () => {
     const targets = open;
     setDone(s => { const n = { ...s }; targets.forEach(r => { n[r.userId] = true; }); return n; });
-    const { error } = await supabase.from('group_members').update({ role: 'member' })
-      .eq('group_id', groupId).eq('role', 'pending');
-    if (error) {
-      setDone(s => { const n = { ...s }; targets.forEach(r => { delete n[r.userId]; }); return n; });
-      showToast('Failed to accept all: ' + error.message);
+    const results = await Promise.all(targets.map(r =>
+      supabase.rpc('notify_membership_decision', { p_group_id: groupId, p_target_user_id: r.userId, p_accepted: true })
+    ));
+    const failed = results.filter(({ error }) => error);
+    if (failed.length > 0) {
+      console.error('[pending-requests] accept-all had failures:', failed.map(f => f.error));
+      setDone(s => {
+        const n = { ...s };
+        targets.forEach((r, i) => { if (results[i].error) delete n[r.userId]; });
+        return n;
+      });
+      showToast(failed.length === targets.length ? 'Failed to accept all' : `Accepted ${targets.length - failed.length} of ${targets.length}`);
       return;
     }
     showToast('All requests accepted');
@@ -9411,7 +10129,7 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
             { value: stats ? (stats.newPosts || '—') : '—', label:'Posts This Week', iconBg:'#E4F7EC',
               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="3" stroke="#10B981" strokeWidth="2"/><path d="M12 9v6M9 12h6" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/></svg> },
             { value: stats ? (stats.events || '—') : '—', label:'Events', iconBg:'#FFF6EC',
-              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="#F59E0B" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/></svg> },
+              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="#F59E0B" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/><circle cx="8" cy="14" r="1.3" fill="#F59E0B"/><circle cx="12" cy="14" r="1.3" fill="#F59E0B"/><circle cx="16" cy="14" r="1.3" fill="#F59E0B"/><circle cx="8" cy="18" r="1.3" fill="#F59E0B"/><circle cx="12" cy="18" r="1.3" fill="#F59E0B"/><circle cx="16" cy="18" r="1.3" fill="#F59E0B"/></svg> },
           ].map(k => (
             <div key={k.label} style={{ background:'#fff', borderRadius:18,
                                          boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
@@ -9576,6 +10294,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
     setDesc(dbGroup.description || '');
     setCategory((dbGroup.category || [])?.[0] || 'academic');
     setVisibility(dbGroup.privacy || 'public');
+    if (dbGroup.permissions) setPerms(p => ({ ...p, ...dbGroup.permissions }));
     if (dbGroup.rules?.length) setRules([...dbGroup.rules]);
     if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', ...dbGroup.social_links });
   }, [dbGroup]);
@@ -9768,7 +10487,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                   const file = e.target.files?.[0]; if (!file) return;
                   setUploadingCoverEdit(true);
                   try {
-                    const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${file.name.split('.').pop()}`);
+                    const url = await uploadImage(file, 'post-media', `groups/cover-${groupId}.${safeExt(file.name)}`);
                     await supabase.from('groups').update({ cover_url: url }).eq('id', groupId);
                     setCoverUrl(url);
                     showToast('Cover photo updated ✓');
@@ -10111,54 +10830,122 @@ function CheckInScreen({ eventId, goBack, showToast }) {
   const mockEv = EVENTS.find(e => e.id === eventId);
   const eventTitle = eventLoading ? 'Loading…' : ((dbEvent || mockEv)?.title || 'Event');
 
-  // NOTE: attendee list and check-in counts below are still a UI mock — this
-  // fix only resolves the real event so the header shows the right title
-  // instead of always "Karaoke Night". Wiring live ticket-holder data and a
-  // real check-in write path is a larger follow-up, not attempted here.
-  const ATTENDEES = [
-    { name:'Maya Robinson',  initial:'MR', ticket:'General', color:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', valid:true  },
-    { name:'Liam Kowalski',  initial:'LK', ticket:'VIP',     color:'linear-gradient(135deg,#2F6BFF,#6C4DF2)', valid:true  },
-    { name:'Aisha Nasser',   initial:'AN', ticket:'General', color:'linear-gradient(135deg,#10B981,#06B6D4)', valid:true  },
-    { name:'Noah Park',      initial:'NP', ticket:'VIP',     color:'linear-gradient(135deg,#7C5CFF,#B06BFF)', valid:true  },
-    { name:'Sofia Mendez',   initial:'SM', ticket:'General', color:'linear-gradient(135deg,#F59E0B,#EF4444)', valid:false, reason:'Already checked in' },
-    { name:'Ethan Wong',     initial:'EW', ticket:'General', color:'linear-gradient(135deg,#0EA5E9,#0E84E0)', valid:true  },
-  ];
+  const [checkedIn, setCheckedIn] = useState(0);
+  const [total,     setTotal]     = useState(0);
+  const [result,    setResult]    = useState(null);
+  const [recent,    setRecent]    = useState([]);
+  const [cameraError, setCameraError] = useState(null);
+  const [manualId,  setManualId]  = useState('');
 
-  const [checkedIn, setCheckedIn] = useState(142);
-  const total = 200;
-  const [result,  setResult]  = useState(null);
-  const [recent,  setRecent]  = useState([]);
-  const [scanIdx, setScanIdx] = useState(0);
-
+  const videoRef      = useRef(null);
+  const canvasRef      = useRef(null);
+  const streamRef      = useRef(null);
+  const rafRef         = useRef(null);
+  const processingRef  = useRef(false);
+  const pausedRef      = useRef(false);
   const resultTimerRef = useRef(null);
-  const scan = () => {
-    const a = ATTENDEES[scanIdx % ATTENDEES.length];
-    setScanIdx(i => i + 1);
-    setResult(a);
-    if (a.valid) {
-      setCheckedIn(n => Math.min(total, n + 1));
-      setRecent(r => [{ ...a, time:'just now' }, ...r].slice(0, 6));
-    }
+
+  // Real attendee totals -- how many tickets exist for this event, and how
+  // many are already marked used, instead of a hardcoded 142/200.
+  useEffect(() => {
+    if (!eventId) return;
+    let cancelled = false;
+    (async () => {
+      const [{ count: totalCount }, { count: usedCount }] = await Promise.all([
+        supabase.from('tickets').select('*', { count:'exact', head:true }).eq('event_id', eventId),
+        supabase.from('tickets').select('*', { count:'exact', head:true }).eq('event_id', eventId).eq('status', 'USED'),
+      ]);
+      if (!cancelled) { setTotal(totalCount || 0); setCheckedIn(usedCount || 0); }
+    })();
+    return () => { cancelled = true; };
+  }, [eventId]);
+
+  const showResult = useCallback((r) => {
+    setResult(r);
+    pausedRef.current = true;
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
-    resultTimerRef.current = setTimeout(() => setResult(null), 1800);
-  };
+    resultTimerRef.current = setTimeout(() => { setResult(null); pausedRef.current = false; }, 1800);
+  }, []);
+
+  // Validates + marks the ticket used via a security-definer RPC (not a
+  // direct update) -- tickets_update RLS only allows the ticket's own owner
+  // to touch their row, so the organizer needs a function that checks
+  // "am I this event's organizer" server-side rather than opening up
+  // tickets_update to anyone, which would let an organizer edit ticket
+  // fields beyond just status.
+  const handleScan = useCallback(async (ticketId) => {
+    const id = ticketId.trim();
+    if (!id || processingRef.current) return;
+    processingRef.current = true;
+    pausedRef.current = true;
+    try {
+      const { data, error } = await supabase.rpc('check_in_ticket', { p_ticket_id: id, p_event_id: eventId });
+      if (error) {
+        showResult({ valid:false, name:null, reason: error.message || 'Invalid ticket' });
+      } else {
+        const row = data?.[0];
+        const name = row?.user_name || 'Attendee';
+        showResult({ valid:true, name, ticket: row?.access || 'Ticket' });
+        setCheckedIn(n => n + 1);
+        setRecent(r => [{ name, initial:(name[0] || '?').toUpperCase(),
+                           color:'linear-gradient(135deg,#19BFFF,#0098F0)', time:'just now' }, ...r].slice(0, 6));
+      }
+    } catch (err) {
+      // supabase.rpc() throwing (network failure, etc.) rather than resolving
+      // with {data, error} previously left processingRef/pausedRef stuck true
+      // forever, freezing the scanner for the rest of the session with no
+      // recovery short of a reload.
+      console.error('[handleScan] error:', err);
+      showResult({ valid:false, name:null, reason: 'Scan failed — try again' });
+    } finally {
+      processingRef.current = false;
+    }
+  }, [eventId, showResult]);
+
+  // Camera + scan loop: grab a video frame onto the hidden canvas every
+  // animation frame and hand the pixels to jsQR; a decoded QR payload is the
+  // ticket's id, which handleScan looks up server-side.
+  useEffect(() => {
+    let cancelled = false;
+    const tick = () => {
+      rafRef.current = requestAnimationFrame(tick);
+      const video = videoRef.current, canvas = canvasRef.current;
+      if (!video || !canvas || processingRef.current || pausedRef.current) return;
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code?.data) handleScan(code.data);
+    };
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        tick();
+      } catch {
+        if (!cancelled) setCameraError('Camera unavailable — check browser permissions, or check in manually below.');
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+    };
+  }, [handleScan]);
+
   useEffect(() => () => {
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
   }, []);
 
-  const pct = Math.round((checkedIn / total) * 100);
-
-  // faux QR cells
-  const N = 17;
-  const cells = Array.from({ length: N * N }, (_, idx) => {
-    const r = Math.floor(idx / N), c = idx % N;
-    const finder = (rr, cc) => rr < 5 && cc < 5;
-    if (finder(r, c) || finder(r, N - 5 + (c < 5 ? 0 : N)) || finder(N - 5 + (r < 5 ? 0 : N), c)) {
-      const lr = r % 5, lc = c % 5;
-      return lr === 0 || lr === 4 || lc === 0 || lc === 4 || (lr >= 1 && lr <= 3 && lc >= 1 && lc <= 3);
-    }
-    return ((r * 7 + c * 13 + (r * c) % 5)) % 3 === 0;
-  });
+  const pct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column',
@@ -10218,37 +11005,40 @@ function CheckInScreen({ eventId, goBack, showToast }) {
       <div style={{ flex:1, position:'relative', margin:'0 18px', borderRadius:24,
                     overflow:'hidden',
                     background:'linear-gradient(160deg,#16202C,#0C1219)', minHeight:0 }}>
-        {/* texture */}
-        <div style={{ position:'absolute', inset:0, background:
-          'repeating-linear-gradient(135deg,rgba(255,255,255,0.03) 0,rgba(255,255,255,0.03) 2px,transparent 2px,transparent 18px)'}}/>
-        <div style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
-                      fontFamily:"'JetBrains Mono',monospace", fontSize:10, letterSpacing:1,
-                      color:'rgba(255,255,255,0.4)' }}>POINT AT ATTENDEE QR</div>
+        <video ref={videoRef} playsInline muted style={{
+          position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover',
+          opacity: cameraError ? 0 : 1,
+        }}/>
+        <canvas ref={canvasRef} style={{ display:'none' }}/>
 
-        {/* Reticle */}
-        <div style={{ position:'absolute', top:'50%', left:'50%',
-                      transform:'translate(-50%,-50%)', width:208, height:208 }}>
-          {[
-            { top:0,  left:0,  borderTop:`4px solid #19BFFF`, borderLeft:`4px solid #19BFFF`,  borderRadius:'14px 0 0 0' },
-            { top:0,  right:0, borderTop:`4px solid #19BFFF`, borderRight:`4px solid #19BFFF`, borderRadius:'0 14px 0 0' },
-            { bottom:0, left:0, borderBottom:`4px solid #19BFFF`, borderLeft:`4px solid #19BFFF`, borderRadius:'0 0 0 14px' },
-            { bottom:0, right:0, borderBottom:`4px solid #19BFFF`, borderRight:`4px solid #19BFFF`, borderRadius:'0 0 14px 0' },
-          ].map((s, i) => (
-            <div key={i} style={{ position:'absolute', width:38, height:38, ...s }}/>
-          ))}
-          {/* Faux QR */}
-          <div style={{ position:'absolute', inset:30, opacity:0.22,
-                        display:'grid', gridTemplateColumns:`repeat(${N},1fr)` }}>
-            {cells.map((on, i) => (
-              <div key={i} style={{ background: on ? '#19BFFF' : 'transparent',
-                                    borderRadius:1 }}/>
-            ))}
+        {cameraError ? (
+          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column',
+                        alignItems:'center', justifyContent:'center', gap:8, padding:24,
+                        textAlign:'center' }}>
+            <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>{cameraError}</span>
           </div>
-          {/* Scan line */}
-          <div style={{ position:'absolute', left:20, right:20, top:'50%',
-                        height:2, background:'linear-gradient(90deg,transparent,#19BFFF,transparent)',
-                        animation:'none', opacity:0.7 }}/>
-        </div>
+        ) : (
+          <>
+            <div style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
+                          fontFamily:"'JetBrains Mono',monospace", fontSize:10, letterSpacing:1,
+                          color:'rgba(255,255,255,0.7)', textShadow:'0 1px 4px rgba(0,0,0,0.6)' }}>
+              POINT AT ATTENDEE QR
+            </div>
+
+            {/* Reticle */}
+            <div style={{ position:'absolute', top:'50%', left:'50%',
+                          transform:'translate(-50%,-50%)', width:208, height:208 }}>
+              {[
+                { top:0,  left:0,  borderTop:`4px solid #19BFFF`, borderLeft:`4px solid #19BFFF`,  borderRadius:'14px 0 0 0' },
+                { top:0,  right:0, borderTop:`4px solid #19BFFF`, borderRight:`4px solid #19BFFF`, borderRadius:'0 14px 0 0' },
+                { bottom:0, left:0, borderBottom:`4px solid #19BFFF`, borderLeft:`4px solid #19BFFF`, borderRadius:'0 0 0 14px' },
+                { bottom:0, right:0, borderBottom:`4px solid #19BFFF`, borderRight:`4px solid #19BFFF`, borderRadius:'0 0 14px 0' },
+              ].map((s, i) => (
+                <div key={i} style={{ position:'absolute', width:38, height:38, ...s }}/>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Result overlay */}
         {result && (
@@ -10313,24 +11103,30 @@ function CheckInScreen({ eventId, goBack, showToast }) {
         )}
       </div>
 
-      {/* Scan button */}
-      <div style={{ flexShrink:0, display:'flex', justifyContent:'center',
-                    padding:'18px 0 30px', zIndex:4 }}>
-        <button onClick={scan} style={{
-          display:'flex', alignItems:'center', gap:10, height:56, padding:'0 30px',
-          border:'none', borderRadius:999, cursor:'pointer',
-          background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
-          fontSize:16, fontWeight:800,
-          fontFamily:"'Montserrat',-apple-system,sans-serif",
-          boxShadow:'0 10px 28px rgba(2,162,240,0.55)',
-        }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"
-                  stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M4 12h16" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          Scan Ticket
-        </button>
+      {/* Manual entry fallback -- for when the camera is unavailable, or the
+          attendee's QR is glared out on their screen */}
+      <div style={{ flexShrink:0, padding:'16px 18px 30px', zIndex:4 }}>
+        <div style={{ display:'flex', gap:8 }}>
+          <input value={manualId} onChange={e => setManualId(e.target.value)}
+            placeholder="Or type ticket ID"
+            onKeyDown={e => { if (e.key === 'Enter' && manualId.trim()) { handleScan(manualId.trim()); setManualId(''); } }}
+            style={{ flex:1, height:50, borderRadius:16, border:'1.5px solid rgba(255,255,255,0.14)',
+                     background:'rgba(255,255,255,0.06)', color:'#fff', padding:'0 16px',
+                     fontSize:13, fontFamily:"'JetBrains Mono',monospace", outline:'none' }}/>
+          <button
+            disabled={!manualId.trim()}
+            onClick={() => { handleScan(manualId.trim()); setManualId(''); }}
+            style={{
+              height:50, padding:'0 22px', border:'none', borderRadius:16,
+              cursor: manualId.trim() ? 'pointer' : 'not-allowed',
+              background: manualId.trim() ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : 'rgba(255,255,255,0.08)',
+              color: manualId.trim() ? '#fff' : 'rgba(255,255,255,0.35)',
+              fontSize:14, fontWeight:800,
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+            }}>
+            Check In
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -10628,7 +11424,7 @@ const EVENT_MANAGER_GRADIENTS = [
 ];
 
 function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
-  const TABS = ['live','draft','past'];
+  const TABS = ['live','draft','past','cancelled'];
 
   const [tab,      setTab]      = useState('live');
   const [events,   setEvents]   = useState([]);
@@ -10687,6 +11483,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
 
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const eventTab = (ev) => {
+    if (ev.status === 'cancelled') return 'cancelled';
     if (ev.status === 'draft') return 'draft';
     const d = new Date(ev.full_date || ev.date || '');
     if (!isNaN(d) && d < todayStart) return 'past';
@@ -10706,7 +11503,29 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
   const fmtMoney = (n) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n}`;
   const fmtCount = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
+  // An event with sold tickets can't be hard-deleted -- tickets_event_id_fkey
+  // is NO ACTION, so the delete would just fail with a foreign key
+  // violation. Cancel it instead (status flip + notify every ticket holder
+  // via the same RPC CreateEventScreen's Cancel Event button uses); only an
+  // event with zero tickets sold is actually removed.
   const handleDelete = async (ev) => {
+    if (ev.sold > 0) {
+      if (!window.confirm(`Cancel "${ev.title}"? Everyone with a ticket will be notified. This can't be undone.`)) return;
+      setDeleting(s => ({ ...s, [ev.id]: true }));
+      const { error } = await supabase.from('events').update({ status: 'cancelled' }).eq('id', ev.id);
+      if (error) {
+        console.error('[event-manager] failed to cancel event:', error);
+        showToast('Could not cancel event: ' + error.message);
+        setDeleting(s => { const n = { ...s }; delete n[ev.id]; return n; });
+        return;
+      }
+      const { error: notifErr } = await supabase.rpc('notify_event_change', { p_event_id: ev.id, p_change_type: 'cancelled' });
+      if (notifErr) console.error('[event-manager] cancel notify failed:', notifErr);
+      setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, status: 'cancelled' } : e));
+      setDeleting(s => { const n = { ...s }; delete n[ev.id]; return n; });
+      showToast('Event cancelled');
+      return;
+    }
     if (!window.confirm(`Delete "${ev.title}"? This cannot be undone.`)) return;
     setDeleting(s => ({ ...s, [ev.id]: true }));
     const { error } = await supabase.from('events').delete().eq('id', ev.id);
@@ -10721,11 +11540,12 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
   };
 
   const STATUS = {
-    live:  { bg:'#E4F7EC', color:'#15A34A', text:'● Live'  },
-    draft: { bg:'#FFF6EC', color:'#F59E0B', text:'Draft'   },
-    past:  { bg:'#F1F3F7', color:'#7B8499', text:'Ended'   },
+    live:      { bg:'#E4F7EC', color:'#15A34A', text:'● Live'   },
+    draft:     { bg:'#FFF6EC', color:'#F59E0B', text:'Draft'    },
+    past:      { bg:'#F1F3F7', color:'#7B8499', text:'Ended'    },
+    cancelled: { bg:'#FFF1ED', color:C.danger,  text:'Cancelled' },
   };
-  const EMPTY_WORD = { live:'live', draft:'draft', past:'past' };
+  const EMPTY_WORD = { live:'live', draft:'draft', past:'past', cancelled:'cancelled' };
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column',
@@ -10911,7 +11731,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                     Check-in
                   </button>
                 )}
-                <button onClick={() => navigate('create-event')} style={{
+                <button onClick={() => navigate('create-event', { eventId: e.id })} style={{
                   flex:1, height:40, border:'none', borderRadius:12,
                   background:'#F1F3F7', color:C.muted,
                   fontSize:12.5, fontWeight:800, cursor:'pointer',
@@ -10989,8 +11809,11 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
           display:'flex', alignItems:'center', justifyContent:'center',
           cursor:'pointer', flexShrink:0 }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-                  stroke="#39414F" strokeWidth="1.8" strokeLinejoin="round"/>
+            <circle cx="18" cy="5" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <circle cx="6" cy="12" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <circle cx="18" cy="19" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#39414F" strokeWidth="1.8"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#39414F" strokeWidth="1.8"/>
           </svg>
         </button>
       </div>
@@ -11185,13 +12008,13 @@ function StripePaymentForm({ total, onSuccess, onError }) {
     e.preventDefault();
     if (!stripe || !elements) return;
     setPaying(true);
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: { return_url: window.location.href },
       redirect: 'if_required',
     });
     setPaying(false);
-    if (error) { onError(error.message); } else { onSuccess(); }
+    if (error) { onError(error.message); } else { onSuccess(paymentIntent?.id || null); }
   };
 
   return (
@@ -11276,7 +12099,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
   // false "confirmed" screen when the write actually failed.
   // `silent` lets the paid (Stripe) path show its own context-specific
   // message instead of stacking this generic one on top of it.
-  const saveTicket = async (silent = false) => {
+  const saveTicket = async (silent = false, paymentIntentId = null) => {
     if (!user?.id) return false;
     // Store an ISO date when the event's date field parses cleanly, so
     // MyTicketsScreen's ACTIVE/USED comparison doesn't depend on the
@@ -11286,7 +12109,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
     const parsedDate = rawDate ? new Date(rawDate) : null;
     const ticketDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toISOString() : rawDate;
     try {
-      const { error } = await supabase.from('tickets').insert({
+      const { data: newTicket, error } = await supabase.from('tickets').insert({
         user_id:      user.id,
         event_id:     ev.id,
         event_title:  ev.title,
@@ -11295,8 +12118,19 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         date:         ticketDate,
         time:         ev.timeRange || ev.time_range || ev.start_time || null,
         location:     ev.location,
-      });
+        // Captured at purchase time (fee + tax included) rather than derived
+        // later from the event's current price -- a since-changed event
+        // price would otherwise make past purchases look wrong in history.
+        amount_paid:  total,
+        stripe_payment_intent_id: paymentIntentId,
+      }).select('id').single();
       if (error) throw error;
+      // Best-effort: the ticket itself already saved above, so a failure to
+      // notify the organizer shouldn't affect the buyer's confirmation.
+      // Scoped to this specific ticket id (not just the event) so the RPC
+      // can enforce it only ever fires once per purchase.
+      const { error: notifErr } = await supabase.rpc('notify_ticket_purchase', { p_ticket_id: newTicket.id });
+      if (notifErr) console.error('[tickets] organizer notify failed:', notifErr);
       return true;
     } catch (err) {
       console.error('[tickets] save error:', err);
@@ -11455,6 +12289,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4A1.8 1.8 0 0 0 20 15.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6A1.8 1.8 0 0 0 4 8.5Z"
                     stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/>
+              <path d="M14 7.5v9" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.5 3"/>
             </svg>
             View Ticket
           </button>
@@ -11546,14 +12381,14 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme:'stripe' } }}>
           <StripePaymentForm
             total={total}
-            onSuccess={async () => {
+            onSuccess={async (paymentIntentId) => {
               // Payment already went through via Stripe at this point — unlike
               // the free path, we can't just send a failed save back to
               // 'purchase' without risking a second charge. Still show
               // success (the charge is real) but flag it if the ticket
               // record itself didn't save, since saveTicket already showed
               // its own generic toast which doesn't fit a completed payment.
-              const saved = await saveTicket(true);
+              const saved = await saveTicket(true, paymentIntentId);
               if (!saved) showToast('Payment received, but we had trouble saving your ticket — contact support if it doesn\'t appear in My Tickets.');
               setStep('success');
             }}
@@ -11837,12 +12672,16 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   }, []);
 
   // Home state
-  const { liked, saved, spaceSaved, shared, rsvpd: following, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, toggleRsvp: toggleFollowing, togglePostLike } = useUserInteractions();
+  const { liked, saved, spaceSaved, shared, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike } = useUserInteractions();
   const [filters, setFilters] = useState({});
   const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
-  const [createOpen, setCreateOpen] = useState(false);
-  const [role, setRole] = useState('student');
+  // The real, persisted role lives on the user's own profile (changed via
+  // Settings, which writes it to the database) -- this screen must read it,
+  // not maintain its own separate copy that resets to 'student' every
+  // session and can be flipped locally with no relationship to what the
+  // user actually saved.
+  const role = currentUser.role;
 
   // Spaces state
   const [spaceTab, setSpaceTab] = useState('all');
@@ -11897,18 +12736,19 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} currentUser={currentUser} />;
-      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
-      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
+      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
-      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
-      case 'event-details': return <EventDetailsScreen eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} following={following} toggleFollowing={toggleFollowing} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
+      case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
+      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
+      case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
@@ -11928,7 +12768,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} following={following} toggleFollowing={toggleFollowing} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} createOpen={createOpen} setCreateOpen={setCreateOpen} role={role} setRole={setRole} navigate={navigate} showToast={showToast} />;
+      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} />;
     }
   };
 

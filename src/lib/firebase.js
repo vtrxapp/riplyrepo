@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getMessaging, getToken, onMessage } from 'firebase/messaging'
+import { supabase } from './supabase'
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,7 +14,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const messaging = getMessaging(app)
 
-export async function requestNotificationPermission(userId, updateProfile) {
+export async function requestNotificationPermission(userId) {
   try {
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return null
@@ -22,7 +23,12 @@ export async function requestNotificationPermission(userId, updateProfile) {
       vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
     })
     if (token && userId) {
-      await updateProfile({ fcm_token: token })
+      // fcm_tokens is a text[] — a user can have multiple registered
+      // devices/browsers, so append rather than overwrite. Done via an
+      // atomic RPC (array_append in a single UPDATE) rather than a
+      // client-side read-then-write, which would race and drop a token if
+      // two devices/tabs registered at the same time.
+      await supabase.rpc('add_fcm_token', { p_token: token })
     }
     return token
   } catch (err) {

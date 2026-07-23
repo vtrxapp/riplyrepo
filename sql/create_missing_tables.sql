@@ -30,6 +30,11 @@ alter table posts add column if not exists file_name           text;
 alter table posts add column if not exists poll_options        jsonb;
 alter table posts add column if not exists poll_votes          jsonb default '{}'::jsonb;
 alter table posts add column if not exists poll_voter_ids      jsonb default '[]'::jsonb;
+alter table posts add column if not exists poll_expires_at    timestamptz;
+-- true for auto-generated group announcements (e.g. "New Event Alert") that
+-- should always display the group's own name/avatar, never the live profile
+-- of whichever member happened to create the event
+alter table posts add column if not exists author_is_group    boolean default false;
 alter table posts add column if not exists linked_event_id     uuid;
 alter table posts add column if not exists linked_event_title  text;
 alter table posts add column if not exists linked_event_date   text;
@@ -91,6 +96,11 @@ alter table events add column if not exists is_public boolean default true;
 -- Left nullable (no default) so pre-existing rows keep showing to regular
 -- users, who are only shown status IS NULL OR status = 'published'.
 alter table events add column if not exists status text;
+
+-- Amount actually charged at purchase time (fee + tax included), captured on
+-- the tickets row itself so purchase history stays accurate even if the
+-- event's price later changes -- previously nothing recorded this at all.
+alter table tickets add column if not exists amount_paid numeric;
 
 -- space_participants table (for SpaceDetailsScreen join)
 create table if not exists space_participants (

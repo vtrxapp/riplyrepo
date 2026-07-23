@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 async function attachUserProfiles(rows) {
@@ -61,8 +61,7 @@ export function useEvents({ category, search, filters } = {}) {
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
-  useEffect(() => {
-    const fetch = async () => {
+  const fetch = useCallback(async () => {
       setLoading(true)
 
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
@@ -146,12 +145,11 @@ export function useEvents({ category, search, filters } = {}) {
       const enriched = await attachUserProfiles(data || [])
       setEvents(enriched)
       setLoading(false)
-    }
-
-    fetch()
   }, [category, search, JSON.stringify(filters)])
 
-  return { events, loading, error }
+  useEffect(() => { fetch() }, [fetch])
+
+  return { events, loading, error, refetch: fetch }
 }
 
 // Fetch a single event by id — for screens (tickets, check-in) that need one

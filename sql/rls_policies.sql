@@ -220,8 +220,31 @@ drop policy if exists posts_update on public.posts;
 drop policy if exists posts_delete on public.posts;
 
 create policy posts_select on public.posts for select using (true);
+-- A group's "members can post" toggle (groups.permissions->>'membersPost')
+-- was only ever checked client-side, so anyone hitting the API directly
+-- could post into a group that had it turned off. Enforce it here too:
+-- non-group posts are unaffected; group posts require either the poster to
+-- be an admin/owner of that group, or the toggle to not be explicitly
+-- 'false' (absent/null defaults to allowed, matching the client's default).
 create policy posts_insert on public.posts for insert
-  with check (current_user_id() = user_id);
+  with check (
+    current_user_id() = user_id
+    and (
+      group_id is null
+      or exists (
+        select 1
+        from public.group_members gm
+        join public.groups g on g.id = gm.group_id
+        where gm.group_id = posts.group_id
+          and gm.user_id = current_user_id()
+          and gm.status = 'approved'
+          and (
+            gm.role in ('admin', 'owner')
+            or coalesce(g.permissions ->> 'membersPost', 'true') <> 'false'
+          )
+      )
+    )
+  );
 -- Update/delete are also allowed for a group admin/owner of the post's group
 -- (not just the author) so group admins can pin/unpin and moderate posts.
 -- USING and WITH CHECK are identical here, so WITH CHECK is omitted --
@@ -305,18 +328,23 @@ declare
   voters jsonb;
   votes  jsonb;
   already_voted boolean;
+  expires_at timestamptz;
 begin
   if current_user_id() is null then
     raise exception 'must be signed in to vote';
   end if;
 
-  select coalesce(poll_voter_ids, '[]'::jsonb), coalesce(poll_votes, '{}'::jsonb)
-    into voters, votes
+  select coalesce(poll_voter_ids, '[]'::jsonb), coalesce(poll_votes, '{}'::jsonb), poll_expires_at
+    into voters, votes, expires_at
   from public.posts where id = p_post_id
   for update;
 
   if not found then
     raise exception 'post not found';
+  end if;
+
+  if expires_at is not null and expires_at < now() then
+    raise exception 'poll has closed';
   end if;
 
   select exists (
@@ -376,6 +404,47 @@ create policy tickets_insert on public.tickets for insert with check (current_us
 create policy tickets_update on public.tickets for update
   using (current_user_id() = user_id) with check (current_user_id() = user_id);
 create policy tickets_delete on public.tickets for delete using (current_user_id() = user_id);
+
+-- Event check-in: marks a ticket used. tickets_update above only lets the
+-- ticket's own owner update it, so the organizer scanning tickets at the
+-- door needs a security-definer function instead of a direct client update
+-- -- otherwise we'd have to open tickets_update to "anyone", which would let
+-- an organizer edit any field on any attendee's ticket, not just status.
+create or replace function public.check_in_ticket(p_ticket_id uuid, p_event_id uuid)
+returns table(user_name text, access text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  t record;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in to check in tickets';
+  end if;
+
+  select * into t from public.tickets where id = p_ticket_id for update;
+  if not found then
+    raise exception 'ticket not found';
+  end if;
+
+  if t.event_id is distinct from p_event_id then
+    raise exception 'this ticket is for a different event';
+  end if;
+
+  if not exists (select 1 from public.events e where e.id = p_event_id and e.user_id = current_user_id()) then
+    raise exception 'not authorized to check in tickets for this event';
+  end if;
+
+  if t.status = 'USED' then
+    raise exception 'this ticket has already been checked in';
+  end if;
+
+  update public.tickets set status = 'USED' where id = p_ticket_id;
+
+  return query select u.name, t.access from public.users u where u.id = t.user_id;
+end;
+$$;
 
 -- ─────────────────────────────────────────────────────────────
 -- chats / messages — scoped to chat_participants membership.
@@ -494,6 +563,135 @@ create policy notifications_update on public.notifications for update
   using (current_user_id() = user_id) with check (current_user_id() = user_id);
 create policy notifications_delete on public.notifications for delete
   using (current_user_id() = user_id);
+
+-- notifications_insert's group fan-out branch only covers admin-notifying-
+-- admin (e.g. new join request) -- it can't cover an admin notifying the
+-- regular member whose request they just accepted/declined, since a plain
+-- member never satisfies "target is admin/owner". Rather than widen that
+-- policy (which would let any group co-member insert a notification for any
+-- other co-member, a spam vector), this narrow security-definer RPC lets an
+-- admin/owner notify one specific membership decision's target, with the
+-- notification's content fully determined server-side.
+-- Notifies an event's organizer when someone gets a ticket (paid or free
+-- RSVP). Same reasoning as notify_membership_decision above -- the buyer
+-- generally isn't a co-admin of any group the organizer belongs to, so
+-- notifications_insert's fan-out branch wouldn't cover this; a narrow
+-- security-definer RPC with server-derived content instead.
+-- Scoped to a specific ticket (not just event_id) and idempotent via the
+-- `notified` flag below -- otherwise a ticket holder could call this RPC
+-- repeatedly for the same purchase and spam the organizer with fake sale
+-- notifications (and themselves with duplicate receipts). The atomic
+-- false->true flip means only the first call for a given ticket does
+-- anything; every later call for that same ticket is a silent no-op.
+alter table public.tickets add column if not exists notified boolean not null default false;
+
+create or replace function public.notify_ticket_purchase(p_ticket_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_buyer text;
+  v_event_id uuid;
+  v_organizer text;
+  v_event_title text;
+  v_buyer_name text;
+  v_updated int;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+
+  select user_id, event_id into v_buyer, v_event_id from public.tickets where id = p_ticket_id;
+  if v_buyer is null then
+    raise exception 'ticket not found';
+  end if;
+  if v_buyer is distinct from current_user_id() then
+    raise exception 'not authorized for this ticket';
+  end if;
+
+  update public.tickets set notified = true where id = p_ticket_id and notified = false;
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    return;
+  end if;
+
+  select user_id, title into v_organizer, v_event_title from public.events where id = v_event_id;
+  if v_organizer is null then
+    return;
+  end if;
+
+  -- An organizer buying/RSVPing to their own event shouldn't notify themself.
+  if v_organizer = current_user_id() then
+    return;
+  end if;
+
+  select coalesce(name, 'Someone') into v_buyer_name from public.users where id = current_user_id();
+
+  insert into public.notifications(user_id, type, title, body)
+  values (v_organizer, 'ticket', v_buyer_name || ' got a ticket to your event', coalesce(v_event_title, 'Your event'));
+
+  -- Buyer-facing receipt, separate from the organizer's sale notification
+  -- above -- distinct 'receipt' type so it emails the buyer, not the organizer.
+  insert into public.notifications(user_id, type, title, body)
+  values (current_user_id(), 'receipt', 'Ticket confirmed', format('Your ticket to %s is confirmed.', coalesce(v_event_title, 'the event')));
+end;
+$$;
+
+-- Performs the accept/decline membership mutation itself (rather than
+-- trusting the client to have already done it and just pass along a
+-- matching p_accepted flag) -- otherwise an admin could call this with
+-- p_accepted mismatched to the row's real resulting state and send a
+-- notification that lies about what actually happened. Doing the mutation
+-- and the notification in the same statement means they can't diverge.
+create or replace function public.notify_membership_decision(p_group_id uuid, p_target_user_id text, p_accepted boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_group_name text;
+  v_updated int;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+  if not exists (
+    select 1 from public.group_members
+    where group_id = p_group_id and user_id = current_user_id()
+      and role in ('admin','owner') and status = 'approved'
+  ) then
+    raise exception 'must be an admin of this group';
+  end if;
+
+  if p_accepted then
+    update public.group_members set role = 'member'
+    where group_id = p_group_id and user_id = p_target_user_id and role = 'pending';
+  else
+    delete from public.group_members
+    where group_id = p_group_id and user_id = p_target_user_id and role = 'pending';
+  end if;
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    raise exception 'no pending request found for this user in this group';
+  end if;
+
+  select name into v_group_name from public.groups where id = p_group_id;
+
+  insert into public.notifications(user_id, type, title, body)
+  values (
+    p_target_user_id,
+    'group',
+    case when p_accepted then 'Request accepted' else 'Request declined' end,
+    case when p_accepted
+      then format('Your request to join %s was accepted. Welcome!', coalesce(v_group_name, 'the group'))
+      else format('Your request to join %s was declined.', coalesce(v_group_name, 'the group'))
+    end
+  );
+end;
+$$;
 
 -- ─────────────────────────────────────────────────────────────
 -- Simple per-user junction/interaction tables: likes, saves, RSVPs, shares.
@@ -670,3 +868,195 @@ $$;
 drop trigger if exists group_members_enforce_ban on public.group_members;
 create trigger group_members_enforce_ban before insert or update on public.group_members
   for each row execute function public.enforce_group_ban();
+
+-- ─────────────────────────────────────────────────────────────
+-- Event editing: cancellation + ticket-holder notifications.
+-- events.status previously only allowed published/upcoming/draft/pending --
+-- widened to include 'cancelled' so a cancelled event can be soft-deleted
+-- (status flips, row stays) rather than hard-deleted. A hard delete isn't an
+-- option once tickets exist anyway: tickets_event_id_fkey is NO ACTION, so
+-- deleting an event with any sold tickets would just fail with a foreign
+-- key violation.
+-- ─────────────────────────────────────────────────────────────
+alter table public.events drop constraint if exists events_status_check;
+alter table public.events add constraint events_status_check
+  check (status = any (array['published','upcoming','draft','pending','cancelled']));
+
+-- Notifies every ticket holder for an event when the organizer changes its
+-- price or cancels it. Same reasoning as notify_membership_decision/
+-- notify_ticket_purchase above: a ticket holder generally isn't a co-admin
+-- of any group the organizer belongs to, so notifications_insert's RLS
+-- fan-out branch doesn't cover "organizer notifies their own attendees" --
+-- this RPC covers it instead, scoped to the caller actually owning the event.
+create or replace function public.notify_event_change(p_event_id uuid, p_change_type text, p_detail text default null)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_title text;
+  v_organizer text;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+
+  select title, user_id into v_title, v_organizer from public.events where id = p_event_id;
+  if v_title is null then
+    raise exception 'event not found';
+  end if;
+  if v_organizer is distinct from current_user_id() then
+    raise exception 'not authorized to notify for this event';
+  end if;
+
+  insert into public.notifications(user_id, type, title, body)
+  select distinct t.user_id, 'event',
+    case p_change_type
+      when 'cancelled' then 'Event cancelled'
+      when 'price_changed' then 'Ticket price updated'
+      else 'Event updated'
+    end,
+    case p_change_type
+      when 'cancelled' then format('%s has been cancelled by the organizer.', v_title)
+      when 'price_changed' then format('The price for %s has changed%s', v_title, coalesce(': ' || p_detail, '.'))
+      else format('%s was updated.', v_title)
+    end
+  from public.tickets t
+  where t.event_id = p_event_id;
+end;
+$$;
+
+-- Web push + email notifications: forwards every new notifications row to
+-- the send-push Edge Function (supabase/functions/send-push, FCM push to
+-- registered devices) and, for the types users actually want emailed
+-- (event changes, group membership decisions, ticket receipts), also to
+-- send-email (supabase/functions/send-email, via Resend). Both functions
+-- pull their secrets (firebase_service_account, resend_api_key,
+-- resend_from_address, edge_function_secret) straight out of Vault via the
+-- service-role-only get_vault_secret() RPC, so nothing beyond the function
+-- URL and a shared caller secret needs to live here. Needs pg_net plus two
+-- Vault secrets set once via SQL (never committed): `edge_function_base_url`
+-- (e.g. https://<project-ref>.supabase.co/functions/v1) and
+-- `edge_function_secret`.
+create extension if not exists pg_net;
+
+create or replace function public.trigger_send_notification()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_url text;
+  v_secret text;
+begin
+  -- Best-effort delivery: this fires after the notification row already
+  -- exists, so a Vault lookup or net.http_post failure (misconfiguration,
+  -- pg_net outage, bad URL) must never propagate and roll back the insert
+  -- that triggered it -- the in-app notification should still land even if
+  -- the push/email side-channel is temporarily broken.
+  begin
+    select decrypted_secret into v_url from vault.decrypted_secrets where name = 'edge_function_base_url';
+    select decrypted_secret into v_secret from vault.decrypted_secrets where name = 'edge_function_secret';
+
+    if v_url is null or v_secret is null then
+      return new;
+    end if;
+
+    perform net.http_post(
+      url := v_url || '/send-push',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || v_secret
+      ),
+      body := jsonb_build_object(
+        'user_id', new.user_id,
+        'title', new.title,
+        'body', new.body
+      )
+    );
+
+    if new.type in ('event', 'group', 'receipt') then
+      perform net.http_post(
+        url := v_url || '/send-email',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || v_secret
+        ),
+        body := jsonb_build_object(
+          'user_id', new.user_id,
+          'subject', new.title,
+          'body', new.body
+        )
+      );
+    end if;
+  exception when others then
+    raise warning 'trigger_send_notification: push/email delivery failed for notification %: %', new.id, sqlerrm;
+  end;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists notifications_send_push on public.notifications;
+drop trigger if exists notifications_send_notification on public.notifications;
+create trigger notifications_send_notification
+  after insert on public.notifications
+  for each row execute function public.trigger_send_notification();
+
+-- Atomic FCM token registration: the client previously did a read-then-write
+-- (select fcm_tokens, append client-side, update) which races when a user
+-- registers from two devices/tabs concurrently -- the slower write can
+-- clobber the faster one and silently drop a token. array_append inside a
+-- single UPDATE is atomic at the row level, so concurrent calls compose
+-- correctly instead of one overwriting the other.
+-- Bounded: rejects unauthenticated callers and oversized/empty tokens
+-- outright, and caps stored tokens per user at 20 (dropping the oldest)
+-- so a buggy or malicious repeated-call loop can't grow this row forever.
+-- FCM tokens are ~150-200 chars in practice; 512 is a generous ceiling.
+create or replace function public.add_fcm_token(p_token text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+  if p_token is null or char_length(p_token) = 0 or char_length(p_token) > 512 then
+    raise exception 'invalid token';
+  end if;
+
+  update public.users
+  set fcm_tokens = (
+    array_remove(coalesce(fcm_tokens, '{}'), p_token) || array[p_token]
+  )[greatest(1, coalesce(array_length(array_remove(coalesce(fcm_tokens, '{}'), p_token), 1), 0) + 1 - 19):]
+  where id = current_user_id();
+end;
+$$;
+
+revoke all on function public.add_fcm_token(text) from public, anon;
+grant execute on function public.add_fcm_token(text) to authenticated;
+
+-- Symmetric atomic counterpart to add_fcm_token, used by the send-push Edge
+-- Function to prune tokens FCM reports as dead. Also a single-statement
+-- UPDATE so it can't race with a concurrent send-push invocation for the
+-- same user (or with add_fcm_token itself) the way a read-then-write would.
+create or replace function public.remove_fcm_tokens(p_user_id text, p_tokens text[])
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.users
+  set fcm_tokens = coalesce(
+    (select array_agg(t) from unnest(fcm_tokens) as t where not (t = any(p_tokens))),
+    '{}'
+  )
+  where id = p_user_id;
+$$;
+
+revoke all on function public.remove_fcm_tokens(text, text[]) from public, anon, authenticated;
+grant execute on function public.remove_fcm_tokens(text, text[]) to service_role;

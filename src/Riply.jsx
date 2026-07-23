@@ -11418,6 +11418,8 @@ function CheckedInListScreen({ eventId, goBack, showToast }) {
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const filtered = q ? attendees.filter(a => a.name.toLowerCase().includes(q)) : attendees;
 
   const load = useCallback(async () => {
     if (!eventId) { setLoading(false); return; }
@@ -11490,7 +11492,7 @@ function CheckedInListScreen({ eventId, goBack, showToast }) {
           </svg>
         </button>
         <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>
-          Checked In ({attendees.length})
+          Checked In ({q ? `${filtered.length}/${attendees.length}` : attendees.length})
         </div>
       </div>
 
@@ -11500,8 +11502,6 @@ function CheckedInListScreen({ eventId, goBack, showToast }) {
 
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 30px' }}>
         {(() => {
-          const q = query.trim().toLowerCase();
-          const filtered = q ? attendees.filter(a => a.name.toLowerCase().includes(q)) : attendees;
           if (loading) return <SkeletonRows />;
           if (attendees.length === 0) return (
             <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:60 }}>

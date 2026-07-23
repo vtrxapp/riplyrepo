@@ -1012,7 +1012,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                         : m.initial}
                     </div>
                   ))}
-                  <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.member_count || 0}</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.member_count || '—'}</span>
                   <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
                 </div>
                 <button onClick={async ()=>{
@@ -2740,8 +2740,8 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
           ))}
         </div>
       ) : p.image_url && (
-        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11 }}>
-          <img src={p.image_url} alt="" style={{ width:'100%', display:'block', maxHeight:420 }} />
+        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, aspectRatio:'4 / 3' }}>
+          <img src={p.image_url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
         </div>
       )}
 

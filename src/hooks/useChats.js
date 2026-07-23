@@ -38,12 +38,16 @@ export function useChats() {
     const dmChats = (chatRows || []).filter(c => !c.group_id)
     const otherParticipantIds = []
 
+    if (gen !== loadGenRef.current) return
+
     if (dmChats.length > 0) {
       const { data: otherParts } = await supabase
         .from('chat_participants')
         .select('chat_id, user_id')
         .in('chat_id', dmChats.map(c => c.id))
         .neq('user_id', userId)
+
+      if (gen !== loadGenRef.current) return
 
       const partMap = Object.fromEntries((otherParts || []).map(p => [p.chat_id, p.user_id]))
       const uniqueIds = [...new Set(Object.values(partMap).filter(Boolean))]
@@ -54,6 +58,8 @@ export function useChats() {
           .from('users')
           .select('id, name, avatar_url, avatar_color')
           .in('id', uniqueIds)
+
+        if (gen !== loadGenRef.current) return
 
         const profileMap = Object.fromEntries((profiles || []).map(u => [u.id, u]))
 

@@ -11338,7 +11338,7 @@ function CheckedInListScreen({ eventId, goBack, showToast }) {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!eventId) return;
+    if (!eventId) { setLoading(false); return; }
     const { data: rows, error: ticketsErr } = await supabase
       .from('tickets')
       .select('id, user_id, access, checked_in_at')

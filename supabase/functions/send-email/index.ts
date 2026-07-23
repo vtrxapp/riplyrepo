@@ -37,6 +37,9 @@ Deno.serve(async (req: Request) => {
     }
     const { data: fromAddress } = await supabase.rpc("get_vault_secret", { p_name: "resend_from_address" });
 
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -47,7 +50,7 @@ Deno.serve(async (req: Request) => {
         from: fromAddress || "Riply <onboarding@resend.dev>",
         to: [user.email],
         subject,
-        html: `<p>${body || ""}</p>`,
+        html: `<p>${escapeHtml(body || "")}</p>`,
       }),
     });
 

@@ -2521,6 +2521,10 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
   const [replyTo, setReplyTo] = useState(null);
   const [likedComments, setLikedComments] = useState({});
   const [showOptions, setShowOptions] = useState(false);
+  const [commentSearchOpen, setCommentSearchOpen] = useState(false);
+  const [commentQuery, setCommentQuery] = useState('');
+  const [commentSort, setCommentSort] = useState('top'); // 'top' | 'newest'
+  const [expandedReplies, setExpandedReplies] = useState({});
   const inputRef = useRef(null);
 
   const isOwner = !!(currentUser?.userId && p.user_id === currentUser.userId);
@@ -2824,91 +2828,187 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         </button>
       </div>
 
-      {/* Comments section */}
-      {cOpen && (
-        <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.divider}` }}>
-          {comments.length === 0 && (
-            <div style={{ fontSize:12, color:C.subtle, textAlign:'center', paddingBottom:8 }}>No comments yet. Be the first!</div>
-          )}
-          {comments.map((c) => {
-            const isLiked = !!likedComments[c.id];
-            const likeCount = (c.likes || 0) + (isLiked ? 1 : 0);
-            const isReply = !!c.replyToId;
-            return (
-              <div key={c.id} style={{ display:'flex', gap:8, marginBottom:12, marginLeft: isReply ? 38 : 0 }}>
-                <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, background:c.aColor,
+      {/* Comments popup — opens as a bottom sheet over the page when the
+          comment icon is tapped, rather than expanding inline in the feed. */}
+      {cOpen && (() => {
+        const q = commentQuery.trim().toLowerCase();
+        const topLevel = comments.filter(c => !c.replyToId);
+        const repliesByParent = {};
+        comments.filter(c => c.replyToId).forEach(c => {
+          (repliesByParent[c.replyToId] ||= []).push(c);
+        });
+        const matches = (c) => !q || c.author?.toLowerCase().includes(q) || c.text?.toLowerCase().includes(q);
+        const visible = topLevel
+          .filter(c => matches(c) || (repliesByParent[c.id] || []).some(matches))
+          .slice()
+          .sort((a, b) => commentSort === 'top'
+            ? ((b.likes || 0) - (a.likes || 0))
+            : (new Date(b.created_at || 0) - new Date(a.created_at || 0)));
+
+        const CommentRow = ({ c, isReply }) => {
+          const isLiked = !!likedComments[c.id];
+          const likeCount = (c.likes || 0) + (isLiked ? 1 : 0);
+          const replies = repliesByParent[c.id] || [];
+          const expanded = !!expandedReplies[c.id];
+          return (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ display:'flex', gap:10 }}>
+                <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background:c.aColor,
                               display:'flex', alignItems:'center', justifyContent:'center',
-                              color:'#fff', fontSize:11, fontWeight:800 }}>{c.aInitial}</div>
-                <div style={{ flex:1 }}>
-                  <div style={{ background:C.chip, borderRadius:12, padding:'8px 11px' }}>
-                    {c.replyToName && (
-                      <div style={{ fontSize:10.5, color:C.primary, fontWeight:700, marginBottom:2 }}>↩ {c.replyToName}</div>
-                    )}
-                    <div style={{ fontSize:12, fontWeight:700, color:C.ink }}>{c.author}</div>
-                    <div style={{ fontSize:13, color:C.body, marginTop:2 }}><Linkify text={c.text} /></div>
+                              color:'#fff', fontSize:12, fontWeight:800 }}>{c.aInitial}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
+                    <span style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>{c.author}</span>
+                    <span style={{ fontSize:11, color:C.subtle }}>{c.time}</span>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:4, paddingLeft:4 }}>
-                    <span style={{ fontSize:10, color:C.subtle }}>{c.time}</span>
+                  {c.replyToName && (
+                    <div style={{ fontSize:10.5, color:C.primary, fontWeight:700, marginTop:2 }}>↩ {c.replyToName}</div>
+                  )}
+                  <div style={{ fontSize:13.5, color:C.body, marginTop:3, lineHeight:1.4 }}><Linkify text={c.text} /></div>
+                  <div style={{ display:'flex', alignItems:'center', gap:16, marginTop:7 }}>
                     <button onClick={() => handleLikeComment(c.id)}
-                      style={{ display:'flex', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', padding:0 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24">
+                      style={{ display:'flex', alignItems:'center', gap:5, border:'none', background:'none', cursor:'pointer', padding:0 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
                               fill={isLiked?'#FF3B6B':'none'} stroke={isLiked?'#FF3B6B':C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
                       </svg>
-                      {likeCount > 0 && <span style={{ fontSize:10, fontWeight:700, color: isLiked?'#FF3B6B':C.subtle }}>{likeCount}</span>}
+                      <span style={{ fontSize:12, fontWeight:700, color: isLiked?'#FF3B6B':C.subtle }}>{likeCount}</span>
                     </button>
+                    {!isReply && (
+                      <button onClick={() => setExpandedReplies(s => ({ ...s, [c.id]: !s[c.id] }))}
+                        disabled={replies.length === 0}
+                        style={{ display:'flex', alignItems:'center', gap:5, border:'none', background:'none',
+                                 cursor: replies.length ? 'pointer' : 'default', padding:0,
+                                 opacity: replies.length ? 1 : 0.4 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                          <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" stroke={C.subtle} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span style={{ fontSize:12, fontWeight:700, color:C.subtle }}>{replies.length}</span>
+                      </button>
+                    )}
                     <button onClick={() => startReply(c)}
-                      style={{ fontSize:10, fontWeight:700, color:C.subtle, border:'none', background:'none', cursor:'pointer', padding:0 }}>
-                      Reply
+                      style={{ display:'flex', alignItems:'center', gap:5, border:'none', cursor:'pointer',
+                               padding:'3px 10px', borderRadius:999, background:C.chip }}>
+                      <span style={{ fontSize:11.5, fontWeight:700, color:C.body }}>reply</span>
                     </button>
+                    {!isReply && replies.length > 0 && (
+                      <button onClick={() => setExpandedReplies(s => ({ ...s, [c.id]: !s[c.id] }))}
+                        style={{ marginLeft:'auto', border:'none', background:'none', cursor:'pointer', padding:0,
+                                 display:'flex', alignItems:'center' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                          style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition:'transform .15s' }}>
+                          <path d="m6 9 6 6 6-6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
-            );
-          })}
-
-          {/* Reply indicator */}
-          {replyTo && (
-            <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(0,152,240,0.07)',
-                          borderRadius:8, padding:'5px 10px', marginBottom:6 }}>
-              <span style={{ fontSize:11, color:C.primary, fontWeight:600 }}>↩ Replying to {replyTo.author}</span>
-              <button onClick={() => { setReplyTo(null); setDraft(''); }}
-                style={{ border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto',
-                         fontSize:12, color:C.subtle, lineHeight:1 }}>✕</button>
+              {!isReply && expanded && replies.map(r => (
+                <div key={r.id} style={{ marginLeft:44, marginTop:12 }}>
+                  <CommentRow c={r} isReply />
+                </div>
+              ))}
             </div>
-          )}
+          );
+        };
 
-          {/* Input */}
-          <div style={{ display:'flex', gap:8, marginTop:4, alignItems:'center' }}>
-            <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0,
-                          background:currentUser?.avatarUrl ? 'none' : (currentUser?.avatarColor || C.grad),
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          color:'#fff', fontSize:11, fontWeight:800, overflow:'hidden' }}>
-              {currentUser?.avatarUrl
-                ? <img src={currentUser.avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
-                : (currentUser?.name?.[0] || 'Y').toUpperCase()}
+        return (
+          <div onClick={() => setCOpen(false)} style={{
+            position:'fixed', inset:0, zIndex:55,
+            background:'rgba(14,23,38,0.45)', display:'flex', alignItems:'flex-end',
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:'100%', maxHeight:'82vh', display:'flex', flexDirection:'column',
+              background:'#fff', borderRadius:'24px 24px 0 0',
+              fontFamily:"'Montserrat',-apple-system,sans-serif",
+            }}>
+              <div style={{ width:38, height:4, borderRadius:99, background:'#D1D8E4', margin:'10px auto 0', flexShrink:0 }}/>
+              {/* Header */}
+              <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:8, padding:'14px 16px 12px' }}>
+                <span style={{ flex:1, fontSize:18, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>Top comments</span>
+                <button onClick={() => setCommentSearchOpen(v => !v)} aria-label="Search comments" style={{
+                  width:36, height:36, border:'none', borderRadius:'50%', background: commentSearchOpen ? C.grad : C.chip,
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={commentSearchOpen?'#fff':'#39414F'} strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke={commentSearchOpen?'#fff':'#39414F'} strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+                <button onClick={() => setCommentSort(s => s === 'top' ? 'newest' : 'top')} aria-label="Sort comments" style={{
+                  width:36, height:36, border:'none', borderRadius:'50%', background:C.chip,
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M7 12h10M10 17h4" stroke="#39414F" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+                <button onClick={() => setCOpen(false)} aria-label="Close comments" style={{
+                  width:36, height:36, border:'none', borderRadius:'50%', background:C.chip,
+                  display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#39414F" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+              </div>
+              {commentSearchOpen && (
+                <div style={{ flexShrink:0, padding:'0 16px 12px' }}>
+                  <input autoFocus value={commentQuery} onChange={e => setCommentQuery(e.target.value)}
+                    placeholder="Search comments…"
+                    style={{ width:'100%', boxSizing:'border-box', height:38, border:`1.5px solid ${C.border}`,
+                             borderRadius:999, background:C.chip, padding:'0 14px', fontSize:12.5, outline:'none',
+                             fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+                </div>
+              )}
+              <div style={{ height:1, background:C.divider, flexShrink:0 }}/>
+
+              {/* List */}
+              <div style={{ flex:1, overflowY:'auto', padding:'14px 16px' }}>
+                {comments.length === 0 && (
+                  <div style={{ fontSize:12.5, color:C.subtle, textAlign:'center', padding:'24px 0' }}>No comments yet. Be the first!</div>
+                )}
+                {comments.length > 0 && visible.length === 0 && (
+                  <div style={{ fontSize:12.5, color:C.subtle, textAlign:'center', padding:'24px 0' }}>No comments match "{commentQuery.trim()}"</div>
+                )}
+                {visible.map(c => <CommentRow key={c.id} c={c} isReply={false} />)}
+              </div>
+
+              {/* Reply indicator */}
+              {replyTo && (
+                <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:6, background:'rgba(0,152,240,0.07)',
+                              margin:'0 16px', borderRadius:8, padding:'5px 10px' }}>
+                  <span style={{ fontSize:11, color:C.primary, fontWeight:600 }}>↩ Replying to {replyTo.author}</span>
+                  <button onClick={() => { setReplyTo(null); setDraft(''); }}
+                    style={{ border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto',
+                             fontSize:12, color:C.subtle, lineHeight:1 }}>✕</button>
+                </div>
+              )}
+
+              {/* Input */}
+              <div style={{ flexShrink:0, display:'flex', gap:8, alignItems:'center', padding:'10px 16px calc(14px + env(safe-area-inset-bottom))', borderTop:`1px solid ${C.divider}` }}>
+                <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0,
+                              background:currentUser?.avatarUrl ? 'none' : (currentUser?.avatarColor || C.grad),
+                              display:'flex', alignItems:'center', justifyContent:'center',
+                              color:'#fff', fontSize:12, fontWeight:800, overflow:'hidden' }}>
+                  {currentUser?.avatarUrl
+                    ? <img src={currentUser.avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+                    : (currentUser?.name?.[0] || 'Y').toUpperCase()}
+                </div>
+                <input
+                  ref={inputRef}
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitComment(); } }}
+                  placeholder={replyTo ? `Reply to ${replyTo.author}…` : 'Write a comment…'}
+                  style={{ flex:1, height:38, border:`1.5px solid ${C.border}`, borderRadius:999,
+                           background:'#fff', padding:'0 13px', fontSize:12.5, outline:'none',
+                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+                />
+                {draft.trim() && (
+                  <button onClick={submitComment} style={{ width:38, height:38, border:'none', borderRadius:'50%',
+                    background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitComment(); } }}
-              placeholder={replyTo ? `Reply to ${replyTo.author}…` : 'Write a comment…'}
-              style={{ flex:1, height:36, border:`1.5px solid ${C.border}`, borderRadius:999,
-                       background:'#fff', padding:'0 13px', fontSize:12, outline:'none',
-                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}
-            />
-            {draft.trim() && (
-              <button onClick={submitComment} style={{ width:36, height:36, border:'none', borderRadius:'50%',
-                background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Post options sheet */}
       {showOptions && (

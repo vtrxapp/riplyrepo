@@ -32,6 +32,25 @@ export function useChats() {
       .in('id', chatIds)
       .order('last_message_at', { ascending: false, nullsFirst: false })
 
+    if (gen !== loadGenRef.current) return
+
+    // Unread = messages sent by someone else since this user last opened the
+    // chat. chat_participants.last_read_at is bumped by useChat.js whenever
+    // the chat screen is opened (or a new message arrives while it's open).
+    // Counted server-side (not by pulling every message to the client) since
+    // Supabase/PostgREST caps rows per request (commonly 1000) -- a client-side
+    // scan would silently undercount for a user in long-running, active chats.
+    const { data: unreadCounts, error: unreadErr } = await supabase.rpc('get_unread_chat_counts')
+    if (unreadErr) {
+      // Bail out rather than falling through with an empty map -- that would
+      // render every chat as read, which is worse than just leaving the
+      // previously-known unread state on screen until the next successful load.
+      console.error('[useChats] get_unread_chat_counts failed:', unreadErr)
+      setLoading(false)
+      return
+    }
+    const unreadCountMap = new Map((unreadCounts || []).map(row => [row.chat_id, row.unread_count]))
+
     // A chat with no group_id is a plain 1:1 DM -- look up the other
     // participant's profile so the list shows their name/avatar rather than
     // a blank "Chat" row (chats.name is only set for group/admin threads).
@@ -49,8 +68,8 @@ export function useChats() {
 
       if (gen !== loadGenRef.current) return
 
-      const partMap = Object.fromEntries((otherParts || []).map(p => [p.chat_id, p.user_id]))
-      const uniqueIds = [...new Set(Object.values(partMap).filter(Boolean))]
+      const partMap = new Map((otherParts || []).map(p => [p.chat_id, p.user_id]))
+      const uniqueIds = [...new Set([...partMap.values()].filter(Boolean))]
       otherParticipantIds.push(...uniqueIds)
 
       if (uniqueIds.length > 0) {
@@ -61,11 +80,11 @@ export function useChats() {
 
         if (gen !== loadGenRef.current) return
 
-        const profileMap = Object.fromEntries((profiles || []).map(u => [u.id, u]))
+        const profileMap = new Map((profiles || []).map(u => [u.id, u]))
 
         const enriched = (chatRows || []).map(c => {
-          const otherId = partMap[c.id]
-          const profile = otherId ? profileMap[otherId] : null
+          const otherId = partMap.get(c.id)
+          const profile = otherId ? profileMap.get(otherId) : null
           const displayName = c.name || profile?.name || 'Chat'
           const avatarColor = profile?.avatar_color || deriveAvatarColor(otherId || c.id)
           return {
@@ -76,8 +95,8 @@ export function useChats() {
             avatar_url: profile?.avatar_url || null,
             preview: c.last_message || 'No messages yet',
             time: formatTime(c.last_message_at),
-            unread: false,
-            unreadCount: 0,
+            unread: !!unreadCountMap.get(c.id),
+            unreadCount: unreadCountMap.get(c.id) || 0,
           }
         })
         setChats(enriched)
@@ -90,8 +109,8 @@ export function useChats() {
       ...c,
       preview: c.last_message || 'No messages yet',
       time:    formatTime(c.last_message_at),
-      unread:  false,
-      unreadCount: 0,
+      unread:  !!unreadCountMap.get(c.id),
+      unreadCount: unreadCountMap.get(c.id) || 0,
     })))
     setLoading(false)
   }, [])
@@ -103,6 +122,12 @@ export function useChats() {
     const channel = supabase
       .channel('chats-list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => load(userId))
+      // markRead (useChat.js) bumps chat_participants.last_read_at when a
+      // chat is opened -- without this, the unread badge here wouldn't
+      // clear until something else happened to trigger a reload. Filtered to
+      // this user's own rows so another participant reading their copy of a
+      // shared chat doesn't reload everyone else's list too.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_participants', filter: `user_id=eq.${userId}` }, () => load(userId))
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [userId, load])
@@ -130,5 +155,9 @@ export function useChats() {
 
   const refetch = useCallback(() => load(userId), [userId, load])
 
-  return { chats, loading: userId ? loading : false, deleteChat, refetch }
+  // How many *chats* have unread messages -- not the total unread message
+  // count -- since that's what the Messages tab badge should show.
+  const unreadChatCount = chats.filter(c => c.unread).length
+
+  return { chats, loading: userId ? loading : false, deleteChat, refetch, unreadChatCount }
 }

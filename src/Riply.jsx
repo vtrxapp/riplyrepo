@@ -201,6 +201,59 @@ function Toast({ msg }) {
   );
 }
 
+// A single shimmering placeholder block -- the base unit every skeleton
+// loader below is built from. The shine sweeps left-to-right via a
+// background-position animation (defined once, globally, in RiplyApp's font
+// injection effect) rather than transform, so many of these on screen at
+// once don't each need their own compositing layer.
+function Shimmer({ width = '100%', height = 14, radius = 8, style }) {
+  return (
+    <div style={{
+      width, height, borderRadius: radius,
+      background: 'linear-gradient(90deg, #ECEFF3 25%, #F6F8FA 37%, #ECEFF3 63%)',
+      backgroundSize: '400% 100%',
+      animation: 'riplyShimmer 1.4s ease infinite',
+      ...style,
+    }} />
+  );
+}
+
+// Generic row skeleton -- an avatar circle + two lines -- for anything shaped
+// like a list (chats, notifications, group/space cards in a vertical list).
+function SkeletonRows({ count = 4 }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px' }}>
+          <Shimmer width={46} height={46} radius={999} />
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+            <Shimmer width="55%" height={13} />
+            <Shimmer width="80%" height={11} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Generic card skeleton -- an image block + title/meta lines -- for feeds of
+// bigger cards (events, posts).
+function SkeletonCards({ count = 3 }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} style={{ background:C.card, borderRadius:20, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', overflow:'hidden' }}>
+          <Shimmer width="100%" height={150} radius={0} />
+          <div style={{ padding:14, display:'flex', flexDirection:'column', gap:8 }}>
+            <Shimmer width="70%" height={15} />
+            <Shimmer width="45%" height={12} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Twitter/Instagram-style swipe-left-to-reveal-delete. Wraps a row (chat,
 // notification, etc.) so a horizontal drag reveals a red delete action
 // underneath, while a vertical drag falls through untouched so the
@@ -531,9 +584,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
         {list.length===0 && !query?.trim() && !eventsLoading && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>No upcoming events right now.</div>
         )}
-        {eventsLoading && list.length===0 && (
-          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>Loading…</div>
-        )}
+        {eventsLoading && list.length===0 && <SkeletonCards />}
         {list.length===0 && query?.trim() && !eventsLoading && (
           <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>No results found for "{query}"</div>
         )}
@@ -728,7 +779,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
       <PullToRefresh onRefresh={refetchSpaces} style={{ flex:1, padding:'14px 16px 104px' }}
         onTouchStart={handleSpacesSwipeStart} onTouchEnd={handleSpacesSwipeEnd}>
         {list.length===0 && !spacesLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>No spaces in this category right now.</div>}
-        {spacesLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>Loading…</div>}
+        {spacesLoading && list.length===0 && <SkeletonRows />}
         {list.map(sp => {
           const isJoined = !!spaceJoined[sp.id];
           const count = sp.participants + (isJoined?1:0);
@@ -887,7 +938,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
       {/* Groups */}
       <PullToRefresh onRefresh={refetchGroups} style={{ flex:1, padding:'14px 16px 104px' }}>
         {list.length===0 && !groupsLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>No groups in this category yet.</div>}
-        {groupsLoading && list.length===0 && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>Loading…</div>}
+        {groupsLoading && list.length===0 && <SkeletonRows />}
         {list.map(g => {
           const localJoined = !!groupJoined[g.id];
           const isPending = !!pendingRequests[g.id];
@@ -1062,7 +1113,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
               </div>
             ))}
             {notifsLoading ? (
-              <div style={{ textAlign:'center', color:C.subtle, fontSize:15, paddingTop:40 }}>Loading…</div>
+              <SkeletonRows />
             ) : notifications.length === 0 && groupActivity.length === 0 ? (
               <div style={{ textAlign:'center', paddingTop:48 }}>
                 <div style={{ marginBottom:12, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -1107,7 +1158,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
             {chatsLoading ? (
-              <div style={{ textAlign:'center', color:C.subtle, fontSize:15, paddingTop:40 }}>Loading…</div>
+              <SkeletonRows />
             ) : chats.length === 0 ? (
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', paddingTop:60 }}>
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
@@ -7066,7 +7117,7 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 100px' }}>
         {tab === 'events' && (
           <>
-            {loading && <div style={{ textAlign:'center', padding:'60px 0', color:C.subtle, fontSize:15 }}>Loading…</div>}
+            {loading && <SkeletonRows />}
             {!loading && allEvents.length === 0 && (
               <div style={{ textAlign:'center', padding:'60px 20px' }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ margin:'0 auto 14px', display:'block' }}>
@@ -9627,7 +9678,7 @@ function ReviewReportsScreen({ groupId, goBack, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 30px',
                     display:'flex', flexDirection:'column', gap:12 }}>
         {loading ? (
-          <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:15 }}>Loading…</div>
+          <SkeletonRows />
         ) : open.length === 0 ? (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                         textAlign:'center', padding:'60px 30px' }}>
@@ -9794,7 +9845,7 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'13px 16px 30px',
                     display:'flex', flexDirection:'column', gap:12 }}>
 
-        {loading && <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:15 }}>Loading…</div>}
+        {loading && <SkeletonRows />}
 
         {!loading && open.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
@@ -9956,7 +10007,7 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
       {/* Body */}
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 30px' }}>
 
-        {loading && <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:15 }}>Loading…</div>}
+        {loading && <SkeletonRows />}
 
         {!loading && visible.length > 0 && (
           <div style={{ fontSize:14.5, color:C.muted, lineHeight:1.55, marginBottom:14 }}>
@@ -12146,11 +12197,14 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
 
   // ── LOADING / NOT FOUND ──────────────────────────────────────
   if (eventLoading) return (
-    <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center',
-                  background:C.pageBg }}>
-      <div style={{ width:40, height:40, borderRadius:'50%', border:'4px solid #E1E6EE',
-                    borderTopColor:C.primary, animation:'riplySpin .9s linear infinite' }}/>
-      <style>{`@keyframes riplySpin{to{transform:rotate(360deg);}}`}</style>
+    <div style={{ height:'100%', overflowY:'auto', background:C.pageBg }}>
+      <Shimmer width="100%" height={260} radius={0} />
+      <div style={{ padding:'18px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+        <Shimmer width="70%" height={22} />
+        <Shimmer width="45%" height={14} />
+        <Shimmer width="90%" height={14} style={{ marginTop:8 }} />
+        <Shimmer width="80%" height={14} />
+      </div>
     </div>
   );
   if (!ev) return (
@@ -12705,7 +12759,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   // Font injection
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = "@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');@keyframes riplyPulse{0%{transform:scale(.7);opacity:.9}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}@keyframes pill-shimmer{0%{left:-40%}60%{left:130%}100%{left:130%}}*::-webkit-scrollbar{display:none;}";
+    style.textContent = "@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');@keyframes riplyPulse{0%{transform:scale(.7);opacity:.9}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}@keyframes pill-shimmer{0%{left:-40%}60%{left:130%}100%{left:130%}}@keyframes riplyShimmer{0%{background-position:100% 0}100%{background-position:0 0}}*::-webkit-scrollbar{display:none;}";
     document.head.appendChild(style);
     return () => { if(document.head.contains(style)) document.head.removeChild(style); };
   }, []);

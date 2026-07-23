@@ -8,28 +8,46 @@
 -- Add ends_at column to spaces so they can expire too
 alter table spaces add column if not exists ends_at timestamptz;
 
--- Cron job: runs every hour, deletes events once their calendar day has
--- fully passed.
+-- Cron job: runs daily at midnight, deletes events once their calendar day
+-- has fully passed.
 --
--- events.date has no time component (it's written from a plain
--- <input type="date">, see CreateEventScreen) -- it's midnight of the
--- event's day. The original `date < now()` here compared that against
--- the current instant, so an event starting at, say, 7pm today was
--- deleted the moment the clock struck midnight that same morning --
--- hours before it happened, and while every other part of the app
--- (EventManagerScreen's eventTab(), useEvents.js's own cleanup query)
--- still considers it "live" for the entire day. Organizers opening the
--- edit screen for a live event later that day would hit a already-deleted
--- row and get bounced back out, which is why editing (e.g. reducing
--- price) looked broken. Comparing against the start of today instead
--- matches that same-day cutoff everywhere else already uses.
+-- events.date is a *text* column (from a plain <input type="date">, see
+-- CreateEventScreen) holding midnight of the event's day with no time
+-- component -- e.g. '2026-07-21'. Two bugs here, found by actually running
+-- this against the live database rather than just reading the SQL:
+--
+-- 1. The original `date < now()` compared a **text** column against a
+--    timestamptz using `<`, which has no such operator in Postgres --
+--    `select * from cron.job_run_details` showed this job has been
+--    failing every single hourly run with "operator does not exist: text
+--    < timestamp with time zone" since it was scheduled. It has never
+--    actually deleted a single event.
+-- 2. Even fixed to compare same-day (`date < date_trunc('day', now())`),
+--    the right side is still a timestamptz, so the same type error would
+--    persist. Casting `date` to a real `date` needs a regex guard first --
+--    a leftover legacy/seed row in this table has date = 'Today' (not
+--    parseable as a date at all), and an unguarded `date::date` cast
+--    would throw on that row and abort the whole DELETE, silently
+--    breaking cleanup for every event rather than just the malformed one.
+--
+-- Net effect of bug #1: events were never being auto-deleted at all, so
+-- that specific mechanism isn't why editing a live event failed --
+-- SEE the PR this shipped in for what actually was. Fixing it here
+-- regardless since a cron that has silently no-op'd forever, letting
+-- every past event accumulate in this table indefinitely, is its own
+-- real bug worth closing.
+--
+-- Schedule changed from hourly to daily: the cutoff (start of today) only
+-- moves once every 24h, so an hourly run was doing 23 no-op checks a day
+-- once this is fixed.
 select cron.schedule(
   'delete-started-events',      -- job name (unique)
-  '0 * * * *',                  -- every hour on the hour
+  '0 0 * * *',                  -- once a day, at midnight
   $$
     delete from events
     where date is not null
-      and date < date_trunc('day', now());
+      and date ~ '^\d{4}-\d{2}-\d{2}$'
+      and date::date < current_date;
   $$
 );
 

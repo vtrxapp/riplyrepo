@@ -1196,12 +1196,6 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                       {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
                     </div>
                   </div>
-                  <button onClick={async e => {
-                    e.stopPropagation();
-                    const { error } = await deleteChat(c.id);
-                    if (error) showToast("Couldn't delete chat. Try again.");
-                  }} aria-label={`Delete chat with ${c.name}`} style={{ flexShrink:0, border:'none',
-                    background:'none', cursor:'pointer', padding:4, color:C.subtle, fontSize:16, lineHeight:1 }}>×</button>
                 </div>
               </SwipeToDeleteRow>
             ))}
@@ -8575,6 +8569,12 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       badge: repeat ? (() => { try { const d = new Date(date); return isNaN(d) ? 'Every Week' : 'Every ' + d.toLocaleDateString('en-US',{weekday:'long'}); } catch { return 'Every Week'; } })() : null,
       rules: selectedRules.length ? selectedRules : null,
       guests: guests.length ? guests : null,
+      // Was missing entirely before, so editing a draft and clicking
+      // "Publish Event" updated every other field but silently left the
+      // row's status as 'draft' forever -- the create-mode insert set
+      // status separately below, but the edit-mode .update() call uses
+      // sharedFields directly and needs it here too.
+      status,
     };
 
     let event, error;
@@ -8598,7 +8598,6 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         trending: false,
         group_id: sourceGroupId || null,
         is_public: sourceGroupId ? isPublic : true,
-        status,
       }).select().single());
     }
     if (error) { setSubmittingStatus(null); showToast(`Failed to ${isEditing ? 'save changes' : status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }
@@ -9092,33 +9091,59 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           </div>
         )}
         {isEditing ? (
-          <div style={{ display:'flex', gap:10 }}>
-            <button
-              onClick={handleCancelEvent}
-              disabled={submitting}
-              style={{
-                flex:'0 0 auto', height:50, padding:'0 20px', borderRadius:15,
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                border:`1.5px solid #FFD3CC`, background:'#FFF1ED', color:C.danger,
-                fontSize:14, fontWeight:800,
-                fontFamily:"'Montserrat',-apple-system,sans-serif",
-                opacity: submitting ? 0.7 : 1,
-              }}>
-              {submittingStatus === 'cancel' ? 'Cancelling…' : 'Cancel Event'}
-            </button>
-            <button
-              onClick={() => submitEvent(eventStatus)}
-              disabled={!canPublish || submitting}
-              style={{
-                flex:1, height:50, border:'none', borderRadius:15,
-                cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
-                background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-                color:'#fff', fontSize:14, fontWeight:800,
-                fontFamily:"'Montserrat',-apple-system,sans-serif",
-                opacity: submitting ? 0.7 : 1,
-              }}>
-              {submittingStatus === eventStatus ? 'Saving…' : 'Save Changes'}
-            </button>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ display:'flex', gap:10 }}>
+              <button
+                onClick={handleCancelEvent}
+                disabled={submitting}
+                style={{
+                  flex:'0 0 auto', height:50, padding:'0 20px', borderRadius:15,
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  border:`1.5px solid #FFD3CC`, background:'#FFF1ED', color:C.danger,
+                  fontSize:14, fontWeight:800,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  opacity: submitting ? 0.7 : 1,
+                }}>
+                {submittingStatus === 'cancel' ? 'Cancelling…' : 'Cancel Event'}
+              </button>
+              <button
+                onClick={() => submitEvent(eventStatus)}
+                disabled={!canPublish || submitting}
+                style={{
+                  flex:1, height:50, border:'none', borderRadius:15,
+                  cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
+                  background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
+                  color:'#fff', fontSize:14, fontWeight:800,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  opacity: submitting ? 0.7 : 1,
+                }}>
+                {submittingStatus === eventStatus ? 'Saving…' : eventStatus === 'draft' ? 'Save Draft' : 'Save Changes'}
+              </button>
+            </div>
+            {/* A draft loaded here otherwise had no path to ever go live --
+                "Save Changes" only ever wrote back the status it loaded
+                with, so a draft stayed a draft forever. */}
+            {eventStatus === 'draft' && (
+              <button
+                onClick={() => submitEvent('published')}
+                disabled={!canPublish || submitting}
+                style={{
+                  height:50, border:'none', borderRadius:15,
+                  cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
+                  background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
+                  color:'#fff', fontSize:14, fontWeight:800,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:9,
+                  boxShadow: canPublish ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
+                  opacity: submitting ? 0.7 : 1,
+                }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
+                        stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
+                </svg>
+                {submittingStatus === 'published' ? 'Publishing…' : 'Publish Event'}
+              </button>
+            )}
           </div>
         ) : (
         <div style={{ display:'flex', gap:10 }}>

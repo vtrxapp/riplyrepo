@@ -637,14 +637,11 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     <img src={cardImg} alt={ev.title}
                       style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0.22) 0%,transparent 35%,transparent 55%,rgba(0,0,0,0.48) 100%)' }} />
-                    {/* Top row: category chip + new badge + trending */}
+                    {/* Top row: category chip + new badge */}
                     <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                         <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
                         {isNew && <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:C.grad, fontSize:11, fontWeight:800, letterSpacing:0.3, color:'#fff' }}>New</span>}
-                      </div>
-                      <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)', boxShadow:'0 2px 6px rgba(0,0,0,0.12)' }}>
-                        <svg width="17" height="17" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l1-8Z" fill={ev.trending?'#FFB020':'rgba(255,255,255,0)'} stroke={ev.trending?'#F59E0B':'#7B8499'} strokeWidth="1.6" strokeLinejoin="round"/></svg>
                       </div>
                     </div>
                     {/* Bottom row: free entry (left) + recurring badge (right) */}
@@ -5331,10 +5328,6 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                   'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 11px)' }}/>
               </>
           }
-          {/* online dot */}
-          <div style={{ position:'absolute', bottom:1, right:1, width:9, height:9,
-                        borderRadius:'50%', background:'#10B981',
-                        border:'2px solid #fff' }}/>
         </div>
 
         {/* Action icons */}
@@ -5809,7 +5802,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', iconPath2:'M14 7.5v9', iconPath2Dash:true, title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved', hasChevron:true, onClick:()=>navigate('saved-events') },
         { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 6.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-11Z', iconPath2:'M3 10h18M6.5 15h1.5', iconPath2Dash:false, title:'Payment Methods', hasChevron:true, onClick:()=>setPayOpen(true) },
-        ...(profileRole!=='student'?[{ icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M3 5h18M3 10h18M3 15h10', title:'Manage Events', hasChevron:true, onClick:()=>navigate('event-manager') }]:[]),
+        ...(profileRole!=='student'?[{ icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M4 4.5h16a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z', iconPath2:'M3 9h18M8 2.5v4M16 2.5v4', title:'Manage Events', hasChevron:true, onClick:()=>navigate('event-manager') }]:[]),
       ],
     },
     {
@@ -11906,7 +11899,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
               <div style={{ display:'flex', gap:9, padding:'0 14px 14px' }}>
                 {tab === 'live' && (
                   <button onClick={() => navigate('check-in', {eventId: e.id})} style={{
-                    flex:1, height:40, border:'none', borderRadius:12,
+                    flex:1, height:46, border:'none', borderRadius:12, padding:'0 14px',
                     background:'#E9F6FF', color:C.primary,
                     fontSize:12.5, fontWeight:800, cursor:'pointer',
                     fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -11920,7 +11913,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                   </button>
                 )}
                 <button onClick={() => navigate('create-event', { eventId: e.id })} style={{
-                  flex:1, height:40, border:'none', borderRadius:12,
+                  flex:1, height:46, border:'none', borderRadius:12, padding:'0 14px',
                   background:'#F1F3F7', color:C.muted,
                   fontSize:12.5, fontWeight:800, cursor:'pointer',
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -11933,7 +11926,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                   Edit
                 </button>
                 <button onClick={() => handleDelete(e)} style={{
-                  width:40, height:40, border:'none', borderRadius:12, flexShrink:0,
+                  width:46, height:46, border:'none', borderRadius:12, flexShrink:0,
                   background:'#FFF1ED', display:'flex', alignItems:'center',
                   justifyContent:'center', cursor:'pointer',
                 }}>

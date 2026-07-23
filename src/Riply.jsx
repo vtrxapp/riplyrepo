@@ -4,7 +4,7 @@ import { useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
-import { useChat } from "./hooks/useChat";
+import { useChat, blockUser } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
 import { useGroupActivity } from "./hooks/useGroupActivity";
 import { useEvents, useEvent } from "./hooks/useEvents";
@@ -5172,7 +5172,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
     type: isGroup ? 'group' : 'dm',
   };
 
-  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError } = useChat(chatId)
+  const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError, muted, toggleMute, otherParticipantIds } = useChat(chatId)
   const [draft,       setDraft]       = useState('');
   const [menuOpen,    setMenuOpen]    = useState(false);
   // { kind: 'file', file: File } | { kind: 'gif', url: string } | null
@@ -5290,6 +5290,27 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
     goBack();
   };
 
+  const handleToggleMute = async () => {
+    setMenuOpen(false);
+    const error = await toggleMute();
+    if (error) { showToast("Couldn't update notifications. Try again."); return; }
+    showToast(muted ? 'Notifications unmuted' : 'Notifications muted');
+  };
+
+  const blockingRef = useRef(false);
+  const handleBlockUser = async () => {
+    const otherUserId = otherParticipantIds[0];
+    if (!otherUserId) return;
+    if (!window.confirm(`Block ${chat.name}? They won't be able to message you again, and this chat will be removed from your list.`)) return;
+    setMenuOpen(false);
+    if (blockingRef.current) return;
+    blockingRef.current = true;
+    const { error } = await blockUser(currentUserId, otherUserId);
+    if (error) { showToast("Couldn't block user. Try again."); blockingRef.current = false; return; }
+    showToast(`Blocked ${chat.name}`);
+    goBack();
+  };
+
   // Online status — group chats (id 4) show member count, DMs show 'Active recently'.
   // Groups and a currently-online DM read as "active now" (blue, matches the
   // app's theme color); a last-seen/recency label reads as grey since it's
@@ -5365,6 +5386,20 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
           <div style={{ position:'absolute', top:56, right:13, background:C.card,
                         borderRadius:14, boxShadow:'0 8px 24px rgba(16,24,40,0.14)',
                         overflow:'hidden', zIndex:20, minWidth:170 }}>
+            <div onClick={handleToggleMute}
+              style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
+                       color:C.body, borderBottom:`1px solid ${C.divider}`,
+                       cursor:'pointer', background:C.card }}>
+              {muted ? 'Unmute Notifications' : 'Mute Notifications'}
+            </div>
+            {!isGroupChat && otherParticipantIds.length === 1 && (
+              <div onClick={handleBlockUser}
+                style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
+                         color:C.danger, borderBottom:`1px solid ${C.divider}`,
+                         cursor:'pointer', background:C.card }}>
+                Block
+              </div>
+            )}
             <div onClick={handleDeleteChat}
               style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
                        color:C.danger, cursor:'pointer', background:C.card }}>

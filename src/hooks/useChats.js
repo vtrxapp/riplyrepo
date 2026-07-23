@@ -16,11 +16,14 @@ export function useChats() {
 
   const load = useCallback(async (userId) => {
     const gen = ++loadGenRef.current
-    // Get all chats this user participates in
-    const { data: participations } = await supabase
-      .from('chat_participants')
-      .select('chat_id')
-      .eq('user_id', userId)
+    // Get all chats this user participates in, and who they've blocked (a
+    // blocked user's DM is hidden below -- blocking doesn't remove this
+    // user's own chat_participants row/history, only what's shown here).
+    const [{ data: participations }, { data: blockedRows }] = await Promise.all([
+      supabase.from('chat_participants').select('chat_id').eq('user_id', userId),
+      supabase.from('blocked_users').select('blocked_id').eq('blocker_id', userId),
+    ])
+    const blockedIds = new Set((blockedRows || []).map(r => r.blocked_id))
 
     if (gen !== loadGenRef.current) return
     const chatIds = (participations || []).map(p => p.chat_id)
@@ -82,7 +85,9 @@ export function useChats() {
 
         const profileMap = new Map((profiles || []).map(u => [u.id, u]))
 
-        const enriched = (chatRows || []).map(c => {
+        const enriched = (chatRows || [])
+          .filter(c => c.group_id || !blockedIds.has(partMap.get(c.id)))
+          .map(c => {
           const otherId = partMap.get(c.id)
           const profile = otherId ? profileMap.get(otherId) : null
           const displayName = c.name || profile?.name || 'Chat'
@@ -128,6 +133,10 @@ export function useChats() {
       // this user's own rows so another participant reading their copy of a
       // shared chat doesn't reload everyone else's list too.
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_participants', filter: `user_id=eq.${userId}` }, () => load(userId))
+      // Blocking/unblocking changes which DMs are visible here -- reload so
+      // a freshly-blocked chat disappears (or a re-added chat reappears)
+      // without waiting for an unrelated event.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'blocked_users', filter: `blocker_id=eq.${userId}` }, () => load(userId))
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [userId, load])

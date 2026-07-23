@@ -8656,7 +8656,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
   const submitEvent = async (status) => {
     if (!canPublish) { showToast('Add an event title first'); return; }
     if (!currentUser.userId) { showToast('You must be logged in to save an event'); return; }
-    if (status === 'published' && isPaid && parseEventPrice(price).amount <= 0) {
+    if ((status === 'published' || status === 'pending') && isPaid && parseEventPrice(price).amount <= 0) {
       showToast('Enter a valid ticket price');
       return;
     }

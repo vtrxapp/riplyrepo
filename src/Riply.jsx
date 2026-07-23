@@ -11797,7 +11797,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
       </div>
 
       {/* Event list */}
-      <div style={{ flex:1, overflowY:'auto', padding:'10px 16px 100px',
+      <div style={{ flex:1, overflowY:'auto', padding:'10px 16px 20px',
                     display:'flex', flexDirection:'column', gap:14 }}>
 
         {loading && (

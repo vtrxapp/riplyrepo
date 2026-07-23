@@ -440,7 +440,11 @@ begin
     raise exception 'this ticket has already been checked in';
   end if;
 
-  update public.tickets set status = 'USED' where id = p_ticket_id;
+  -- checked_in_at requires sql/checked_in_timestamp.sql to have been applied
+  -- first -- kept in sync here too so re-running this bootstrap script after
+  -- that migration doesn't silently revert check_in_ticket() to a version
+  -- that stops populating it.
+  update public.tickets set status = 'USED', checked_in_at = now() where id = p_ticket_id;
 
   return query select u.name, t.access from public.users u where u.id = t.user_id;
 end;

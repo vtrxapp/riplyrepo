@@ -11063,7 +11063,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHECK-IN
 // ─────────────────────────────────────────────────────────────
-function CheckInScreen({ eventId, goBack, showToast }) {
+function CheckInScreen({ eventId, goBack, showToast, navigate }) {
   const { event: dbEvent, loading: eventLoading } = useEvent(eventId);
   const mockEv = EVENTS.find(e => e.id === eventId);
   const eventTitle = eventLoading ? 'Loading…' : ((dbEvent || mockEv)?.title || 'Event');
@@ -11229,7 +11229,16 @@ function CheckInScreen({ eventId, goBack, showToast }) {
               / {total} checked in
             </span>
           </div>
-          <span style={{ fontSize:13, fontWeight:800, color:'#19BFFF' }}>{pct}%</span>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <button onClick={() => navigate('checked-in-list', { eventId })}
+              style={{ border:'none', background:'none', cursor:'pointer', padding:0,
+                       fontSize:12, fontWeight:700, color:'#19BFFF',
+                       fontFamily:"'Montserrat',-apple-system,sans-serif",
+                       textDecoration:'underline' }}>
+              View list
+            </button>
+            <span style={{ fontSize:13, fontWeight:800, color:'#19BFFF' }}>{pct}%</span>
+          </div>
         </div>
         <div style={{ height:8, borderRadius:999, background:'rgba(255,255,255,0.12)',
                       overflow:'hidden' }}>
@@ -11365,6 +11374,119 @@ function CheckInScreen({ eventId, goBack, showToast }) {
             Check In
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// SCREEN: CHECKED-IN ATTENDEES
+// ─────────────────────────────────────────────────────────────
+function CheckedInListScreen({ eventId, goBack, showToast }) {
+  const [attendees, setAttendees] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!eventId) { setLoading(false); return; }
+    const { data: rows, error: ticketsErr } = await supabase
+      .from('tickets')
+      .select('id, user_id, access, checked_in_at')
+      .eq('event_id', eventId)
+      .eq('status', 'USED')
+      .order('checked_in_at', { ascending: false, nullsFirst: false });
+    if (ticketsErr) {
+      console.error('[CheckedInListScreen] failed to load tickets:', ticketsErr);
+      showToast("Couldn't load the checked-in list. Try again.");
+      setLoading(false);
+      return;
+    }
+
+    const userIds = [...new Set((rows || []).map(r => r.user_id).filter(Boolean))];
+    const profileMap = new Map();
+    if (userIds.length > 0) {
+      const { data: profiles, error: profilesErr } = await supabase
+        .from('users')
+        .select('id, name, avatar_url, avatar_color')
+        .in('id', userIds);
+      if (profilesErr) console.error('[CheckedInListScreen] failed to load profiles:', profilesErr);
+      (profiles || []).forEach(u => profileMap.set(u.id, u));
+    }
+
+    setAttendees((rows || []).map(r => {
+      const p = profileMap.get(r.user_id);
+      const name = p?.name || 'Attendee';
+      return {
+        id: r.id,
+        name,
+        initial: name[0]?.toUpperCase() || '?',
+        avatarUrl: p?.avatar_url || null,
+        color: p?.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+        access: r.access,
+        time: r.checked_in_at
+          ? new Date(r.checked_in_at).toLocaleTimeString([], { hour:'numeric', minute:'2-digit', hour12:true })
+          : null,
+      };
+    }));
+    setLoading(false);
+  }, [eventId]);
+
+  useEffect(() => {
+    load();
+    if (!eventId) return;
+    // Multiple organizers/staff can be scanning from different devices at
+    // the same door -- without this, each device's list would only ever
+    // show the check-ins it personally scanned.
+    const channel = supabase
+      .channel(`checked-in:${eventId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets', filter: `event_id=eq.${eventId}` }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [eventId, load]);
+
+  return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 14px', display:'flex',
+                    alignItems:'center', gap:10, boxShadow:'0 1px 0 rgba(16,24,40,0.06)' }}>
+        <button onClick={goBack} style={{ width:38, height:38, border:'none', borderRadius:12,
+          background:C.chip, display:'flex', alignItems:'center', justifyContent:'center',
+          cursor:'pointer', flexShrink:0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M15 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2"
+                  strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>
+          Checked In ({attendees.length})
+        </div>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px 30px' }}>
+        {loading ? (
+          <SkeletonRows />
+        ) : attendees.length === 0 ? (
+          <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:60 }}>
+            No one has checked in yet.
+          </div>
+        ) : attendees.map(a => (
+          <div key={a.id} style={{ display:'flex', alignItems:'center', gap:12,
+                                    background:C.card, borderRadius:16,
+                                    boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
+                                    padding:'12px 14px', marginBottom:10 }}>
+            <div style={{ width:38, height:38, borderRadius:'50%', flexShrink:0, overflow:'hidden',
+                          background: a.avatarUrl ? 'transparent' : a.color, display:'flex',
+                          alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800,
+                          color:'#fff' }}>
+              {a.avatarUrl ? <img src={a.avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : a.initial}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.ink, whiteSpace:'nowrap',
+                            overflow:'hidden', textOverflow:'ellipsis' }}>{a.name}</div>
+              {a.access && <div style={{ fontSize:11, color:C.subtle, marginTop:1 }}>{a.access}</div>}
+            </div>
+            {a.time && <span style={{ fontSize:11, fontWeight:600, color:C.subtle, flexShrink:0 }}>{a.time}</span>}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -12999,7 +13121,8 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'feedback':      return <FeedbackScreen goBack={goBack} showToast={showToast} />;
       case 'legal':         return <LegalScreen goBack={goBack} showToast={showToast} />;
       case 'about':         return <AboutScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      case 'check-in':      return <CheckInScreen eventId={navParams.eventId} goBack={goBack} showToast={showToast} />;
+      case 'check-in':      return <CheckInScreen eventId={navParams.eventId} goBack={goBack} showToast={showToast} navigate={navigate} />;
+      case 'checked-in-list': return <CheckedInListScreen eventId={navParams.eventId} goBack={goBack} showToast={showToast} />;
       case 'review':        return <ReviewScreen ticketId={navParams.ticketId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'tickets':       return <TicketsScreen eventId={navParams.eventId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'group-manage':  return <GroupManageScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;

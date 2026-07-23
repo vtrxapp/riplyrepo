@@ -46,8 +46,15 @@ select cron.schedule(
   $$
     delete from events
     where date is not null
-      and date ~ '^\d{4}-\d{2}-\d{2}$'
-      and date::date < current_date;
+      -- CASE (not `and date ~ regex and date::date < current_date`) --
+      -- Postgres doesn't guarantee AND-predicate evaluation order, so a
+      -- plain AND could still let the planner try the ::date cast on the
+      -- 'Today' row before the regex filter runs. CASE branches are
+      -- guaranteed to short-circuit in order, which a plain AND is not.
+      and case
+            when date ~ '^\d{4}-\d{2}-\d{2}$' then date::date < current_date
+            else false
+          end;
   $$
 );
 

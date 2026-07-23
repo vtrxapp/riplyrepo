@@ -10423,12 +10423,12 @@ function CheckInScreen({ eventId, goBack, showToast }) {
     return () => { cancelled = true; };
   }, [eventId]);
 
-  const showResult = (r) => {
+  const showResult = useCallback((r) => {
     setResult(r);
     pausedRef.current = true;
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
     resultTimerRef.current = setTimeout(() => { setResult(null); pausedRef.current = false; }, 1800);
-  };
+  }, []);
 
   // Validates + marks the ticket used via a security-definer RPC (not a
   // direct update) -- tickets_update RLS only allows the ticket's own owner
@@ -10453,7 +10453,7 @@ function CheckInScreen({ eventId, goBack, showToast }) {
                          color:'linear-gradient(135deg,#19BFFF,#0098F0)', time:'just now' }, ...r].slice(0, 6));
     }
     processingRef.current = false;
-  }, [eventId]);
+  }, [eventId, showResult]);
 
   // Camera + scan loop: grab a video frame onto the hidden canvas every
   // animation frame and hand the pixels to jsQR; a decoded QR payload is the

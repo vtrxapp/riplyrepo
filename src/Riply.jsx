@@ -437,7 +437,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
     <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(255,255,255,0.94)', backdropFilter:'blur(16px)', boxShadow:'0 -1px 0 rgba(16,24,40,0.07)', padding:'11px 6px 24px', display:'flex', justifyContent:'space-around', alignItems:'flex-end', zIndex:5 }}>
       {/* Home */}
       <button onClick={()=>setScreen('home')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 11c0-.8.3-1.6.9-2.1l6-5.4a1.7 1.7 0 0 1 2.2 0l6 5.4c.6.5.9 1.3.9 2.1" stroke={navColor('home')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 10v8a2 2 0 0 0 2 2h2v-4a2 2 0 0 1 4 0v4h2a2 2 0 0 0 2-2v-8" stroke={navColor('home')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 11 12 4l8 7" stroke={navColor('home')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 9.8V19a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1V9.8" stroke={navColor('home')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         <span style={{ fontSize:10, fontWeight:navWeight('home'), color:navColor('home'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Home</span>
       </button>
       {/* Spaces */}
@@ -470,7 +470,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
       {/* Profile */}
       <button onClick={()=>setScreen('profile')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path fillRule="evenodd" clipRule="evenodd" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4 0a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill={navColor('profile')}/>
+          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4 0a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke={navColor('profile')} strokeWidth="1.7" strokeLinejoin="round"/>
         </svg>
         <span style={{ fontSize:10, fontWeight:navWeight('profile'), color:navColor('profile'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Profile</span>
       </button>
@@ -481,13 +481,12 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, role, navigate }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, navigate }) {
   const CATS = [
     {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
   ];
 
-  const [fabOpen, setFabOpen] = useState(false);
   const homeSwipeRef = useRef(null);
   const handleHomeSwipeStart = (e) => { homeSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
   const handleHomeSwipeEnd = (e) => {
@@ -679,93 +678,6 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
           );
         })}
       </PullToRefresh>
-
-      {/* Expandable FAB */}
-      <div style={{ position:'absolute', bottom:94, right:18, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:10, zIndex:6 }}>
-        {fabOpen && (
-          <div onClick={() => setFabOpen(false)} style={{ position:'fixed', inset:0, zIndex:-1 }} />
-        )}
-        {fabOpen && (
-          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .18s ease' }}>
-            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
-              fontSize:14, fontWeight:700, color:C.ink,
-              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>My Tickets</span>
-            <button onClick={() => { setFabOpen(false); navigate('my-tickets'); }}
-              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
-                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/>
-                <path d="M14 7.5v9" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeDasharray="0.5 3"/>
-              </svg>
-            </button>
-          </div>
-        )}
-        {fabOpen && role === 'admin' && (
-          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .1s ease' }}>
-            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
-              fontSize:14, fontWeight:700, color:C.ink,
-              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Campus Group</span>
-            <button onClick={() => { setFabOpen(false); navigate('create-group'); }}
-              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
-                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="2.6" stroke="#fff" strokeWidth="1.8"/><circle cx="16" cy="9" r="2.6" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 18c0-2.4 2-3.8 4.5-3.8M20.5 18c0-2.4-2-3.8-4.5-3.8M9 18c0-2 1.4-3.2 3-3.2s3 1.2 3 3.2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
-            </button>
-          </div>
-        )}
-        {fabOpen && role !== 'student' && (
-          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .13s ease' }}>
-            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
-              fontSize:14, fontWeight:700, color:C.ink,
-              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Event</span>
-            <button onClick={() => { setFabOpen(false); navigate('create-event'); }}
-              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
-                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
-            </button>
-          </div>
-        )}
-        {fabOpen && (
-          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .16s ease' }}>
-            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
-              fontSize:14, fontWeight:700, color:C.ink,
-              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Post</span>
-            <button onClick={() => { setFabOpen(false); navigate('create-post'); }}
-              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
-                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/><path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/></svg>
-            </button>
-          </div>
-        )}
-        {fabOpen && (
-          <div style={{ display:'flex', alignItems:'center', gap:10, animation:'fabItemIn .19s ease' }}>
-            <span style={{ background:'#fff', borderRadius:10, padding:'6px 12px',
-              fontSize:14, fontWeight:700, color:C.ink,
-              boxShadow:'0 4px 14px rgba(16,24,40,0.13)', whiteSpace:'nowrap' }}>Student Space</span>
-            <button onClick={() => { setFabOpen(false); navigate('create-space'); }}
-              style={{ width:48, height:48, border:'none', borderRadius:16, background:C.grad,
-                display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-                boxShadow:'0 8px 20px rgba(2,162,240,0.38)', flexShrink:0 }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#fff" strokeWidth="1.8"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#fff" strokeWidth="1.8"/></svg>
-            </button>
-          </div>
-        )}
-        <button onClick={() => setFabOpen(v => !v)}
-          style={{ width:60, height:60, border:'none', borderRadius:20, background:C.grad,
-            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
-            boxShadow:'0 10px 24px rgba(2,162,240,0.45),0 2px 6px rgba(2,162,240,0.3)',
-            transition:'transform .2s ease',
-            transform: fabOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <path d="M5 15l7-7 7 7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <style>{`@keyframes fabItemIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
-      </div>
-
     </div>
   );
 }

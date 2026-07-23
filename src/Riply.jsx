@@ -7139,6 +7139,70 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
 
 
 // ─────────────────────────────────────────────────────────────
+// SCREEN: CREATION SUCCESS (shared by Create Event/Space/Group)
+// ─────────────────────────────────────────────────────────────
+// A dedicated confirmation screen after creating an event/space/group,
+// instead of just a toast + an immediate jump straight into the new
+// content -- reuses TicketsScreen's existing checkmark/riplyPop pattern for
+// visual consistency rather than inventing a second success animation.
+const CREATION_KIND_CONFIG = {
+  event: { noun: 'Event', verb: 'published', detailScreen: 'event-details', detailParam: 'eventId', rootScreen: 'home' },
+  space: { noun: 'Space', verb: 'created',   detailScreen: 'space-details', detailParam: 'spaceId', rootScreen: 'spaces' },
+  group: { noun: 'Group', verb: 'created',   detailScreen: 'group-profile', detailParam: 'groupId', rootScreen: 'discover' },
+};
+function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
+  const cfg = CREATION_KIND_CONFIG[kind] || CREATION_KIND_CONFIG.event;
+  return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column',
+                  background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column',
+                    alignItems:'center', justifyContent:'center', padding:'40px 24px' }}>
+        <div style={{ width:88, height:88, borderRadius:'50%', background:'#E4F7EC',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      animation:'riplyPop .5s cubic-bezier(.2,.8,.2,1)' }}>
+          <div style={{ width:60, height:60, borderRadius:'50%',
+                        background:'linear-gradient(135deg,#22C55E,#15A34A)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        boxShadow:'0 8px 20px rgba(21,163,74,0.4)' }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+              <path d="m5 12.5 4.5 4.5L19 7" stroke="#fff" strokeWidth="3"
+                    strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink,
+                      marginTop:20, textAlign:'center' }}>
+          {cfg.noun} {cfg.verb}! 🎉
+        </div>
+        <div style={{ fontSize:13.5, lineHeight:1.55, color:'#7B8499',
+                      textAlign:'center', marginTop:8, maxWidth:280 }}>
+          "{title}" is live. Anyone browsing {kind === 'event' ? 'events' : kind === 'space' ? 'spaces' : 'groups'} can find it now.
+        </div>
+
+        <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:10, marginTop:28 }}>
+          <button onClick={() => navigate(cfg.detailScreen, { [cfg.detailParam]: id })} style={{
+            width:'100%', height:50, border:'none', borderRadius:15,
+            background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
+            fontSize:14, fontWeight:800, cursor:'pointer',
+            fontFamily:"'Montserrat',-apple-system,sans-serif",
+            boxShadow:'0 8px 20px rgba(2,162,240,0.4)' }}>
+            View {cfg.noun}
+          </button>
+          <button onClick={() => setScreen(cfg.rootScreen)} style={{
+            width:'100%', height:50, border:'none', borderRadius:15,
+            background:'none', color:C.primary,
+            fontSize:13.5, fontWeight:700, cursor:'pointer',
+            fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+            Done
+          </button>
+        </div>
+        <style>{`@keyframes riplyPop{0%{transform:scale(0.6);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}`}</style>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE CAMPUS GROUP
 // ─────────────────────────────────────────────────────────────
 function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
@@ -7554,8 +7618,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             role: 'admin',
           });
           setSubmitting(false);
-          showToast('Group created! 🎉');
-          navigate('group-profile', { groupId: group.id });
+          navigate('creation-success', { kind: 'group', id: group.id, title: name.trim() });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
@@ -8035,8 +8098,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           }).select().single();
           setSubmitting(false);
           if (error) { showToast('Failed to create space: ' + error.message); return; }
-          showToast('Space created! 🎉');
-          navigate('space-details', { spaceId: space.id });
+          navigate('creation-success', { kind: 'space', id: space.id, title: title.trim() });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
@@ -8282,8 +8344,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       showToast('Draft saved');
       navigate('event-manager');
     } else {
-      showToast('Event published! 🎉');
-      navigate('event-details', { eventId: event.id });
+      navigate('creation-success', { kind: 'event', id: event.id, title: title.trim() });
     }
   };
 
@@ -12266,6 +12327,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;

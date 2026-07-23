@@ -1177,7 +1177,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs }) {
                 if (error) showToast("Couldn't delete chat. Try again.");
               }}>
                 <div onClick={()=>navigate('chat',{
-                  chatId: c.id, chatName: c.name, chatInitial: c.initial, chatColor: c.color, isGroup: !!c.group_id,
+                  chatId: c.id, chatName: c.name, chatInitial: c.initial, chatColor: c.color, chatAvatarUrl: c.avatar_url, isGroup: !!c.group_id,
                 })} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
                   <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
                     {c.avatar_url
@@ -5130,13 +5130,14 @@ function GifPickerSheet({ onClose, onSelect }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
-function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack, showToast, currentUser }) {
+function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, isGroup, goBack, showToast, currentUser }) {
   const found = CHATS.find(c => c.id === chatId);
   const chat = found || {
     id: chatId,
     name: chatName || 'Chat',
     initial: chatInitial || (chatName?.[0]?.toUpperCase() || '?'),
     color: chatColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+    avatarUrl: chatAvatarUrl || null,
     type: isGroup ? 'group' : 'dm',
   };
 
@@ -5246,11 +5247,16 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack,
   // Auto-scroll when messages change
   useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
-  // Online status — group chats (id 4) show member count, DMs show 'Active recently'
+  // Online status — group chats (id 4) show member count, DMs show 'Active recently'.
+  // Groups and a currently-online DM read as "active now" (blue, matches the
+  // app's theme color); a last-seen/recency label reads as grey since it's
+  // not a live state.
   const memberCount = chat.memberCount || chat.members;
+  const isActiveNow = isGroupChat;
   const onlineLabel = isGroupChat
     ? memberCount ? `Online · ${memberCount} members` : 'Online'
     : 'Active recently';
+  const statusColor = isActiveNow ? C.primary : C.subtle;
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:C.pageBg,
@@ -5271,12 +5277,16 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack,
 
         {/* Avatar */}
         <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
-                      background:chat.color, display:'flex', alignItems:'center',
+                      background: chat.avatarUrl ? 'transparent' : chat.color, display:'flex', alignItems:'center',
                       justifyContent:'center', color:'#fff', fontSize:13, fontWeight:800,
                       position:'relative', overflow:'hidden' }}>
-          <span>{chat.initial}</span>
-          <div style={{ position:'absolute', inset:0, background:
-            'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 11px)' }}/>
+          {chat.avatarUrl
+            ? <img src={chat.avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+            : <><span>{chat.initial}</span>
+                <div style={{ position:'absolute', inset:0, background:
+                  'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 11px)' }}/>
+              </>
+          }
           {/* online dot */}
           <div style={{ position:'absolute', bottom:1, right:1, width:9, height:9,
                         borderRadius:'50%', background:'#10B981',
@@ -5290,9 +5300,9 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack,
             {chat.name}
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:1 }}>
-            <span style={{ width:7, height:7, borderRadius:'50%', background:'#10B981',
+            <span style={{ width:7, height:7, borderRadius:'50%', background:statusColor,
                            display:'inline-block', flexShrink:0 }}/>
-            <span style={{ fontSize:11, fontWeight:600, color:'#10B981' }}>{onlineLabel}</span>
+            <span style={{ fontSize:11, fontWeight:600, color:statusColor }}>{onlineLabel}</span>
           </div>
         </div>
 
@@ -5376,14 +5386,16 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, isGroup, goBack,
                                  marginBottom:3, marginLeft:4 }}>{m.aName}</span>
                 )}
 
-                {/* Bubble */}
+                {/* Bubble -- an image-only message (no caption text) drops the
+                    colored chip background/padding so the photo shows on its
+                    own with no border chrome around it. */}
                 <div style={{
-                  background: isOut ? 'linear-gradient(135deg,#19BFFF,#0090F0)' : '#fff',
-                  padding:'9px 13px',
+                  background: (m.hasImage && !m.hasText) ? 'transparent' : (isOut ? 'linear-gradient(135deg,#19BFFF,#0090F0)' : '#fff'),
+                  padding: (m.hasImage && !m.hasText) ? 0 : '9px 13px',
                   borderRadius: isOut ? '17px 17px 4px 17px' : '17px 17px 17px 4px',
-                  boxShadow: isOut
+                  boxShadow: (m.hasImage && !m.hasText) ? 'none' : (isOut
                     ? '0 3px 10px rgba(2,162,240,0.28)'
-                    : '0 2px 8px rgba(16,24,40,0.07)',
+                    : '0 2px 8px rgba(16,24,40,0.07)'),
                 }}>
                   {/* Image attachment */}
                   {m.hasImage && (
@@ -12772,7 +12784,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
-      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
+      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;

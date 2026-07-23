@@ -49,6 +49,7 @@ create table if not exists post_comments (
   author_name     text,
   author_initial  text,
   author_color    text,
+  author_avatar_url text,
   reply_to_id     uuid references post_comments(id) on delete set null,
   reply_to_name   text,
   likes_count     int default 0,

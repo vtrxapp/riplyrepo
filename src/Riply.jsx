@@ -5622,7 +5622,15 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         }},
         { icon:'#E4F7EC', iconStroke:'#15A34A', iconPath:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z', iconPath2:'m22 6-10 7L2 6', title:'Email Notifications', isToggle:true, toggleVal:emailNotif, onToggle:()=>{ const v=!emailNotif; setEmailNotif(v); localStorage.setItem('pref_email_notif', v); showToast(v ? 'Email notifications enabled' : 'Email notifications disabled'); } },
         { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M12 2L15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', title:'Reminders', isToggle:true, toggleVal:reminders, onToggle:()=>{ const v=!reminders; setReminders(v); localStorage.setItem('pref_reminders', v); showToast(v ? 'Reminders enabled' : 'Reminders disabled'); } },
-        { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z', iconPath2:'', title:'Location Services', isToggle:true, toggleVal:location, onToggle:()=>{ const v=!location; if(v && navigator.geolocation) { navigator.geolocation.getCurrentPosition(()=>{ setLocation(true); localStorage.setItem('pref_location','true'); showToast('Location enabled'); }, ()=>showToast('Location permission denied')); } else { setLocation(false); localStorage.setItem('pref_location','false'); showToast('Location disabled'); } } },
+        { icon:'#FDE7E4', iconStroke:C.danger, iconPath:'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z', iconPath2:'', title:'Location Services', isToggle:true, toggleVal:location, onToggle:()=>{
+          const v=!location;
+          if (!v) { setLocation(false); localStorage.setItem('pref_location','false'); showToast('Location disabled'); return; }
+          if (!navigator.geolocation) { showToast('Location services are not available on this device'); return; }
+          navigator.geolocation.getCurrentPosition(
+            ()=>{ setLocation(true); localStorage.setItem('pref_location','true'); showToast('Location enabled'); },
+            ()=>showToast('Location permission denied'),
+          );
+        } },
       ],
     },
     {

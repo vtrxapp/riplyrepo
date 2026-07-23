@@ -10130,7 +10130,7 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
             { value: stats ? (stats.newPosts || '—') : '—', label:'Posts This Week', iconBg:'#E4F7EC',
               icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="3.5" width="16" height="17" rx="3" stroke="#10B981" strokeWidth="2"/><path d="M12 9v6M9 12h6" stroke="#10B981" strokeWidth="2" strokeLinecap="round"/></svg> },
             { value: stats ? (stats.events || '—') : '—', label:'Events', iconBg:'#FFF6EC',
-              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="#F59E0B" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/></svg> },
+              icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke="#F59E0B" strokeWidth="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/><circle cx="8" cy="14" r="1.3" fill="#F59E0B"/><circle cx="12" cy="14" r="1.3" fill="#F59E0B"/><circle cx="16" cy="14" r="1.3" fill="#F59E0B"/><circle cx="8" cy="18" r="1.3" fill="#F59E0B"/><circle cx="12" cy="18" r="1.3" fill="#F59E0B"/><circle cx="16" cy="18" r="1.3" fill="#F59E0B"/></svg> },
           ].map(k => (
             <div key={k.label} style={{ background:'#fff', borderRadius:18,
                                          boxShadow:'0 4px 14px rgba(16,24,40,0.05)',

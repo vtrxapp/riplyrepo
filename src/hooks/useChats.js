@@ -4,6 +4,21 @@ import { supabase } from '../lib/supabase'
 import { deriveAvatarColor } from './useCurrentUser'
 import { formatChatTimestamp as formatTime } from '../lib/formatTime'
 
+// Deletes the current user's own membership row rather than the chat itself,
+// so this only removes the conversation from their own list -- other
+// participants keep the chat and their message history intact. Exported
+// standalone (not just as useChats().deleteChat) so screens that don't need
+// the full chat list -- e.g. an open chat's own "Delete chat" action -- can
+// call the exact same logic without mounting a redundant list fetch.
+export async function deleteChatParticipant(chatId, userId) {
+  if (!userId) return { error: 'Not signed in' }
+  return supabase
+    .from('chat_participants')
+    .delete()
+    .eq('chat_id', chatId)
+    .eq('user_id', userId)
+}
+
 export function useChats() {
   const { user } = useUser()
   const userId = user?.id
@@ -132,20 +147,13 @@ export function useChats() {
     return () => { supabase.removeChannel(channel) }
   }, [userId, load])
 
-  // Deletes the current user's own membership row rather than the chat
-  // itself, so this only removes the conversation from their own list --
-  // other participants keep the chat and their message history intact.
   const deleteChat = useCallback(async (chatId) => {
     if (!userId) return { error: 'Not signed in' }
     // Invalidate any load() already in flight so it can't resolve after this
     // and overwrite the optimistic removal below with pre-delete data.
     loadGenRef.current++
     setChats(prev => prev.filter(c => c.id !== chatId))
-    const { error } = await supabase
-      .from('chat_participants')
-      .delete()
-      .eq('chat_id', chatId)
-      .eq('user_id', userId)
+    const { error } = await deleteChatParticipant(chatId, userId)
     // Reconcile with the server either way -- on success this just confirms
     // the optimistic removal; on failure it restores the chat if it's still
     // actually there.

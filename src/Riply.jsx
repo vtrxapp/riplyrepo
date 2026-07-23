@@ -5,7 +5,7 @@ import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
 import { useChat } from "./hooks/useChat";
-import { useChats } from "./hooks/useChats";
+import { useChats, deleteChatParticipant } from "./hooks/useChats";
 import { useGroupActivity } from "./hooks/useGroupActivity";
 import { useEvents, useEvent } from "./hooks/useEvents";
 import { parseEventPrice } from "./lib/eventPrice";
@@ -5278,6 +5278,15 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   // Auto-scroll when messages change
   useEffect(() => { scrollToBottom(); }, [rawMessages]);
 
+  const handleDeleteChat = async () => {
+    setMenuOpen(false);
+    if (!window.confirm(`Delete this chat with ${chat.name}? This can't be undone.`)) return;
+    const { error } = await deleteChatParticipant(chatId, currentUserId);
+    if (error) { showToast("Couldn't delete chat. Try again."); return; }
+    showToast('Chat deleted');
+    goBack();
+  };
+
   // Online status — group chats (id 4) show member count, DMs show 'Active recently'.
   // Groups and a currently-online DM read as "active now" (blue, matches the
   // app's theme color); a last-seen/recency label reads as grey since it's
@@ -5353,15 +5362,11 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
           <div style={{ position:'absolute', top:56, right:13, background:C.card,
                         borderRadius:14, boxShadow:'0 8px 24px rgba(16,24,40,0.14)',
                         overflow:'hidden', zIndex:20, minWidth:170 }}>
-            {['View Profile','Mute Notifications','Search in Chat','Clear Chat','Block'].map((item,i) => (
-              <div key={item} onClick={()=>{ setMenuOpen(false); showToast(item); }}
-                style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
-                         color: item==='Block' ? C.danger : C.body,
-                         borderBottom: i<4 ? `1px solid ${C.divider}` : 'none',
-                         cursor:'pointer', background:C.card }}>
-                {item}
-              </div>
-            ))}
+            <div onClick={handleDeleteChat}
+              style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
+                       color:C.danger, cursor:'pointer', background:C.card }}>
+              Delete Chat
+            </div>
           </div>
         )}
       </div>

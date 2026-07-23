@@ -604,7 +604,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
   const eventData = eventsLoading ? [] : liveEvents;
   let list = eventData.slice();
   if (activeCat==='mine') list = list.filter(ev => myEventIds?.has(ev.id));
-  else if (activeCat==='new') list = [...list].reverse();
+  else if (activeCat==='new') list.reverse();
   // Default order (including "This Week") is already earliest date/time
   // first, straight from useEvents' `order('date', ascending)`.
 
@@ -13278,7 +13278,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} currentUser={currentUser} />;
+      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} currentUser={currentUser} />;
     }
   };
 

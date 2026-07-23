@@ -638,7 +638,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                       style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }}/>
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(180deg,rgba(0,0,0,0.22) 0%,transparent 35%,transparent 55%,rgba(0,0,0,0.48) 100%)' }} />
                     {/* Top row: category chip + new badge */}
-                    <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                         <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
                         {isNew && <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:C.grad, fontSize:11, fontWeight:800, letterSpacing:0.3, color:'#fff' }}>New</span>}

@@ -537,7 +537,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
                   stroke={navColor('messages')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           {unreadCount > 0 && (
-            <span style={{ position:'absolute', top:-4, right:-6, minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:8, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+            <span style={{ position:'absolute', top:-4, right:-6, minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:10, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
           )}
         </div>
         <span style={{ fontSize:8, fontWeight:navWeight('messages'), color:navColor('messages'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Messages</span>
@@ -641,7 +641,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                         <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
-                        {isNew && <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:C.grad, fontSize:9, fontWeight:800, letterSpacing:0.3, color:'#fff' }}>New</span>}
+                        {isNew && <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:C.grad, fontSize:11, fontWeight:800, letterSpacing:0.3, color:'#fff' }}>New</span>}
                       </div>
                       <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)', boxShadow:'0 2px 6px rgba(0,0,0,0.12)' }}>
                         <svg width="17" height="17" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l1-8Z" fill={ev.trending?'#FFB020':'rgba(255,255,255,0)'} stroke={ev.trending?'#F59E0B':'#7B8499'} strokeWidth="1.6" strokeLinejoin="round"/></svg>
@@ -650,14 +650,14 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     {/* Bottom row: free entry (left) + recurring badge (right) */}
                     <div style={{ position:'absolute', bottom:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                       {isFree
-                        ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(2,162,240,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
+                        ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(2,162,240,0.88)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
                         : ev.price
                           ? <span style={{ display:'inline-flex', alignItems:'center', gap:5, height:26, padding:'0 11px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" strokeWidth="1.8"/><path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round"/></svg>
                               Paid · ${priceAmount}
                             </span>
                           : <span/>}
-                      {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
+                      {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
                     </div>
                   </div>
                 );
@@ -1077,7 +1077,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
         <div style={{ display:'flex', gap:26, marginBottom:11 }}>
           <button onClick={()=>setMsgTab('notifications')} style={isNotif?activeTabStyle:idleTabStyle}>
             Notifications
-            {unreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:8, fontWeight:800, verticalAlign:'middle' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            {unreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:10, fontWeight:800, verticalAlign:'middle' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
           <button onClick={()=>setMsgTab('chats')} style={isNotif?idleTabStyle:activeTabStyle}>Chats</button>
         </div>
@@ -1121,7 +1121,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                     </div>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:5 }}>
                       {a.missedCount > 0 && (
-                        <span style={{ display:'flex', alignItems:'center', justifyContent:'center', minWidth:22, height:22, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, flexShrink:0 }}>
+                        <span style={{ display:'flex', alignItems:'center', justifyContent:'center', minWidth:22, height:22, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, flexShrink:0 }}>
                           {a.missedCount > 99 ? '99+' : a.missedCount}
                         </span>
                       )}
@@ -1220,7 +1220,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                     </div>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
                       <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
-                      {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:9, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
+                      {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
                     </div>
                   </div>
                 </div>

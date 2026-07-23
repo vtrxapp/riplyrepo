@@ -6,6 +6,7 @@ import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
 import { useChat } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
+import { useGroupActivity } from "./hooks/useGroupActivity";
 import { useEvents, useEvent } from "./hooks/useEvents";
 import { parseEventPrice } from "./lib/eventPrice";
 import { useUserInteractions } from "./hooks/useUserInteractions";
@@ -1060,10 +1061,11 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 // ─────────────────────────────────────────────────────────────
 // SCREEN: MESSAGES
 // ─────────────────────────────────────────────────────────────
-function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsData }) {
+function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsData, groupActivityData }) {
   const isNotif = msgTab==='notifications';
   const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = chatsData;
   const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification, refetch: refetchNotifs } = notifs;
+  const { groupActivity, loading: groupActivityLoading, markGroupRead, refetch: refetchGroupActivity } = groupActivityData;
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:16, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
 
@@ -1102,7 +1104,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
       </div>
 
       {/* Body */}
-      <PullToRefresh onRefresh={isNotif ? refetchNotifs : refetchChats} style={{ flex:1, padding:'14px 16px 104px' }}>
+      <PullToRefresh onRefresh={isNotif ? (() => Promise.all([refetchNotifs(), refetchGroupActivity()])) : refetchChats} style={{ flex:1, padding:'14px 16px 104px' }}>
         {isNotif ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {/* Mark all read */}
@@ -1111,9 +1113,45 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                 Mark all as read
               </button>
             )}
+            {/* Group activity -- one row per group showing its latest post
+                and how many posts you haven't seen yet. */}
+            {!groupActivityLoading && groupActivity.map(a => (
+              <div key={a.id} onClick={() => { markGroupRead(a.groupId); navigate('group-profile', { groupId: a.groupId }); }}
+                style={{ background: a.missedCount > 0 ? '#F0F8FF' : C.card, borderRadius:18,
+                         boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
+                         cursor:'pointer', borderLeft: a.missedCount > 0 ? `3px solid ${C.primary}` : 'none' }}>
+                <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                  <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:a.color,
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                color:'#fff', fontSize:18, position:'relative', overflow:'hidden' }}>
+                    {a.avatarUrl
+                      ? <img src={a.avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
+                      : <span>{a.initial}</span>
+                    }
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                      <span style={{ fontSize:15, fontWeight:800, color:C.ink }}>{a.name}</span>
+                      <span style={{ fontSize:11, color:C.subtle, fontWeight:600, flexShrink:0 }}>{a.time}</span>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:5 }}>
+                      {a.missedCount > 0 && (
+                        <span style={{ display:'flex', alignItems:'center', justifyContent:'center', minWidth:22, height:22, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, flexShrink:0 }}>
+                          {a.missedCount > 99 ? '99+' : a.missedCount}
+                        </span>
+                      )}
+                      <span style={{ fontSize:13, lineHeight:1.4, color: a.missedCount > 0 ? C.primary : '#7B8499', fontWeight: a.missedCount > 0 ? 700 : 500, fontStyle: a.missedCount > 0 ? 'italic' : 'normal', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {a.preview}
+                      </span>
+                    </div>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0, marginTop:14 }}><path d="m9 6 6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+              </div>
+            ))}
             {notifsLoading ? (
               <div style={{ textAlign:'center', color:C.subtle, fontSize:15, paddingTop:40 }}>Loading…</div>
-            ) : notifications.length === 0 ? (
+            ) : notifications.length === 0 && groupActivity.length === 0 ? (
               <div style={{ textAlign:'center', paddingTop:48 }}>
                 <div style={{ marginBottom:12, display:'flex', alignItems:'center', justifyContent:'center' }}>
                   <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
@@ -3078,7 +3116,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
-function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser }) {
+function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser, markGroupRead }) {
+  // Opening a group's feed counts as seeing its posts, so the group
+  // activity row in Notifications stops counting them as missed.
+  useEffect(() => { markGroupRead?.(groupId); }, [groupId, markGroupRead]);
+
   const { user, isLoaded: userLoaded } = useUser();
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
   const [dbGroup,     setDbGroup]     = useState(null);
@@ -12746,6 +12788,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   const currentUser = useCurrentUser();
   const notifs = useNotifications();
   const chatsData = useChats();
+  const groupActivityData = useGroupActivity();
 
   // Font injection
   useEffect(() => {
@@ -12879,7 +12922,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
-      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} chatsData={chatsData} />;
+      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} chatsData={chatsData} groupActivityData={groupActivityData} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
@@ -12890,7 +12933,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
-      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

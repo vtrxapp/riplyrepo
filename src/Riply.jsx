@@ -8771,9 +8771,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         setSubmittingStatus(null);
         showToast('Changes saved');
         // EventDetailsScreen only loads published/no-status events -- a
-        // draft saved as a draft (still status='draft') would 404 there and
-        // silently fall back to an unrelated mock event.
-        if (status === 'draft') navigate('event-manager');
+        // draft or pending event (status still 'draft'/'pending') would 404
+        // there and silently fall back to an unrelated mock event.
+        if (status === 'draft' || status === 'pending') navigate('event-manager');
         else navigate('event-details', { eventId });
         return;
       }
@@ -8781,6 +8781,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
 
     // Drafts aren't visible to anyone else yet, so skip the group
     // announcement post entirely -- only a published event should notify.
+    // Declared outside the block (not const inside it) so the isLeavingDraft
+    // toast further down can tell whether the announcement actually failed.
+    let announceError = null;
     if (status === 'published' && effectiveGroupId && event) {
       // Event-alert posts read as an announcement from the group itself,
       // not a personal post from whichever member happened to create the
@@ -8796,7 +8799,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       // silently rejected by posts_insert's RLS (membersPost/admin check) --
       // the event itself still publishes fine, but the announcement post
       // just vanishes with no feedback that it never made it to the feed.
-      const { error: announceError } = await supabase.from('posts').insert({
+      ({ error: announceError } = await supabase.from('posts').insert({
         group_id:           effectiveGroupId,
         user_id:            currentUser.userId,
         content:            eventPostText,
@@ -8813,7 +8816,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         author_color:       groupRow?.logo_color || deriveAvatarColor(effectiveGroupId),
         avatar_url:         groupRow?.avatar_url || null,
         author_is_group:    true,
-      });
+      }));
       if (announceError) {
         console.error('[submitEvent] group announcement post failed:', announceError);
         showToast('Event published, but the group announcement post could not be posted');
@@ -8822,7 +8825,8 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       // now, so this (a member, not necessarily the admin, posting an
       // event) goes through a security-definer function scoped to
       // just this counter.
-      await supabase.rpc('increment_group_event_count', { p_group_id: effectiveGroupId });
+      const { error: countErr } = await supabase.rpc('increment_group_event_count', { p_group_id: effectiveGroupId });
+      if (countErr) console.error('[submitEvent] increment_group_event_count failed:', countErr);
     }
     setSubmittingStatus(null);
     if (status === 'draft') {
@@ -8832,7 +8836,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       showToast('Submitted for approval — an admin will review it before it goes live');
       navigate('event-manager');
     } else if (isLeavingDraft) {
-      showToast('Event published');
+      // Don't let a generic success toast silently overwrite the more
+      // important "announcement post failed" one shown above.
+      showToast(announceError ? 'Event published, but the group announcement post could not be posted' : 'Event published');
       navigate('event-details', { eventId });
     } else {
       navigate('creation-success', { kind: 'event', id: event.id, title: title.trim() });
@@ -9328,6 +9334,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           </button>
           <button
             onClick={() => submitEvent('published')}
+            disabled={!canPublish || submitting}
             style={{
               flex:1, height:50, border:'none', borderRadius:15,
               cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
@@ -9335,7 +9342,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               color:'#fff', fontSize:16, fontWeight:800,
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-              boxShadow: canPublish ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
+              boxShadow: canPublish && !submitting ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
               opacity: submitting ? 0.7 : 1,
             }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">

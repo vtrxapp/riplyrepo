@@ -41,7 +41,14 @@ export function useChats() {
     // Supabase/PostgREST caps rows per request (commonly 1000) -- a client-side
     // scan would silently undercount for a user in long-running, active chats.
     const { data: unreadCounts, error: unreadErr } = await supabase.rpc('get_unread_chat_counts')
-    if (unreadErr) console.error('[useChats] get_unread_chat_counts failed:', unreadErr)
+    if (unreadErr) {
+      // Bail out rather than falling through with an empty map -- that would
+      // render every chat as read, which is worse than just leaving the
+      // previously-known unread state on screen until the next successful load.
+      console.error('[useChats] get_unread_chat_counts failed:', unreadErr)
+      setLoading(false)
+      return
+    }
     const unreadCountMap = new Map((unreadCounts || []).map(row => [row.chat_id, row.unread_count]))
 
     // A chat with no group_id is a plain 1:1 DM -- look up the other
@@ -117,8 +124,10 @@ export function useChats() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => load(userId))
       // markRead (useChat.js) bumps chat_participants.last_read_at when a
       // chat is opened -- without this, the unread badge here wouldn't
-      // clear until something else happened to trigger a reload.
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_participants' }, () => load(userId))
+      // clear until something else happened to trigger a reload. Filtered to
+      // this user's own rows so another participant reading their copy of a
+      // shared chat doesn't reload everyone else's list too.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_participants', filter: `user_id=eq.${userId}` }, () => load(userId))
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [userId, load])

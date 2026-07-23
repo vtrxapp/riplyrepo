@@ -13137,10 +13137,44 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     }
   };
 
+  // Edge-swipe-back: starting a touch within a narrow strip of the left
+  // screen edge and dragging right triggers goBack(), matching iOS/Android's
+  // native back gesture. Anchoring to the edge (rather than a full-width
+  // swipe) is what keeps this from colliding with the app's existing
+  // full-width horizontal swipes (Home/Spaces category tabs, GroupProfile
+  // tabs) -- those gestures start from wherever the user's finger already
+  // is, essentially never the literal edge, so they never satisfy the
+  // start-position check below and this handler simply never engages for
+  // them. goBack() itself already no-ops when there's nothing to go back
+  // to (root tab screens), so this doesn't need its own guard for that.
+  const EDGE_SWIPE_WIDTH = 24;
+  const edgeSwipeRef = useRef(null);
+  const handleEdgeSwipeStart = (e) => {
+    // Track the specific finger that started the gesture (by identifier),
+    // not just "whichever touch happens to be first" -- touches[0] (start)
+    // and changedTouches[0] (end) can be different fingers in a two-finger
+    // sequence, which would compute dx/dy against the wrong start point.
+    const t = e.changedTouches[0];
+    edgeSwipeRef.current = t.clientX <= EDGE_SWIPE_WIDTH
+      ? { id: t.identifier, x: t.clientX, y: t.clientY }
+      : null;
+  };
+  const handleEdgeSwipeEnd = (e) => {
+    if (!edgeSwipeRef.current) return;
+    const { id, x: startX, y: startY } = edgeSwipeRef.current;
+    edgeSwipeRef.current = null;
+    const t = Array.from(e.changedTouches).find(ct => ct.identifier === id);
+    if (!t) return;
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (dx > 70 && dx > Math.abs(dy) * 1.5) goBack();
+  };
+  const handleEdgeSwipeCancel = () => { edgeSwipeRef.current = null; };
+
   return (
     <div style={{ width:'100%', height:'100dvh', position:'relative', background:C.pageBg,
                   fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden' }}>
-      <div style={{ height:'100%' }}>
+      <div style={{ height:'100%' }} onTouchStart={handleEdgeSwipeStart} onTouchEnd={handleEdgeSwipeEnd} onTouchCancel={handleEdgeSwipeCancel}>
         {renderScreen()}
       </div>
       {toast && <Toast msg={toast} />}

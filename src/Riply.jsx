@@ -2902,12 +2902,25 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
           const likeCount = (c.likes || 0) + (isLiked ? 1 : 0);
           const replies = repliesByParent[c.id] || [];
           const expanded = !!expandedReplies[c.id];
+          // Live-reflect the viewer's own avatar/color (they may have changed
+          // it since this comment was posted), same as PostCard does for the
+          // post author -- everyone else's comments show what was captured
+          // at post time.
+          const isMeComment = !!(currentUser?.userId && c.user_id === currentUser.userId);
+          const cAvatar = isMeComment ? currentUser.avatarUrl : c.aAvatar;
+          const cColor = isMeComment ? (currentUser.avatarColor || c.aColor) : c.aColor;
+          const cInitial = isMeComment ? (currentUser.name?.[0] || c.aInitial) : c.aInitial;
           return (
             <div style={{ marginBottom:16 }}>
               <div style={{ display:'flex', gap:10 }}>
-                <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background:c.aColor,
+                <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, overflow:'hidden',
+                              background: cAvatar ? 'transparent' : cColor,
                               display:'flex', alignItems:'center', justifyContent:'center',
-                              color:'#fff', fontSize:12, fontWeight:800 }}>{c.aInitial}</div>
+                              color:'#fff', fontSize:12, fontWeight:800 }}>
+                  {cAvatar
+                    ? <img src={cAvatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : cInitial}
+                </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
                     <span style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>{c.author}</span>

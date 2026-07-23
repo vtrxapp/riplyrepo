@@ -27,6 +27,7 @@ export function useComments(postId) {
     author:      c.author_name || 'Member',
     aInitial:    c.author_initial || (c.author_name?.[0] || 'M').toUpperCase(),
     aColor:      c.author_color  || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+    aAvatar:     c.author_avatar_url || null,
     text:        c.content,
     likes:       c.likes_count || 0,
     replyToId:   c.reply_to_id   || null,
@@ -78,6 +79,7 @@ export function useComments(postId) {
       author_name:    authorName,
       author_initial: authorName[0]?.toUpperCase() || 'M',
       author_color:   currentUserProfile?.avatarColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+      author_avatar_url: currentUserProfile?.avatarUrl || null,
       reply_to_id:    replyTo?.id    || null,
       reply_to_name:  replyTo?.author || null,
       likes_count:    0,
@@ -94,6 +96,7 @@ export function useComments(postId) {
       author_name:    authorName,
       author_initial: authorName[0]?.toUpperCase() || 'M',
       author_color:   currentUserProfile?.avatarColor || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+      author_avatar_url: currentUserProfile?.avatarUrl || null,
       reply_to_id:    replyTo?.id    || null,
       reply_to_name:  replyTo?.author || null,
     }).select().single()

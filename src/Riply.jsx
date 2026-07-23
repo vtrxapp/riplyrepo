@@ -254,6 +254,21 @@ function SkeletonCards({ count = 3 }) {
   );
 }
 
+// Labeled form-field wrapper used by GroupEditScreen. Hoisted to module scope
+// (not defined inside the screen's body) so its identity is stable across
+// renders -- a component redefined every render is a new type to React each
+// time, which remounts its children; typing into the Description <textarea>
+// wrapped in this would otherwise lose focus on every keystroke.
+const Field = ({ label, children }) => (
+  <div style={{ marginTop:18 }}>
+    <div style={{ fontSize:13, fontWeight:700, letterSpacing:0.4,
+                  textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
+      {label}
+    </div>
+    {children}
+  </div>
+);
+
 // Twitter/Instagram-style swipe-left-to-reveal-delete. Wraps a row (chat,
 // notification, etc.) so a horizontal drag reveals a red delete action
 // underneath, while a vertical drag falls through untouched so the
@@ -8750,7 +8765,11 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       if (!isLeavingDraft) {
         setSubmittingStatus(null);
         showToast('Changes saved');
-        navigate('event-details', { eventId });
+        // EventDetailsScreen only loads published/no-status events -- a
+        // draft saved as a draft (still status='draft') would 404 there and
+        // silently fall back to an unrelated mock event.
+        if (status === 'draft') navigate('event-manager');
+        else navigate('event-details', { eventId });
         return;
       }
     }
@@ -10499,15 +10518,6 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
     </button>
   );
 
-  const Field = ({ label, children }) => (
-    <div style={{ marginTop:18 }}>
-      <div style={{ fontSize:13, fontWeight:700, letterSpacing:0.4,
-                    textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
-        {label}
-      </div>
-      {children}
-    </div>
-  );
 
   if (isAuthorized === false) {
     return (

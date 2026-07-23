@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useUser } from '@clerk/clerk-react'
 import { supabase } from '../lib/supabase'
 import { formatRelativeTime as formatTime } from '../lib/formatTime'
@@ -13,14 +13,21 @@ export function useGroupActivity() {
   const userId = user?.id
   const [groupActivity, setGroupActivity] = useState([])
   const [loading, setLoading] = useState(true)
+  // Bumped on every load() call and by markGroupRead's optimistic update, so
+  // a load already in flight (e.g. from the mount call racing the posts
+  // realtime handler) can't resolve late and clobber newer or optimistic
+  // state -- mirrors useChats.js's loadGenRef.
+  const loadGenRef = useRef(0)
 
   const load = useCallback(async (userId) => {
+    const gen = ++loadGenRef.current
     const { data: memberships } = await supabase
       .from('group_members')
       .select('group_id')
       .eq('user_id', userId)
       .in('role', ['member', 'admin', 'owner'])
 
+    if (gen !== loadGenRef.current) return
     const groupIds = (memberships || []).map(m => m.group_id)
     if (groupIds.length === 0) { setGroupActivity([]); setLoading(false); return }
 
@@ -29,11 +36,19 @@ export function useGroupActivity() {
     // Supabase/PostgREST caps rows per request (commonly 1000) -- a
     // client-side scan would silently undercount missed posts for a user in
     // long-running, active groups.
-    const [{ data: groups }, { data: latestPosts }, { data: unreadCounts }] = await Promise.all([
+    const [
+      { data: groups, error: groupsErr },
+      { data: latestPosts, error: latestErr },
+      { data: unreadCounts, error: unreadErr },
+    ] = await Promise.all([
       supabase.from('groups').select('id, name, initial, logo_color, avatar_url').in('id', groupIds),
       supabase.rpc('get_latest_group_posts'),
       supabase.rpc('get_group_unread_post_counts'),
     ])
+    if (gen !== loadGenRef.current) return
+    if (groupsErr) console.error('[useGroupActivity] groups fetch failed:', groupsErr)
+    if (latestErr) console.error('[useGroupActivity] get_latest_group_posts failed:', latestErr)
+    if (unreadErr) console.error('[useGroupActivity] get_group_unread_post_counts failed:', unreadErr)
 
     // Map (not a plain object) for these lookups -- id/group_id are UUIDs we
     // fetched ourselves, never user-controlled property names, but keyed
@@ -67,7 +82,7 @@ export function useGroupActivity() {
   }, [])
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return }
+    if (!userId) return
     load(userId)
 
     const channel = supabase
@@ -79,6 +94,9 @@ export function useGroupActivity() {
 
   const markGroupRead = useCallback(async (groupId) => {
     if (!userId || !groupId) return
+    // Invalidate any load() already in flight so it can't resolve after this
+    // and overwrite the optimistic missedCount reset with stale pre-read data.
+    loadGenRef.current++
     setGroupActivity(prev => prev.map(a => a.groupId === groupId ? { ...a, missedCount: 0 } : a))
     await supabase.from('group_members')
       .update({ last_post_read_at: new Date().toISOString() })

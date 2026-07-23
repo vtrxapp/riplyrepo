@@ -40,7 +40,8 @@ export function useChats() {
     // Counted server-side (not by pulling every message to the client) since
     // Supabase/PostgREST caps rows per request (commonly 1000) -- a client-side
     // scan would silently undercount for a user in long-running, active chats.
-    const { data: unreadCounts } = await supabase.rpc('get_unread_chat_counts')
+    const { data: unreadCounts, error: unreadErr } = await supabase.rpc('get_unread_chat_counts')
+    if (unreadErr) console.error('[useChats] get_unread_chat_counts failed:', unreadErr)
     const unreadCountMap = new Map((unreadCounts || []).map(row => [row.chat_id, row.unread_count]))
 
     // A chat with no group_id is a plain 1:1 DM -- look up the other
@@ -114,6 +115,10 @@ export function useChats() {
     const channel = supabase
       .channel('chats-list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, () => load(userId))
+      // markRead (useChat.js) bumps chat_participants.last_read_at when a
+      // chat is opened -- without this, the unread badge here wouldn't
+      // clear until something else happened to trigger a reload.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_participants' }, () => load(userId))
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [userId, load])

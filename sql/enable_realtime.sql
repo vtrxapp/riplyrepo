@@ -21,7 +21,11 @@
 -- Schema-qualified and guarded so this is safe to re-run: `alter publication
 -- ... add table` errors if a table is already a member (which it will be,
 -- the moment this runs once), so each addition is skipped when already
--- present rather than aborting the rest of the block.
+-- present rather than aborting the rest of the block. Also skips a table
+-- that doesn't exist yet -- blocked_users (chat_mute_and_block.sql) and
+-- checked_in_at's table dependency aren't guaranteed to have been applied
+-- yet, and this script's own tables shouldn't be blocked on migration
+-- ordering from unrelated PRs.
 do $$
 declare
   t text;
@@ -31,6 +35,9 @@ begin
     'posts', 'post_comments', 'notifications', 'group_members'
   ]
   loop
+    if to_regclass('public.' || t) is null then
+      continue;
+    end if;
     if not exists (
       select 1 from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t

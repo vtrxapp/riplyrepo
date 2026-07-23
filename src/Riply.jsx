@@ -8590,6 +8590,13 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
   const [loadingEvent, setLoadingEvent] = useState(isEditing);
   const [originalPrice, setOriginalPrice] = useState(null);
   const [eventStatus, setEventStatus] = useState('published');
+  // The event-manager's edit button only passes eventId, not groupId, so a
+  // group-owned draft opened from there would otherwise look group-less here
+  // (sourceGroupId undefined) and silently skip the group announcement post
+  // + event_count bump on publish. Falls back to the loaded event's own
+  // group_id whenever the nav param didn't supply one.
+  const [loadedGroupId, setLoadedGroupId] = useState(null);
+  const effectiveGroupId = sourceGroupId || loadedGroupId;
 
   // Converts a stored "6:00 PM"-style string back to the 24-hour "18:00"
   // a native <input type="time"> needs to show it as prefilled.
@@ -8636,6 +8643,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       setGuests(ev.guests || []);
       setIsPublic(ev.is_public !== false);
       setEventStatus(ev.status || 'published');
+      setLoadedGroupId(ev.group_id || null);
       setLoadingEvent(false);
     })();
     return () => { cancelled = true; };
@@ -8717,8 +8725,8 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         saves: 0,
         shares: 0,
         trending: false,
-        group_id: sourceGroupId || null,
-        is_public: sourceGroupId ? isPublic : true,
+        group_id: effectiveGroupId || null,
+        is_public: effectiveGroupId ? isPublic : true,
       }).select().single());
     }
     if (error) { setSubmittingStatus(null); showToast(`Failed to ${isEditing ? 'save changes' : status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }
@@ -8749,14 +8757,14 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
 
     // Drafts aren't visible to anyone else yet, so skip the group
     // announcement post entirely -- only a published event should notify.
-    if (status === 'published' && sourceGroupId && event) {
+    if (status === 'published' && effectiveGroupId && event) {
       // Event-alert posts read as an announcement from the group itself,
       // not a personal post from whichever member happened to create the
       // event -- so attribute it to the group's own name/avatar rather
       // than currentUser (unlike CreatePostScreen's regular posts, which
       // are correctly attributed to the actual poster).
       const { data: groupRow } = await supabase.from('groups')
-        .select('name, avatar_url, logo_color').eq('id', sourceGroupId).single();
+        .select('name, avatar_url, logo_color').eq('id', effectiveGroupId).single();
       const authorName = groupRow?.name || 'Group';
       const eventPostText = `📆🚨 New Event Alert: ${title.trim()}${about.trim() ? '\n' + about.trim() : ''}`;
       // Not checked before: if this group has "members can post" turned off,
@@ -8765,7 +8773,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       // the event itself still publishes fine, but the announcement post
       // just vanishes with no feedback that it never made it to the feed.
       const { error: announceError } = await supabase.from('posts').insert({
-        group_id:           sourceGroupId,
+        group_id:           effectiveGroupId,
         user_id:            currentUser.userId,
         content:            eventPostText,
         text:               eventPostText,
@@ -8778,7 +8786,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         comment_count:      0,
         author_name:        authorName,
         author_initial:     authorName[0]?.toUpperCase() || 'G',
-        author_color:       groupRow?.logo_color || deriveAvatarColor(sourceGroupId),
+        author_color:       groupRow?.logo_color || deriveAvatarColor(effectiveGroupId),
         avatar_url:         groupRow?.avatar_url || null,
         author_is_group:    true,
       });
@@ -8790,7 +8798,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       // now, so this (a member, not necessarily the admin, posting an
       // event) goes through a security-definer function scoped to
       // just this counter.
-      await supabase.rpc('increment_group_event_count', { p_group_id: sourceGroupId });
+      await supabase.rpc('increment_group_event_count', { p_group_id: effectiveGroupId });
     }
     setSubmittingStatus(null);
     if (status === 'draft') {
@@ -9190,7 +9198,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                     background:'rgba(255,255,255,0.96)', backdropFilter:'blur(16px)',
                     boxShadow:'0 -1px 0 rgba(16,24,40,0.07)', padding:'13px 16px 28px' }}>
         {/* Visibility toggle (only when creating from a group) */}
-        {sourceGroupId && (
+        {effectiveGroupId && (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                         background:C.chip, borderRadius:13, padding:'11px 14px', marginBottom:12 }}>
             <div>

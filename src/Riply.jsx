@@ -4588,11 +4588,9 @@ function calcSpaceProgress(timeStr, dayStr, duration) {
   const base = (dayStr === 'today' || dayStr === 'tomorrow') ? new Date() : new Date(dayStr + 'T00:00:00');
   if (isNaN(base)) return null;
   if (dayStr === 'tomorrow') base.setDate(base.getDate() + 1);
-  const mx = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
-  if (!mx) return null;
-  let h = parseInt(mx[1]); const min = parseInt(mx[2] || '0'); const ap = (mx[3] || '').toUpperCase();
-  if (ap === 'PM' && h < 12) h += 12; if (ap === 'AM' && h === 12) h = 0;
-  const startMs = new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, min).getTime();
+  const mins = timeToMinutes(timeStr);
+  if (mins == null) return null;
+  const startMs = new Date(base.getFullYear(), base.getMonth(), base.getDate(), Math.floor(mins / 60), mins % 60).getTime();
   const endMs = startMs + (parseInt(duration) || 60) * 60000;
   const nowMs = Date.now();
   if (nowMs < startMs) return null;

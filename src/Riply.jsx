@@ -2909,7 +2909,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
           const isMeComment = !!(currentUser?.userId && c.user_id === currentUser.userId);
           const cAvatar = isMeComment ? currentUser.avatarUrl : c.aAvatar;
           const cColor = isMeComment ? (currentUser.avatarColor || c.aColor) : c.aColor;
-          const cInitial = isMeComment ? (currentUser.name?.[0] || c.aInitial) : c.aInitial;
+          const cInitial = isMeComment ? (currentUser.name?.[0]?.toUpperCase() || c.aInitial) : c.aInitial;
           return (
             <div style={{ marginBottom:16 }}>
               <div style={{ display:'flex', gap:10 }}>
@@ -2918,7 +2918,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                               display:'flex', alignItems:'center', justifyContent:'center',
                               color:'#fff', fontSize:12, fontWeight:800 }}>
                   {cAvatar
-                    ? <img src={cAvatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    ? <img src={cAvatar} alt={c.author || ''} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                     : cInitial}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>

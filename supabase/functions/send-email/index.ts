@@ -46,20 +46,28 @@ Deno.serve(async (req: Request) => {
     const escapeHtml = (s: string) =>
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+    // Built as its own value (not inline in the request object) so the only
+    // thing feeding the `html` field is this already-escaped string.
+    const safeHtmlBody = `<p>${escapeHtml(body || "")}</p>`;
+    const senderAddress = fromAddress || "Riply <onboarding@resend.dev>";
+    // Subject is a mail header, not HTML -- strip line breaks so a crafted
+    // notification title can't inject extra headers.
+    const safeSubject = String(subject).replace(/[\r\n]/g, " ");
+
+    const emailPayload = {
+      from: senderAddress,
+      to: [user.email],
+      subject: safeSubject,
+      html: safeHtmlBody,
+    };
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${resendKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: fromAddress || "Riply <onboarding@resend.dev>",
-        to: [user.email],
-        // Subject is a mail header, not HTML -- strip line breaks so a
-        // crafted notification title can't inject extra headers.
-        subject: String(subject).replace(/[\r\n]/g, " "),
-        html: `<p>${escapeHtml(body || "")}</p>`,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     if (!res.ok) {

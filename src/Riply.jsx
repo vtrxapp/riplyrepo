@@ -8723,10 +8723,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
     }
     if (error) { setSubmittingStatus(null); showToast(`Failed to ${isEditing ? 'save changes' : status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }
 
-    // A draft being published for the first time still needs the group
-    // announcement + event_count bump below -- only a plain edit-mode save
-    // (not a draft->published transition) should return early here.
-    const isPublishingDraft = isEditing && eventStatus === 'draft' && status === 'published';
+    // A draft leaving draft status (submitted for approval, or published
+    // directly) still needs the tail logic below -- only a plain edit-mode
+    // save that isn't changing the draft's status should return early here.
+    const isLeavingDraft = isEditing && eventStatus === 'draft' && status !== 'draft';
 
     if (isEditing) {
       // Only notify ticket holders if the price actually changed -- not on
@@ -8739,7 +8739,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         });
         if (notifErr) console.error('[submitEvent] price-change notify failed:', notifErr);
       }
-      if (!isPublishingDraft) {
+      if (!isLeavingDraft) {
         setSubmittingStatus(null);
         showToast('Changes saved');
         navigate('event-details', { eventId });
@@ -8796,7 +8796,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
     if (status === 'draft') {
       showToast('Draft saved');
       navigate('event-manager');
-    } else if (isPublishingDraft) {
+    } else if (status === 'pending') {
+      showToast('Submitted for approval — an admin will review it before it goes live');
+      navigate('event-manager');
+    } else if (isLeavingDraft) {
       showToast('Event published');
       navigate('event-details', { eventId });
     } else {
@@ -9256,7 +9259,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                 with, so a draft stayed a draft forever. */}
             {eventStatus === 'draft' && (
               <button
-                onClick={() => submitEvent('published')}
+                onClick={() => submitEvent('pending')}
                 disabled={!canPublish || submitting}
                 style={{
                   height:50, border:'none', borderRadius:15,
@@ -9272,7 +9275,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                   <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
                         stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
                 </svg>
-                {submittingStatus === 'published' ? 'Publishing…' : 'Publish Event'}
+                {submittingStatus === 'pending' ? 'Submitting…' : 'Submit for Approval'}
               </button>
             )}
           </div>

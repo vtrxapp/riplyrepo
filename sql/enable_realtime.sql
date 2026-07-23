@@ -55,3 +55,12 @@ begin
     end if;
   end loop;
 end $$;
+
+-- usePosts.js filters its DELETE subscription on group_id, which isn't part
+-- of the posts primary key (just id) -- with the default REPLICA IDENTITY,
+-- a DELETE's WAL record only carries the PK, so group_id wouldn't be there
+-- for Realtime to test the filter against and the event would be silently
+-- dropped. FULL includes the whole old row, so the filter can actually
+-- evaluate. (blocked_users doesn't need this: blocker_id, its equivalent
+-- filtered column, is already part of that table's primary key.)
+alter table if exists public.posts replica identity full;

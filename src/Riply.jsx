@@ -564,8 +564,14 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
   useEffect(() => {
     if (!currentUser?.userId) { setMyEventIds(new Set()); return; }
     let cancelled = false;
-    supabase.from('tickets').select('event_id').eq('user_id', currentUser.userId).then(({ data }) => {
-      if (!cancelled) setMyEventIds(new Set((data || []).map(r => r.event_id)));
+    supabase.from('tickets').select('event_id').eq('user_id', currentUser.userId).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) { console.error('[HomeScreen] failed to load ticket event ids:', error); setMyEventIds(new Set()); return; }
+      setMyEventIds(new Set((data || []).map(r => r.event_id)));
+    }).catch((err) => {
+      if (cancelled) return;
+      console.error('[HomeScreen] ticket event id fetch threw:', err);
+      setMyEventIds(new Set());
     });
     return () => { cancelled = true; };
   }, [currentUser?.userId]);
@@ -811,7 +817,10 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
   // spaceJoined has an entry for every space_participants row this user has
   // (joined or created), so it's already "spaces I'm involved in" -- only
   // show the tab once there's at least one.
-  const hasMySpaces = Object.keys(spaceJoined || {}).length > 0;
+  // A left space's entry is set to false rather than deleted, so a key-count
+  // check would keep this tab visible (with an empty list) after leaving
+  // the user's only space -- check for a truthy entry instead.
+  const hasMySpaces = Object.values(spaceJoined || {}).some(Boolean);
   const TABS = [
     {id:'all',label:'All'},
     ...(hasMySpaces ? [{id:'mine',label:'My Spaces'}] : []),
@@ -988,7 +997,9 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   // (joined or created -- creating a group enrolls the creator as owner),
   // regardless of approval status, so it's already exactly "groups I'm
   // involved in". Only show the tab once there's at least one.
-  const hasMyGroups = Object.keys(groupJoined || {}).length > 0;
+  // Same reasoning as SpacesScreen's hasMySpaces: leaving a group sets its
+  // entry to false rather than deleting it, so this needs a truthy check.
+  const hasMyGroups = Object.values(groupJoined || {}).some(Boolean);
   const TABS = [
     {id:'all',label:'All'},
     ...(hasMyGroups ? [{id:'mine',label:'My Groups'}] : []),
@@ -13209,6 +13220,25 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
 
   const ROOT_SCREENS = ['home','spaces','discover','messages','profile'];
   const showBottomNav = ROOT_SCREENS.includes(screen);
+  const onRootTab = navStack.length === 1 && ROOT_SCREENS.includes(screen);
+
+  // The 5 main tabs are each mounted once (below, in the keep-alive
+  // container) and never unmounted for the rest of the session -- tapping
+  // between them was previously destroying and recreating the whole screen
+  // (and re-running every useEvents/useSpaces/useGroups fetch from scratch)
+  // on every single switch. Kept as a separate function from the cases
+  // below so this JSX is shared between the keep-alive container and the
+  // plain-switch fallback used before the user is actually signed in.
+  const renderRootTab = (id) => {
+    switch (id) {
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} currentUser={currentUser} />;
+      case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
+      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} chatsData={chatsData} groupActivityData={groupActivityData} />;
+      case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
+      default: return null;
+    }
+  };
 
   const renderScreen = () => {
     switch(screen) {
@@ -13290,7 +13320,20 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     <div style={{ width:'100%', height:'100dvh', position:'relative', background:C.pageBg,
                   fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden' }}>
       <div style={{ height:'100%' }} onTouchStart={handleEdgeSwipeStart} onTouchEnd={handleEdgeSwipeEnd} onTouchCancel={handleEdgeSwipeCancel}>
-        {renderScreen()}
+        {currentUser.isAuthenticated && currentUser.profile ? (
+          <div style={{ position:'relative', height:'100%' }}>
+            {ROOT_SCREENS.map(id => (
+              <div key={id} style={{ display: (onRootTab && screen === id) ? 'block' : 'none', position:'absolute', inset:0, height:'100%' }}>
+                {renderRootTab(id)}
+              </div>
+            ))}
+            {!onRootTab && (
+              <div style={{ position:'absolute', inset:0, height:'100%', background:C.pageBg }}>
+                {renderScreen()}
+              </div>
+            )}
+          </div>
+        ) : renderScreen()}
       </div>
       {toast && <Toast msg={toast} />}
       {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={chatsData.unreadChatCount} />}

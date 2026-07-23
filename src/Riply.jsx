@@ -556,7 +556,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, navigate }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, role, navigate }) {
   const CATS = [
     {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
@@ -585,13 +585,26 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
 
       {/* Header */}
-      <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 12px', boxShadow:'0 1px 0 rgba(16,24,40,0.06)', position:'relative', zIndex:4 }}>
-        <SearchBar
-          placeholder={query || 'What can we help you find?'}
-          hint={query ? undefined : 'Try "Social events this weekend"'}
-          value={query} onChange={e=>setQuery(e.target.value)}
-          onFilter={()=>navigate('filters',{from:'home', filters, setFilters})}
-        />
+      <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 12px', boxShadow:'0 1px 0 rgba(16,24,40,0.06)', position:'relative', zIndex:4, display:'flex', alignItems:'flex-start', gap:10 }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <SearchBar
+            placeholder={query || 'What can we help you find?'}
+            hint={query ? undefined : 'Try "Social events this weekend"'}
+            value={query} onChange={e=>setQuery(e.target.value)}
+            onFilter={()=>navigate('filters',{from:'home', filters, setFilters})}
+          />
+        </div>
+        {(role==='organizer' || role==='admin') && (
+          <button type="button" onClick={()=>navigate('create-event')} aria-label="Create event" style={{
+            flexShrink:0, width:44, height:44, marginTop:1, border:'none', borderRadius:15,
+            background:'linear-gradient(135deg,#19BFFF,#008FF0)',
+            display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+            boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Category tabs */}

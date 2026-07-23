@@ -5280,8 +5280,8 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
 
   const deletingChatRef = useRef(false);
   const handleDeleteChat = async () => {
-    if (!window.confirm(`Delete this chat with ${chat.name}? This can't be undone.`)) return;
     setMenuOpen(false);
+    if (!window.confirm(`Delete this chat with ${chat.name}? This can't be undone.`)) return;
     if (deletingChatRef.current) return;
     deletingChatRef.current = true;
     const { error } = await deleteChat(chatId);
@@ -5299,10 +5299,10 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
 
   const blockingRef = useRef(false);
   const handleBlockUser = async () => {
+    setMenuOpen(false);
     const otherUserId = otherParticipantIds[0];
     if (!otherUserId) return;
     if (!window.confirm(`Block ${chat.name}? They won't be able to message you again, and this chat will be removed from your list.`)) return;
-    setMenuOpen(false);
     if (blockingRef.current) return;
     blockingRef.current = true;
     const { error } = await blockUser(currentUserId, otherUserId);

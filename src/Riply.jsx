@@ -5989,7 +5989,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         style={{ flex:1, overflowY:'auto', padding:'22px 16px 104px' }}>
         {/* Identity */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
-          <button onClick={handleAvatarPick} style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)', position:'relative', border:'none', cursor:'pointer', opacity: uploadingPhoto ? 0.6 : 1 }}>
+          <button onClick={handleAvatarPick} disabled={uploadingPhoto} style={{ width:96, height:96, borderRadius:'50%', padding:3, background:C.grad, boxShadow:'0 8px 20px rgba(2,162,240,0.35)', position:'relative', border:'none', cursor:'pointer', opacity: uploadingPhoto ? 0.6 : 1 }}>
             <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: currentUser.avatarColor || 'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, position:'relative', overflow:'hidden' }}>
               {currentUser.avatarUrl
                 ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -6077,7 +6077,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         <Sheet onClose={()=>setEditOpen(false)} title="Edit Profile">
           {/* Avatar */}
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginBottom:20 }}>
-            <button onClick={handleAvatarPick} style={{ width:80, height:80, borderRadius:'50%', padding:3, background:C.grad, border:'none', cursor:'pointer', position:'relative', boxShadow:'0 6px 16px rgba(2,162,240,0.3)', opacity: uploadingPhoto ? 0.6 : 1 }}>
+            <button onClick={handleAvatarPick} disabled={uploadingPhoto} style={{ width:80, height:80, borderRadius:'50%', padding:3, background:C.grad, border:'none', cursor:'pointer', position:'relative', boxShadow:'0 6px 16px rgba(2,162,240,0.3)', opacity: uploadingPhoto ? 0.6 : 1 }}>
               <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: currentUser.avatarColor || 'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, overflow:'hidden' }}>
                 {currentUser.avatarUrl
                   ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />

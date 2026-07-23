@@ -9415,6 +9415,13 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
       showToast(`Failed to ${accept ? 'accept' : 'decline'}: ` + error.message);
       return;
     }
+    // Best-effort: the membership decision itself already succeeded above, so
+    // a failure just to notify the requester shouldn't undo it or block the
+    // admin's flow -- log and move on.
+    const { error: notifErr } = await supabase.rpc('notify_membership_decision', {
+      p_group_id: groupId, p_target_user_id: r.userId, p_accepted: accept,
+    });
+    if (notifErr) console.error('[pending-requests] notify failed:', notifErr);
     showToast(accept ? `${r.name} accepted` : `${r.name} declined`);
   };
   const acceptAll = async () => {
@@ -9427,6 +9434,10 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
       showToast('Failed to accept all: ' + error.message);
       return;
     }
+    await Promise.all(targets.map(r =>
+      supabase.rpc('notify_membership_decision', { p_group_id: groupId, p_target_user_id: r.userId, p_accepted: true })
+        .then(({ error: e }) => { if (e) console.error('[pending-requests] notify failed:', e); })
+    ));
     showToast('All requests accepted');
   };
 
@@ -11858,6 +11869,10 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         stripe_payment_intent_id: paymentIntentId,
       });
       if (error) throw error;
+      // Best-effort: the ticket itself already saved above, so a failure to
+      // notify the organizer shouldn't affect the buyer's confirmation.
+      const { error: notifErr } = await supabase.rpc('notify_ticket_purchase', { p_event_id: ev.id });
+      if (notifErr) console.error('[tickets] organizer notify failed:', notifErr);
       return true;
     } catch (err) {
       console.error('[tickets] save error:', err);

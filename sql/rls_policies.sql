@@ -564,6 +564,85 @@ create policy notifications_update on public.notifications for update
 create policy notifications_delete on public.notifications for delete
   using (current_user_id() = user_id);
 
+-- notifications_insert's group fan-out branch only covers admin-notifying-
+-- admin (e.g. new join request) -- it can't cover an admin notifying the
+-- regular member whose request they just accepted/declined, since a plain
+-- member never satisfies "target is admin/owner". Rather than widen that
+-- policy (which would let any group co-member insert a notification for any
+-- other co-member, a spam vector), this narrow security-definer RPC lets an
+-- admin/owner notify one specific membership decision's target, with the
+-- notification's content fully determined server-side.
+-- Notifies an event's organizer when someone gets a ticket (paid or free
+-- RSVP). Same reasoning as notify_membership_decision above -- the buyer
+-- generally isn't a co-admin of any group the organizer belongs to, so
+-- notifications_insert's fan-out branch wouldn't cover this; a narrow
+-- security-definer RPC with server-derived content instead.
+create or replace function public.notify_ticket_purchase(p_event_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_organizer text;
+  v_event_title text;
+  v_buyer_name text;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+
+  select user_id, title into v_organizer, v_event_title from public.events where id = p_event_id;
+  if v_organizer is null then
+    raise exception 'event not found';
+  end if;
+
+  -- An organizer buying/RSVPing to their own event shouldn't notify themself.
+  if v_organizer = current_user_id() then
+    return;
+  end if;
+
+  select coalesce(name, 'Someone') into v_buyer_name from public.users where id = current_user_id();
+
+  insert into public.notifications(user_id, type, title, body)
+  values (v_organizer, 'ticket', v_buyer_name || ' got a ticket to your event', coalesce(v_event_title, 'Your event'));
+end;
+$$;
+
+create or replace function public.notify_membership_decision(p_group_id uuid, p_target_user_id text, p_accepted boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_group_name text;
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+  if not exists (
+    select 1 from public.group_members
+    where group_id = p_group_id and user_id = current_user_id() and role in ('admin','owner')
+  ) then
+    raise exception 'must be an admin of this group';
+  end if;
+
+  select name into v_group_name from public.groups where id = p_group_id;
+
+  insert into public.notifications(user_id, type, title, body)
+  values (
+    p_target_user_id,
+    'group',
+    case when p_accepted then 'Request accepted' else 'Request declined' end,
+    case when p_accepted
+      then format('Your request to join %s was accepted. Welcome!', coalesce(v_group_name, 'the group'))
+      else format('Your request to join %s was declined.', coalesce(v_group_name, 'the group'))
+    end
+  );
+end;
+$$;
+
 -- ─────────────────────────────────────────────────────────────
 -- Simple per-user junction/interaction tables: likes, saves, RSVPs, shares.
 -- Select left public (who liked/saved something isn't sensitive and is used

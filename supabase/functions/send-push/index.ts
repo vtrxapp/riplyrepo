@@ -55,8 +55,14 @@ async function getAccessToken(serviceAccount: any): Promise<string> {
 
 Deno.serve(async (req: Request) => {
   try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const { data: edgeSecret } = await supabase.rpc("get_vault_secret", { p_name: "edge_function_secret" });
     const authHeader = req.headers.get("Authorization") || "";
-    if (authHeader !== `Bearer ${Deno.env.get("EDGE_FUNCTION_SECRET")}`) {
+    if (!edgeSecret || authHeader !== `Bearer ${edgeSecret}`) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
@@ -65,10 +71,6 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "user_id and title required" }), { status: 400 });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
     const { data: user } = await supabase
       .from("users")
       .select("fcm_tokens")
@@ -79,7 +81,11 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ sent: 0 }), { status: 200 });
     }
 
-    const serviceAccount = JSON.parse(Deno.env.get("FIREBASE_SERVICE_ACCOUNT")!);
+    const { data: serviceAccountJson } = await supabase.rpc("get_vault_secret", { p_name: "firebase_service_account" });
+    if (!serviceAccountJson) {
+      return new Response(JSON.stringify({ error: "firebase_service_account secret not set" }), { status: 500 });
+    }
+    const serviceAccount = JSON.parse(serviceAccountJson);
     const accessToken = await getAccessToken(serviceAccount);
     const staleTokens: string[] = [];
 

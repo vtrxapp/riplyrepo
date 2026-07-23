@@ -606,6 +606,11 @@ begin
 
   insert into public.notifications(user_id, type, title, body)
   values (v_organizer, 'ticket', v_buyer_name || ' got a ticket to your event', coalesce(v_event_title, 'Your event'));
+
+  -- Buyer-facing receipt, separate from the organizer's sale notification
+  -- above -- distinct 'receipt' type so it emails the buyer, not the organizer.
+  insert into public.notifications(user_id, type, title, body)
+  values (current_user_id(), 'receipt', 'Ticket confirmed', format('Your ticket to %s is confirmed.', coalesce(v_event_title, 'the event')));
 end;
 $$;
 
@@ -878,18 +883,21 @@ begin
 end;
 $$;
 
--- Web push notifications: forwards every new notifications row to the
--- send-push Edge Function (supabase/functions/send-push), which sends an
--- FCM push to the user's registered devices. Needs pg_net plus two Vault
--- secrets set once via SQL (never committed): `edge_function_base_url`
+-- Web push + email notifications: forwards every new notifications row to
+-- the send-push Edge Function (supabase/functions/send-push, FCM push to
+-- registered devices) and, for the types users actually want emailed
+-- (event changes, group membership decisions, ticket receipts), also to
+-- send-email (supabase/functions/send-email, via Resend). Both functions
+-- pull their secrets (firebase_service_account, resend_api_key,
+-- resend_from_address, edge_function_secret) straight out of Vault via the
+-- service-role-only get_vault_secret() RPC, so nothing beyond the function
+-- URL and a shared caller secret needs to live here. Needs pg_net plus two
+-- Vault secrets set once via SQL (never committed): `edge_function_base_url`
 -- (e.g. https://<project-ref>.supabase.co/functions/v1) and
--- `edge_function_secret` (a random string also set as the Edge Function's
--- EDGE_FUNCTION_SECRET env var, so the function can verify the caller).
--- The Edge Function itself also needs a FIREBASE_SERVICE_ACCOUNT secret
--- (the full Firebase service-account JSON) to authenticate to FCM.
+-- `edge_function_secret`.
 create extension if not exists pg_net;
 
-create or replace function public.trigger_send_push()
+create or replace function public.trigger_send_notification()
 returns trigger
 language plpgsql
 security definer
@@ -918,11 +926,28 @@ begin
       'body', new.body
     )
   );
+
+  if new.type in ('event', 'group', 'receipt') then
+    perform net.http_post(
+      url := v_url || '/send-email',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || v_secret
+      ),
+      body := jsonb_build_object(
+        'user_id', new.user_id,
+        'subject', new.title,
+        'body', new.body
+      )
+    );
+  end if;
+
   return new;
 end;
 $$;
 
 drop trigger if exists notifications_send_push on public.notifications;
-create trigger notifications_send_push
+drop trigger if exists notifications_send_notification on public.notifications;
+create trigger notifications_send_notification
   after insert on public.notifications
-  for each row execute function public.trigger_send_push();
+  for each row execute function public.trigger_send_notification();

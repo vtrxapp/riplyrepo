@@ -11421,6 +11421,11 @@ function CheckedInListScreen({ eventId, goBack, showToast }) {
   const q = query.trim().toLowerCase();
   const filtered = q ? attendees.filter(a => a.name.toLowerCase().includes(q)) : attendees;
 
+  // This screen isn't remounted by eventId (unlike EventDetailsScreen), so a
+  // leftover search from a previous event would otherwise persist if this
+  // instance is reused for a different one.
+  useEffect(() => { setQuery(''); }, [eventId]);
+
   const load = useCallback(async () => {
     if (!eventId) { setLoading(false); return; }
     const { data: rows, error: ticketsErr } = await supabase

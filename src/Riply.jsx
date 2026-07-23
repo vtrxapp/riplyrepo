@@ -4274,8 +4274,9 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                               display:'flex', alignItems:'center', justifyContent:'center' }}>
                   {isFreeEv ? (
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      <line x1="4" y1="20" x2="20" y2="4" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/>
+                      <circle cx="12" cy="12" r="9" stroke="#10B981" strokeWidth="1.8"/>
+                      <path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#10B981" strokeWidth="1.6" strokeLinecap="round"/>
+                      <line x1="5.5" y1="18.5" x2="18.5" y2="5.5" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
                   ) : (
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">

@@ -602,6 +602,13 @@ begin
     return;
   end if;
 
+  if not exists (
+    select 1 from public.tickets
+    where event_id = p_event_id and user_id = current_user_id()
+  ) then
+    raise exception 'no ticket found for this event';
+  end if;
+
   select coalesce(name, 'Someone') into v_buyer_name from public.users where id = current_user_id();
 
   insert into public.notifications(user_id, type, title, body)

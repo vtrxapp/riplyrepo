@@ -648,7 +648,13 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     }
                     if (didShare) recordShare(ev.id);
                   }} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+                      <circle cx="18" cy="5" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <circle cx="6" cy="12" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <circle cx="18" cy="19" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                    </svg>
                     <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : '#7B8499' }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
@@ -4027,10 +4033,11 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           if (didShare) recordShare(ev.id);
         }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-              fill={isShared ? '#FF8A3D' : 'none'}
-              stroke={isShared ? '#FF8A3D' : '#39414F'}
-              strokeWidth="1.8" strokeLinejoin="round"/>
+            <circle cx="18" cy="5" r="3" fill={isShared ? '#FF8A3D' : 'none'} stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
+            <circle cx="6" cy="12" r="3" fill={isShared ? '#FF8A3D' : 'none'} stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
+            <circle cx="18" cy="19" r="3" fill={isShared ? '#FF8A3D' : 'none'} stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isShared ? '#FF8A3D' : '#39414F'} strokeWidth="1.8"/>
           </svg>
         </HeaderBtn>
         <HeaderBtn onClick={() => { toggleSave(ev.id); showToast(isSaved ? 'Removed from saved' : 'Event saved!'); }}>
@@ -4614,8 +4621,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
           else { try { await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`); showToast('Space link copied to clipboard'); } catch { showToast('Could not share'); } }
         }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-              fill="none" stroke="#39414F" strokeWidth="1.8" strokeLinejoin="round"/>
+            <circle cx="18" cy="5" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <circle cx="6" cy="12" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <circle cx="18" cy="19" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#39414F" strokeWidth="1.8"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#39414F" strokeWidth="1.8"/>
           </svg>
         </HeaderBtn>
         <HeaderBtn onClick={() => toggleSaveSpace && toggleSaveSpace(spaceId)}>
@@ -11786,8 +11796,11 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
           display:'flex', alignItems:'center', justifyContent:'center',
           cursor:'pointer', flexShrink:0 }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M14 9V6.5a2 2 0 0 1 3.4-1.4l3.6 5a1.5 1.5 0 0 1 0 1.8l-3.6 5A2 2 0 0 1 14 15.5V13c-6 0-8 3-8 3s0-7 8-7Z"
-                  stroke="#39414F" strokeWidth="1.8" strokeLinejoin="round"/>
+            <circle cx="18" cy="5" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <circle cx="6" cy="12" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <circle cx="18" cy="19" r="3" stroke="#39414F" strokeWidth="1.8"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="#39414F" strokeWidth="1.8"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="#39414F" strokeWidth="1.8"/>
           </svg>
         </button>
       </div>

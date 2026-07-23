@@ -8774,7 +8774,11 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         // Set once at creation and never touched again (not part of
         // sharedFields, so later edits can't overwrite it) -- the "Reduced
         // Price" badge compares the current price against this baseline.
-        original_price: isPaid ? newPrice : null,
+        // > 0, not just isPaid: a paid event saved as a draft before a real
+        // price is entered has newPrice === 0 (parseEventPrice's fallback),
+        // which would otherwise lock in a baseline of 0 that no later price
+        // could ever be "reduced" below.
+        original_price: isPaid && newPrice > 0 ? newPrice : null,
       }).select().single());
     }
     if (error) { setSubmittingStatus(null); showToast(`Failed to ${isEditing ? 'save changes' : status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }

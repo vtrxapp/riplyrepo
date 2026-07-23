@@ -196,7 +196,7 @@ function Toast({ msg }) {
   return (
     <div style={{ position:'absolute', left:16, right:16, bottom:106, zIndex:30, display:'flex', alignItems:'center', gap:10, background:C.ink, color:'#fff', borderRadius:14, padding:'13px 15px', boxShadow:'0 10px 24px rgba(14,23,38,0.35)', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke={C.bright} strokeWidth="2"/><path d="m8 12 2.5 2.5L16 9" stroke={C.bright} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-      <span style={{ flex:1, fontSize:13, fontWeight:600 }}>{msg}</span>
+      <span style={{ flex:1, fontSize:11, fontWeight:600 }}>{msg}</span>
     </div>
   );
 }
@@ -261,7 +261,7 @@ function SkeletonCards({ count = 3 }) {
 // wrapped in this would otherwise lose focus on every keystroke.
 const Field = ({ label, children }) => (
   <div style={{ marginTop:18 }}>
-    <div style={{ fontSize:13, fontWeight:700, letterSpacing:0.4,
+    <div style={{ fontSize:11, fontWeight:700, letterSpacing:0.4,
                   textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
       {label}
     </div>
@@ -317,7 +317,7 @@ function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWi
     <div style={{ position:'relative', overflow:'hidden', borderRadius:18 }}>
       <div style={{ position:'absolute', top:0, right:0, bottom:0, width:revealWidth, display:'flex' }}>
         <button onClick={() => { onDelete(); setDragX(0); }} aria-label={deleteLabel} style={{
-          flex:1, border:'none', background:'#FF3B6B', color:'#fff', fontSize:13.5, fontWeight:800,
+          flex:1, border:'none', background:'#FF3B6B', color:'#fff', fontSize:11.5, fontWeight:800,
           cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
           Delete
         </button>
@@ -398,11 +398,11 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="11" cy="11" r="7" stroke="#8A93A6" strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke="#8A93A6" strokeWidth="2" strokeLinecap="round"/></svg>
       <div style={{ flex:1, minWidth:0 }}>
         {onChange ? (
-          <input value={value||''} onChange={onChange} placeholder={placeholder||'Search…'} style={{ width:'100%', boxSizing:'border-box', border:'none', background:'none', outline:'none', fontSize:15, fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif", padding:0 }} />
+          <input value={value||''} onChange={onChange} placeholder={placeholder||'Search…'} style={{ width:'100%', boxSizing:'border-box', border:'none', background:'none', outline:'none', fontSize:13, fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif", padding:0 }} />
         ) : (
-          <div style={{ fontSize:15, fontWeight:600, color:C.body }}>{placeholder}</div>
+          <div style={{ fontSize:13, fontWeight:600, color:C.body }}>{placeholder}</div>
         )}
-        {hint && <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{hint}</div>}
+        {hint && <div style={{ fontSize:10, color:C.subtle, marginTop:3 }}>{hint}</div>}
       </div>
       {onFilter && (
         <button onClick={onFilter} style={{ flexShrink:0, width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
@@ -427,7 +427,7 @@ function Tabs({ tabs, active, onSelect }) {
   return (
     <div style={{ display:'flex', gap:8, overflowX:'auto', padding:'2px 16px', scrollbarWidth:'none' }}>
       {tabs.map(t => (
-        <button key={t.id} onClick={() => onSelect(t.id)} style={{ flexShrink:0, border:'none', cursor:'pointer', height:38, padding:'0 16px', borderRadius:999, fontSize:13.5, fontWeight:700, whiteSpace:'nowrap', fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'all .15s', background: t.id===active ? C.primary : C.chip, color: t.id===active ? '#fff' : C.muted, boxShadow: t.id===active ? '0 4px 12px rgba(2,162,240,0.34)' : 'none' }}>
+        <button key={t.id} onClick={() => onSelect(t.id)} style={{ flexShrink:0, border:'none', cursor:'pointer', height:38, padding:'0 16px', borderRadius:999, fontSize:11.5, fontWeight:700, whiteSpace:'nowrap', fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'all .15s', background: t.id===active ? C.primary : C.chip, color: t.id===active ? '#fff' : C.muted, boxShadow: t.id===active ? '0 4px 12px rgba(2,162,240,0.34)' : 'none' }}>
           {t.label}
         </button>
       ))}
@@ -449,7 +449,7 @@ function Sheet({ onClose, title, children }) {
       <div onClick={onClose} style={{ position:'absolute', inset:0, zIndex:9, background:'rgba(14,23,38,0.45)', backdropFilter:'blur(2px)' }} />
       <div style={{ position:'absolute', left:0, right:0, bottom:0, zIndex:10, background:C.card, borderRadius:'26px 26px 0 0', boxShadow:'0 -12px 40px rgba(0,0,0,0.28)', padding:'10px 18px 32px', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
         <div style={{ width:40, height:5, borderRadius:999, background:'#D4D9E2', margin:'0 auto 16px' }} />
-        {title && <div style={{ fontSize:19, fontWeight:800, color:C.ink, marginBottom:16 }}>{title}</div>}
+        {title && <div style={{ fontSize:17, fontWeight:800, color:C.ink, marginBottom:16 }}>{title}</div>}
         {children}
       </div>
     </>
@@ -491,7 +491,7 @@ function FloatingScrollPill({ visible, screen }) {
           <div style={{ width:7, height:7, borderRadius:'50%', background:C.grad, boxShadow:`0 0 6px ${C.primary}55` }}/>
           <div style={{ width:4, height:4, borderRadius:'50%', background:'rgba(0,152,240,0.35)' }}/>
         </div>
-        <span style={{ fontSize:15, fontWeight:800, color:'#1A2233', letterSpacing:'-0.3px', lineHeight:1 }}>
+        <span style={{ fontSize:13, fontWeight:800, color:'#1A2233', letterSpacing:'-0.3px', lineHeight:1 }}>
           {label}
         </span>
         {/* thin colour accent line along bottom */}
@@ -513,7 +513,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
       {/* Home */}
       <button onClick={()=>setScreen('home')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 11 12 4l8 7" stroke={navColor('home')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 9.8V19a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1V9.8" stroke={navColor('home')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        <span style={{ fontSize:10, fontWeight:navWeight('home'), color:navColor('home'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Home</span>
+        <span style={{ fontSize:8, fontWeight:navWeight('home'), color:navColor('home'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Home</span>
       </button>
       {/* Spaces */}
       <button onClick={()=>setScreen('spaces')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
@@ -522,12 +522,12 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
           <circle cx="6" cy="17" r="3.3" stroke={navColor('spaces')} strokeWidth="2"/>
           <circle cx="18" cy="17" r="3.3" stroke={navColor('spaces')} strokeWidth="2"/>
         </svg>
-        <span style={{ fontSize:10, fontWeight:navWeight('spaces'), color:navColor('spaces'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Spaces</span>
+        <span style={{ fontSize:8, fontWeight:navWeight('spaces'), color:navColor('spaces'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Spaces</span>
       </button>
       {/* Discover */}
       <button onClick={()=>setScreen('discover')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke={navColor('discover')} strokeWidth="2"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" stroke={navColor('discover')} strokeWidth="2" strokeLinejoin="round"/></svg>
-        <span style={{ fontSize:10, fontWeight:navWeight('discover'), color:navColor('discover'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Discover</span>
+        <span style={{ fontSize:8, fontWeight:navWeight('discover'), color:navColor('discover'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Discover</span>
       </button>
       {/* Messages */}
       <button onClick={()=>setScreen('messages')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58, position:'relative' }}>
@@ -540,14 +540,14 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
             <span style={{ position:'absolute', top:-4, right:-6, minWidth:16, height:16, padding:'0 4px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:10, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
           )}
         </div>
-        <span style={{ fontSize:10, fontWeight:navWeight('messages'), color:navColor('messages'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Messages</span>
+        <span style={{ fontSize:8, fontWeight:navWeight('messages'), color:navColor('messages'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Messages</span>
       </button>
       {/* Profile */}
       <button onClick={()=>setScreen('profile')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4 0a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke={navColor('profile')} strokeWidth="1.7" strokeLinejoin="round"/>
         </svg>
-        <span style={{ fontSize:10, fontWeight:navWeight('profile'), color:navColor('profile'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Profile</span>
+        <span style={{ fontSize:8, fontWeight:navWeight('profile'), color:navColor('profile'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Profile</span>
       </button>
     </div>
   );
@@ -604,11 +604,11 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
         onTouchStart={handleHomeSwipeStart} onTouchEnd={handleHomeSwipeEnd}>
 
         {list.length===0 && !query?.trim() && !eventsLoading && (
-          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>No upcoming events right now.</div>
+          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No upcoming events right now.</div>
         )}
         {eventsLoading && list.length===0 && <SkeletonCards />}
         {list.length===0 && query?.trim() && !eventsLoading && (
-          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>No results found for "{query}"</div>
+          <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No results found for "{query}"</div>
         )}
         {list.map(ev => {
           const th = THEME[ev.primary] || THEME[ev.category] || THEME.social;
@@ -640,7 +640,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     {/* Top row: category chip + new badge + trending */}
                     <div style={{ position:'absolute', top:12, left:12, right:12, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:11, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
+                        <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:'rgba(255,255,255,0.92)', fontSize:9, fontWeight:700, letterSpacing:0.3, color:C.body, backdropFilter:'blur(6px)' }}>{th.label}</span>
                         {isNew && <span style={{ display:'inline-flex', alignItems:'center', height:26, padding:'0 11px', borderRadius:999, background:C.grad, fontSize:11, fontWeight:800, letterSpacing:0.3, color:'#fff' }}>New</span>}
                       </div>
                       <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)', boxShadow:'0 2px 6px rgba(0,0,0,0.12)' }}>
@@ -652,7 +652,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                       {isFree
                         ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(2,162,240,0.88)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
                         : ev.price
-                          ? <span style={{ display:'inline-flex', alignItems:'center', gap:5, height:26, padding:'0 11px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:13, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>
+                          ? <span style={{ display:'inline-flex', alignItems:'center', gap:5, height:26, padding:'0 11px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:11, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" strokeWidth="1.8"/><path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round"/></svg>
                               Paid · ${priceAmount}
                             </span>
@@ -665,20 +665,20 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
 
               {/* Content */}
               <div style={{ padding:'14px 16px' }}>
-                <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ fontSize:19, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{ev.title}</div>
+                <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ fontSize:17, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{ev.title}</div>
                 <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:9, flexWrap:'wrap' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke="#7B8499" strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke="#7B8499" strokeWidth="1.9"/></svg>
-                    <span style={{ fontSize:13, fontWeight:500, color:C.muted }}>{ev.location}</span>
+                    <span style={{ fontSize:11, fontWeight:500, color:C.muted }}>{ev.location}</span>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#7B8499" strokeWidth="1.9"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/></svg>
-                  <span style={{ fontSize:13, fontWeight:600, color:'#0094E0' }}>
+                  <span style={{ fontSize:11, fontWeight:600, color:'#0094E0' }}>
                     {fmtDate(ev.fullDate || ev.full_date || ev.date, '-')}{(ev.start_time || ev.startTime) ? (' · ' + fmt12(ev.start_time || ev.startTime)) : (ev.time_range ? ' · ' + fmt12(ev.time_range.split(' – ')[0]) : '')}
                   </span>
                 </div>
-                <div style={{ fontSize:13.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
+                <div style={{ fontSize:11.5, lineHeight:1.5, color:'#6B7385', marginTop:10, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc || ev.description}</div>
 
                 {/* Organizer row -- tapping through to the group page only
                     when the event actually belongs to one; a solo organizer
@@ -692,12 +692,12 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 <div onClick={() => ev.group_id && navigate('group-profile', { groupId: ev.group_id })}
                   style={{ display:'flex', alignItems:'center', gap:9, minWidth:0, marginTop:13,
                            cursor: ev.group_id ? 'pointer' : 'default' }}>
-                  <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'#fff', background: ev.org_avatar ? 'transparent' : (ev.org_color || th.org) }}>
+                  <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, color:'#fff', background: ev.org_avatar ? 'transparent' : (ev.org_color || th.org) }}>
                     {ev.org_avatar ? <img src={ev.org_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : ev.orgInitial}
                   </div>
                   <div style={{ minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:C.body, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.org}</div>
-                    <div style={{ fontSize:11, color:C.subtle }}>Organizer</div>
+                    <div style={{ fontSize:11, fontWeight:700, color:C.body, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.org}</div>
+                    <div style={{ fontSize:9, color:C.subtle }}>Organizer</div>
                   </div>
                 </div>
 
@@ -708,11 +708,11 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 <div style={{ display:'flex', alignItems:'center', gap:18 }}>
                   <button onClick={()=>toggleLike(ev.id)} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill={isLiked?'#FF3B6B':'rgba(0,0,0,0)'} stroke={isLiked?'#FF3B6B':'#9AA3B2'} strokeWidth="1.8" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:13, fontWeight:700, color:isLiked?'#FF3B6B':C.subtle }}>{fmt(ev.likes+(isLiked?1:0))}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:isLiked?'#FF3B6B':C.subtle }}>{fmt(ev.likes+(isLiked?1:0))}</span>
                   </button>
                   <button onClick={()=>toggleSave(ev.id)} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill={isSaved?'#0098F0':'rgba(0,0,0,0)'} stroke={isSaved?'#0098F0':'#9AA3B2'} strokeWidth="1.7" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:13, fontWeight:700, color:isSaved?C.primary:C.subtle }}>{fmt(ev.saves+(isSaved?1:0))}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:isSaved?C.primary:C.subtle }}>{fmt(ev.saves+(isSaved?1:0))}</span>
                   </button>
                   <button onClick={async (e) => {
                     e.stopPropagation();
@@ -739,11 +739,11 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
                       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
                     </svg>
-                    <span style={{ fontSize:13, fontWeight:700, color: isSharedEv ? '#FF8A3D' : '#7B8499' }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : '#7B8499' }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke="#7B8499" strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                    <span style={{ fontSize:13, fontWeight:700, color:C.body }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
+                    <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
                   </div>
                 </div>
               </div>
@@ -800,7 +800,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
       {/* Spaces list */}
       <PullToRefresh onRefresh={refetchSpaces} style={{ flex:1, padding:'14px 16px 104px' }}
         onTouchStart={handleSpacesSwipeStart} onTouchEnd={handleSpacesSwipeEnd}>
-        {list.length===0 && !spacesLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>No spaces in this category right now.</div>}
+        {list.length===0 && !spacesLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No spaces in this category right now.</div>}
         {spacesLoading && list.length===0 && <SkeletonRows />}
         {list.map(sp => {
           const isJoined = !!spaceJoined[sp.id];
@@ -816,14 +816,14 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               {/* Title + Avatar */}
               <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div onClick={()=>navigate('space-details',{spaceId:sp.id})} style={{ fontSize:18, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{sp.title}</div>
-                  <div style={{ fontSize:13, color:'#7B8499', marginTop:3, lineHeight:1.4 }}>{sp.desc || sp.description || ""}</div>
+                  <div onClick={()=>navigate('space-details',{spaceId:sp.id})} style={{ fontSize:16, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{sp.title}</div>
+                  <div style={{ fontSize:11, color:'#7B8499', marginTop:3, lineHeight:1.4 }}>{sp.desc || sp.description || ""}</div>
                   <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
-                    <span style={{ fontSize:12.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
+                    <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
                   </div>
                 </div>
-                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:17, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)', overflow:'hidden' }}>
+                <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)', overflow:'hidden' }}>
                   {sp.image_url ? <img src={sp.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (sp.avatarInitial || sp.avatar_initial || "S")}
                 </div>
               </div>
@@ -832,8 +832,8 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginTop:15 }}>
                 {[{label:'Participants',val:`${count}/${sp.max_spots || sp.max || 10}`,color:C.body},{label:'Time',val:sp.time,color:C.primary},{label:'Duration',val:(/^\d+$/.test(String(sp.duration||''))?`${sp.duration} min`:sp.duration)||'—',color:C.body}].map(s=>(
                   <div key={s.label} style={{ flex:1 }}>
-                    <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:C.subtle }}>{s.label}</div>
-                    <div style={{ fontSize:16, fontWeight:800, color:s.color, marginTop:3 }}>{s.val}</div>
+                    <div style={{ fontSize:8.5, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:C.subtle }}>{s.label}</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:s.color, marginTop:3 }}>{s.val}</div>
                   </div>
                 ))}
               </div>
@@ -847,9 +847,9 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                         <span style={{ position:'absolute', width:8, height:8, borderRadius:'50%', background:'#10B981', opacity:0.5, animation:'riplyPulse 1.6s ease-out infinite' }} />
                         <span style={{ width:8, height:8, borderRadius:'50%', background:'#10B981' }} />
                       </span>
-                      <span style={{ fontSize:11.5, fontWeight:800, color:'#10B981', letterSpacing:0.2 }}>{done?'ENDED':'IN PROGRESS'}</span>
+                      <span style={{ fontSize:9.5, fontWeight:800, color:'#10B981', letterSpacing:0.2 }}>{done?'ENDED':'IN PROGRESS'}</span>
                     </div>
-                    <span style={{ fontSize:11.5, fontWeight:700, color:C.subtle }}>{done ? 'Completed' : `${prog}%`}</span>
+                    <span style={{ fontSize:9.5, fontWeight:700, color:C.subtle }}>{done ? 'Completed' : `${prog}%`}</span>
                   </div>
                   <div style={{ position:'relative', height:8, borderRadius:999, background:'#EAEDF2' }}>
                     <div style={{ position:'absolute', left:0, top:0, bottom:0, borderRadius:999, background:'linear-gradient(90deg,#34D399,#10B981)', width:`${prog}%`, transition:'width .6s linear' }} />
@@ -860,13 +860,13 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 
               {/* Action */}
               {done ? (
-                <button disabled style={{ width:'100%', marginTop:15, height:50, border:'none', borderRadius:15, background:'#D1D5DB', color:'#6B7280', fontSize:15, fontWeight:800, cursor:'not-allowed', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                <button disabled style={{ width:'100%', marginTop:15, height:50, border:'none', borderRadius:15, background:'#D1D5DB', color:'#6B7280', fontSize:13, fontWeight:800, cursor:'not-allowed', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                   Space Ended
                 </button>
               ) : isFull ? (
                 <div>
                   <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:15 }}>
-                    <button style={{ flex:1, height:50, border:'none', borderRadius:15, background:C.subtle, color:'#fff', fontSize:15, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                    <button style={{ flex:1, height:50, border:'none', borderRadius:15, background:C.subtle, color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                       Space Full
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" strokeWidth="1.9"/><path d="m6 6 12 12" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/></svg>
                     </button>
@@ -876,7 +876,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                   </div>
                   {notifyOn && <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:9, justifyContent:'center' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="#10B981" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:12, fontWeight:700, color:'#10B981' }}>We'll notify you the moment a spot opens up</span>
+                    <span style={{ fontSize:10, fontWeight:700, color:'#10B981' }}>We'll notify you the moment a spot opens up</span>
                   </div>}
                 </div>
               ) : (
@@ -891,7 +891,7 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                       await supabase.from('space_participants').delete().eq('space_id', sp.id).eq('user_id', uid);
                     }
                   }
-                }} style={{ width:'100%', marginTop:15, height:50, border: isJoined?'1.6px solid #10B981':'none', borderRadius:15, background: isJoined?'#E6F8F0':C.grad, color: isJoined?'#0E9F6E':'#fff', fontSize:15, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:isJoined?'none':'0 8px 20px rgba(2,162,240,0.4)' }}>
+                }} style={{ width:'100%', marginTop:15, height:50, border: isJoined?'1.6px solid #10B981':'none', borderRadius:15, background: isJoined?'#E6F8F0':C.grad, color: isJoined?'#0E9F6E':'#fff', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:isJoined?'none':'0 8px 20px rgba(2,162,240,0.4)' }}>
                   <span>{isJoined ? "You're in · Joined ✓" : 'Join Space'}</span>
                   {!isJoined && <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </button>
@@ -901,9 +901,9 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, marginTop:10 }}>
                 {sp.host_avatar
                   ? <img src={sp.host_avatar} style={{ width:16, height:16, borderRadius:'50%', objectFit:'cover' }} alt="" />
-                  : <div style={{ width:16, height:16, borderRadius:'50%', background: sp.host_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, color:'#fff' }}>{(sp.host_name || sp.host_text || 'O')[0].toUpperCase()}</div>
+                  : <div style={{ width:16, height:16, borderRadius:'50%', background: sp.host_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:800, color:'#fff' }}>{(sp.host_name || sp.host_text || 'O')[0].toUpperCase()}</div>
                 }
-                <span style={{ fontSize:11.5, color:C.subtle }}>Created by {sp.host_name || (sp.host_text || '').replace(/^(Created by |Organized by )/i,'') || 'Organizer'}</span>
+                <span style={{ fontSize:9.5, color:C.subtle }}>Created by {sp.host_name || (sp.host_text || '').replace(/^(Created by |Organized by )/i,'') || 'Organizer'}</span>
               </div>
             </div>
           );
@@ -959,7 +959,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 
       {/* Groups */}
       <PullToRefresh onRefresh={refetchGroups} style={{ flex:1, padding:'14px 16px 104px' }}>
-        {list.length===0 && !groupsLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:14 }}>No groups in this category yet.</div>}
+        {list.length===0 && !groupsLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
         {groupsLoading && list.length===0 && <SkeletonRows />}
         {list.map(g => {
           const localJoined = !!groupJoined[g.id];
@@ -981,28 +981,28 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                 <div style={{ width:58, height:58, borderRadius:'50%', flexShrink:0, background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 10px rgba(16,24,40,0.1)' }}>
                   {g.avatar_url
                     ? <img src={g.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
-                    : <><span style={{ fontSize:20, fontWeight:800, color:'#fff' }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
+                    : <><span style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{g.initial || (g.name || "G")[0].toUpperCase()}</span>
                         <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 13px)' }} /></>}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <span style={{ fontSize:16, fontWeight:800, letterSpacing:-0.3, color:C.ink, lineHeight:1.2 }}>{g.name}</span>
+                    <span style={{ fontSize:14, fontWeight:800, letterSpacing:-0.3, color:C.ink, lineHeight:1.2 }}>{g.name}</span>
                     {(isReq || isPending) && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><rect x="5" y="11" width="14" height="9" rx="2.2" stroke={C.subtle} strokeWidth="1.9"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke={C.subtle} strokeWidth="1.9"/></svg>}
                   </div>
-                  <div style={{ fontSize:13, lineHeight:1.45, color:'#7B8499', marginTop:4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{g.desc || g.description || ""}</div>
+                  <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{g.desc || g.description || ""}</div>
                 </div>
               </div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:13 }}>
                 <div style={{ display:'flex', alignItems:'center' }}>
                  {(g.member_previews || []).map((m,i)=>(
-                    <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:11, fontWeight:800, overflow:'hidden', position:'relative', background: m.avatar_url ? 'transparent' : (m.avatar_color || '#7C5CFF') }}>
+                    <div key={i} style={{ width:30, height:30, borderRadius:'50%', marginLeft: i>0?-8:0, border:'2.5px solid #fff', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:9, fontWeight:800, overflow:'hidden', position:'relative', background: m.avatar_url ? 'transparent' : (m.avatar_color || '#7C5CFF') }}>
                       {m.avatar_url
                         ? <img src={m.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
                         : m.initial}
                     </div>
                   ))}
-                  <span style={{ fontSize:13, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.member_count || '—'}</span>
-                  <span style={{ fontSize:12, color:C.subtle, marginLeft:4 }}>members</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:C.muted, marginLeft:11 }}>{g.member_count || '—'}</span>
+                  <span style={{ fontSize:10, color:C.subtle, marginLeft:4 }}>members</span>
                 </div>
                 <button onClick={async ()=>{
                   if (!user?.id) { showToast('Sign in to join groups'); return; }
@@ -1026,7 +1026,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
                     setPendingRequests(p=>({...p,[g.id]: isPending}));
                     showToast((nowJoined ? (wasReq ? 'Failed to send request: ' : 'Failed to join: ') : 'Failed to leave: ') + error.message);
                   }
-                }} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
+                }} style={{ flexShrink:0, height:38, padding:'0 20px', borderRadius:999, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", ...joinStyle }}>
                   {joinLabel}
                 </button>
               </div>
@@ -1051,7 +1051,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
   const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = chatsData;
   const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification, refetch: refetchNotifs } = notifs;
   const { groupActivity, loading: groupActivityLoading, markGroupRead, refetch: refetchGroupActivity } = groupActivityData;
-  const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:16, fontWeight:800, color:C.primary, padding:'0 0 4px' };
+  const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
 
   const [searchOpen, setSearchOpen] = useState(false);
@@ -1066,7 +1066,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
       {/* Header */}
       <div style={{ flexShrink:0, background:C.card, padding:'52px 16px 0', boxShadow:'0 1px 0 rgba(16,24,40,0.04)', zIndex:4 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
-          <span style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>My Messages</span>
+          <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:C.ink }}>My Messages</span>
           <div style={{ display:'flex', gap:9 }}>
             <button onClick={()=>{ setSearchOpen(v=>!v); setChatQuery(''); }} aria-label="Search chats" aria-expanded={searchOpen && !isNotif} aria-pressed={searchOpen && !isNotif} style={{ width:40, height:40, border:'none', borderRadius:'50%', background: searchOpen ? C.grad : C.chip, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke={searchOpen ? '#fff' : '#39414F'} strokeWidth="2" strokeLinecap="round"/></svg>
@@ -1094,7 +1094,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {/* Mark all read */}
             {unreadCount > 0 && (
-              <button onClick={markAllRead} style={{ alignSelf:'flex-end', border:'none', background:'none', fontSize:13, fontWeight:700, color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", padding:'2px 0' }}>
+              <button onClick={markAllRead} style={{ alignSelf:'flex-end', border:'none', background:'none', fontSize:11, fontWeight:700, color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", padding:'2px 0' }}>
                 Mark all as read
               </button>
             )}
@@ -1108,7 +1108,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                 <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
                   <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:a.color,
                                 display:'flex', alignItems:'center', justifyContent:'center',
-                                color:'#fff', fontSize:18, position:'relative', overflow:'hidden' }}>
+                                color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
                     {a.avatarUrl
                       ? <img src={a.avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
                       : <span>{a.initial}</span>
@@ -1116,8 +1116,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                      <span style={{ fontSize:15, fontWeight:800, color:C.ink }}>{a.name}</span>
-                      <span style={{ fontSize:11, color:C.subtle, fontWeight:600, flexShrink:0 }}>{a.time}</span>
+                      <span style={{ fontSize:13, fontWeight:800, color:C.ink }}>{a.name}</span>
+                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{a.time}</span>
                     </div>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:5 }}>
                       {a.missedCount > 0 && (
@@ -1125,7 +1125,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                           {a.missedCount > 99 ? '99+' : a.missedCount}
                         </span>
                       )}
-                      <span style={{ fontSize:13, lineHeight:1.4, color: a.missedCount > 0 ? C.primary : '#7B8499', fontWeight: a.missedCount > 0 ? 700 : 500, fontStyle: a.missedCount > 0 ? 'italic' : 'normal', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      <span style={{ fontSize:11, lineHeight:1.4, color: a.missedCount > 0 ? C.primary : '#7B8499', fontWeight: a.missedCount > 0 ? 700 : 500, fontStyle: a.missedCount > 0 ? 'italic' : 'normal', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                         {a.preview}
                       </span>
                     </div>
@@ -1146,8 +1146,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                           stroke={C.primary} strokeWidth="1.7" strokeLinecap="round"/>
                   </svg>
                 </div>
-                <div style={{ fontSize:16, fontWeight:700, color:C.ink }}>All caught up</div>
-                <div style={{ fontSize:14, color:C.subtle, marginTop:6 }}>No notifications yet</div>
+                <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>All caught up</div>
+                <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>No notifications yet</div>
               </div>
             ) : notifications.map(n => (
               <SwipeToDeleteRow key={n.id} onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
@@ -1159,18 +1159,18 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                   <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
                     <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color,
                                   display:'flex', alignItems:'center', justifyContent:'center',
-                                  color:'#fff', fontSize:18, position:'relative', overflow:'hidden' }}>
+                                  color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
                       <span>{n.initial}</span>
                       <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} />
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:15, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
-                      <div style={{ fontSize:13, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
+                      <div style={{ fontSize:13, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
+                      <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
                     </div>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
-                      <span style={{ fontSize:11, color:C.subtle, fontWeight:600 }}>{n.time}</span>
+                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
                       <button onClick={e => { e.stopPropagation(); deleteNotification(n.id); }}
-                        style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:16, lineHeight:1 }}>×</button>
+                        style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
                     </div>
                   </div>
                 </div>
@@ -1187,11 +1187,11 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
                         stroke={C.primary} strokeWidth="1.7" strokeLinejoin="round"/>
                 </svg>
-                <div style={{ fontSize:16, fontWeight:700, color:C.ink, marginTop:12 }}>No conversations yet</div>
-                <div style={{ fontSize:14, color:C.subtle, marginTop:6 }}>Start a chat to connect with someone</div>
+                <div style={{ fontSize:14, fontWeight:700, color:C.ink, marginTop:12 }}>No conversations yet</div>
+                <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>Start a chat to connect with someone</div>
               </div>
             ) : filteredChats.length === 0 ? (
-              <div style={{ textAlign:'center', color:C.subtle, fontSize:15, paddingTop:60 }}>
+              <div style={{ textAlign:'center', color:C.subtle, fontSize:13, paddingTop:60 }}>
                 No chats match "{chatQuery.trim()}"
               </div>
             ) : filteredChats.map(c => (
@@ -1202,7 +1202,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                 <div onClick={()=>navigate('chat',{
                   chatId: c.id, chatName: c.name, chatInitial: c.initial, chatColor: c.color, chatAvatarUrl: c.avatar_url, isGroup: !!c.group_id,
                 })} style={{ display:'flex', gap:12, alignItems:'center', background:C.card, borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:'13px 14px', cursor:'pointer' }}>
-                  <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:16, fontWeight:800, position:'relative', overflow:'hidden' }}>
+                  <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, background:c.color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
                     {c.avatar_url
                       ? <img src={c.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
                       : <><span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
@@ -1215,11 +1215,11 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                      <span style={{ fontSize:15, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
-                      <span style={{ fontSize:11, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
+                      <span style={{ fontSize:13, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
+                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
                     </div>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
-                      <span style={{ fontSize:13, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
+                      <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
                       {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
                     </div>
                   </div>
@@ -1417,7 +1417,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           </svg>
         </button>
 
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>
           Create Post
         </div>
@@ -1426,7 +1426,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           height:40, padding:'0 18px', border:'none', borderRadius:13,
           cursor: canPost && !postingLocked ? 'pointer' : 'not-allowed',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
-          fontSize:15, fontWeight:800, flexShrink:0,
+          fontSize:13, fontWeight:800, flexShrink:0,
           background: canPost && !postingLocked ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#E4E8EF',
           color: canPost && !postingLocked ? '#fff' : '#A8B0BD',
           boxShadow: canPost && !postingLocked ? '0 4px 10px rgba(2,162,240,0.3)' : 'none',
@@ -1446,7 +1446,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
               <circle cx="12" cy="12" r="9" stroke="#F59E0B" strokeWidth="2"/>
               <path d="M12 8v5M12 16h.01" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontSize:14, fontWeight:600, color:'#92400E' }}>
+            <span style={{ fontSize:12, fontWeight:600, color:'#92400E' }}>
               Only admins can post in {selectedGroup?.name || 'this group'}
             </span>
           </div>
@@ -1457,13 +1457,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
                         background: currentUser?.avatarUrl ? 'transparent' : (currentUser?.avatarColor || C.grad),
                         display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:17, fontWeight:800, color:'#fff', overflow:'hidden' }}>
+                        fontSize:15, fontWeight:800, color:'#fff', overflow:'hidden' }}>
             {currentUser?.avatarUrl
               ? <img src={currentUser.avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
               : (currentUser?.name || user?.firstName || 'M')[0].toUpperCase()}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:16.5, fontWeight:800, color:C.ink }}>{currentUser?.name || user?.username || user?.firstName || 'Member'}</div>
+            <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>{currentUser?.name || user?.username || user?.firstName || 'Member'}</div>
 
 
             {/* Group picker pill */}
@@ -1480,7 +1480,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                   <path d="M4 18c0-2 1.5-3 4-3M20 18c0-2-1.5-3-4-3"
                         stroke={C.muted} strokeWidth="1.8" strokeLinecap="round"/>
                 </svg>
-                <span style={{ fontSize:13.5, fontWeight:700, color:C.body }}>{selectedGroup?.name || 'Select a group'}</span>
+                <span style={{ fontSize:11.5, fontWeight:700, color:C.body }}>{selectedGroup?.name || 'Select a group'}</span>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
                   <path d="m6 9 6 6 6-6" stroke={C.subtle} strokeWidth="2"
                         strokeLinecap="round" strokeLinejoin="round"/>
@@ -1493,7 +1493,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                               borderRadius:14, boxShadow:'0 6px 20px rgba(16,24,40,0.14)',
                               overflow:'hidden', zIndex:20, minWidth:200, maxHeight:280, overflowY:'auto' }}>
                   {myGroups.length === 0 && (
-                    <div style={{ padding:'14px', fontSize:14.5, color:C.subtle }}>You haven't joined any groups yet</div>
+                    <div style={{ padding:'14px', fontSize:12.5, color:C.subtle }}>You haven't joined any groups yet</div>
                   )}
                   {myGroups.map(g => (
                     <div key={g.id} onClick={() => { setSelectedGroupId(g.id); setPickerOpen(false); }}
@@ -1503,7 +1503,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                       <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
                                     background: g.avatar_url ? 'transparent' : (g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)"), display:'flex', alignItems:'center',
                                     justifyContent:'center', color:'#fff',
-                                    fontSize:13, fontWeight:800, position:'relative',
+                                    fontSize:11, fontWeight:800, position:'relative',
                                     overflow:'hidden' }}>
                         {g.avatar_url
                           ? <img src={g.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
@@ -1513,7 +1513,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                                 'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 8px)'}}/>
                             </>}
                       </div>
-                      <span style={{ fontSize:15, fontWeight:700,
+                      <span style={{ fontSize:13, fontWeight:700,
                                      color: selectedGroupId===g.id ? C.primary : C.body }}>
                         {g.name}
                       </span>
@@ -1538,7 +1538,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
           onChange={e => setText(e.target.value)}
           placeholder="Share something with the group…"
           style={{ width:'100%', boxSizing:'border-box', minHeight:120, border:'none',
-                   background:'none', padding:'16px 2px 8px', fontSize:18, fontWeight:500,
+                   background:'none', padding:'16px 2px 8px', fontSize:16, fontWeight:500,
                    lineHeight:1.55, color:C.body, outline:'none', resize:'none',
                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}
         />
@@ -1584,7 +1584,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
             {images.map(img => (
               <div key={img.id} style={{ position:'relative', width:120, height:120, flexShrink:0, borderRadius:14, overflow:'hidden' }}>
                 <img src={img.previewUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
-                {!img.url && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:700 }}>Uploading…</div>}
+                {!img.url && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:11, fontWeight:700 }}>Uploading…</div>}
                 <button onClick={() => setImages(prev => {
                   const target = prev.find(x => x.id === img.id);
                   if (target) URL.revokeObjectURL(target.previewUrl);
@@ -1604,8 +1604,8 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         {fileName && (
           <div style={{ display:'flex', alignItems:'center', gap:10, background:'#FFF6EC', borderRadius:13, padding:'11px 14px', marginTop:8 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9.5L13 3.5Z" stroke="#F59E0B" strokeWidth="2" strokeLinejoin="round"/><path d="M13 3.5V9.5h6" stroke="#F59E0B" strokeWidth="2" strokeLinejoin="round"/></svg>
-            <span style={{ flex:1, fontSize:15, fontWeight:700, color:C.ink, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{fileName}</span>
-            {uploading && <span style={{ fontSize:13, color:C.subtle }}>Uploading…</span>}
+            <span style={{ flex:1, fontSize:13, fontWeight:700, color:C.ink, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{fileName}</span>
+            {uploading && <span style={{ fontSize:11, color:C.subtle }}>Uploading…</span>}
             <button onClick={() => { setFileUrl(null); setFileName(null); }} style={{ border:'none', background:'none', cursor:'pointer', padding:0, flexShrink:0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke={C.subtle} strokeWidth="2.2" strokeLinecap="round"/></svg>
             </button>
@@ -1616,7 +1616,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         {linkedEvent && (
           <div style={{ display:'flex', alignItems:'center', gap:10, background:'#E9F6FF', borderRadius:13, padding:'11px 14px', marginTop:8 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/></svg>
-            <span style={{ flex:1, fontSize:15, fontWeight:700, color:C.ink }}>{linkedEvent.title}</span>
+            <span style={{ flex:1, fontSize:13, fontWeight:700, color:C.ink }}>{linkedEvent.title}</span>
             <button onClick={() => setLinkedEvent(null)} style={{ border:'none', background:'none', cursor:'pointer', padding:0, flexShrink:0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke={C.subtle} strokeWidth="2.2" strokeLinecap="round"/></svg>
             </button>
@@ -1629,10 +1629,10 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                         boxShadow:'0 4px 14px rgba(16,24,40,0.05)', padding:15, marginTop:8 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                           marginBottom:11 }}>
-              <span style={{ fontSize:15.5, fontWeight:800, color:C.ink }}>Poll</span>
+              <span style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>Poll</span>
               <button onClick={() => setHasPoll(false)} style={{
                 border:'none', background:'none', cursor:'pointer',
-                fontSize:14, fontWeight:700, color:C.danger,
+                fontSize:12, fontWeight:700, color:C.danger,
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
               }}>Remove</button>
             </div>
@@ -1645,7 +1645,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                     placeholder={`Option ${i + 1}`}
                     style={{ flex:1, height:42, border:`1.5px solid ${C.border}`,
                              borderRadius:12, background:'#F7F8FB', padding:'0 13px',
-                             fontSize:15.5, fontWeight:600, color:C.body, outline:'none',
+                             fontSize:13.5, fontWeight:600, color:C.body, outline:'none',
                              fontFamily:"'Montserrat',-apple-system,sans-serif" }}
                   />
                   {pollOpts.length > 2 && (
@@ -1670,14 +1670,14 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
                   <path d="M12 5v14M5 12h14" stroke={C.primary} strokeWidth="2.2" strokeLinecap="round"/>
                 </svg>
-                <span style={{ fontSize:15, fontWeight:800, color:C.primary }}>Add option</span>
+                <span style={{ fontSize:13, fontWeight:800, color:C.primary }}>Add option</span>
               </button>
             )}
           </div>
         )}
 
         {/* Attach toolbar */}
-        <div style={{ fontSize:13, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase',
+        <div style={{ fontSize:11, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase',
                       color:C.subtle, margin:'22px 0 11px' }}>
           Add to your post
         </div>
@@ -1696,8 +1696,8 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                 {a.icon}
               </div>
               <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
-                <div style={{ fontSize:15.5, fontWeight:800, color:C.ink }}>{a.label}</div>
-                <div style={{ fontSize:13, color:C.subtle, marginTop:1 }}>{a.sub}</div>
+                <div style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>{a.label}</div>
+                <div style={{ fontSize:11, color:C.subtle, marginTop:1 }}>{a.sub}</div>
               </div>
             </button>
           ))}
@@ -1715,9 +1715,9 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
         <div style={{ position:'absolute', inset:0, zIndex:30, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'flex-end' }}
           onClick={() => setEventPickerOpen(false)}>
           <div onClick={e => e.stopPropagation()} style={{ width:'100%', background:'#fff', borderRadius:'22px 22px 0 0', padding:'20px 16px 40px', maxHeight:'60vh', overflowY:'auto' }}>
-            <div style={{ fontSize:17, fontWeight:800, color:C.ink, marginBottom:14 }}>Link an Event</div>
+            <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:14 }}>Link an Event</div>
             {linkableEvents.length === 0
-              ? <div style={{ color:C.subtle, fontSize:15, textAlign:'center', padding:24 }}>No events available</div>
+              ? <div style={{ color:C.subtle, fontSize:13, textAlign:'center', padding:24 }}>No events available</div>
               : linkableEvents.map(ev => (
                 <div key={ev.id} onClick={() => { setLinkedEvent(ev); setEventPickerOpen(false); }}
                   style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 0', borderBottom:`1px solid ${C.divider}`, cursor:'pointer' }}>
@@ -1725,8 +1725,8 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>{ev.title}</div>
-                    <div style={{ fontSize:13, color:C.subtle, marginTop:2 }}>{ev.date}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:C.ink }}>{ev.title}</div>
+                    <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{ev.date}</div>
                   </div>
                   {linkedEvent?.id === ev.id && <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4 4L19 7" stroke={C.primary} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </div>
@@ -1807,7 +1807,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
             <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Help Center</div>
         <div style={{ width:40 }}/>
       </div>
@@ -1823,7 +1823,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
           </svg>
           <input value={query} onChange={e => setQuery(e.target.value)}
             placeholder="Search help articles…"
-            style={{ flex:1, border:'none', background:'none', fontSize:16.5, fontWeight:600,
+            style={{ flex:1, border:'none', background:'none', fontSize:14.5, fontWeight:600,
                      color:C.body, outline:'none',
                      fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           {query && (
@@ -1854,8 +1854,8 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
                                 background: active ? '#fff' : t.iconBg }}>
                     {t.icon}
                   </div>
-                  <div style={{ fontSize:15.5, fontWeight:800, color: active ? t.iconColor : C.ink }}>{t.title}</div>
-                  <div style={{ fontSize:13, color:C.subtle, lineHeight:1.3 }}>{t.sub}</div>
+                  <div style={{ fontSize:13.5, fontWeight:800, color: active ? t.iconColor : C.ink }}>{t.title}</div>
+                  <div style={{ fontSize:11, color:C.subtle, lineHeight:1.3 }}>{t.sub}</div>
                 </button>
               );
             })}
@@ -1863,13 +1863,13 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
         )}
 
         {/* FAQ */}
-        <div style={{ fontSize:13, fontWeight:800, letterSpacing:0.6, textTransform:'uppercase',
+        <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.6, textTransform:'uppercase',
                       color:C.subtle, margin:'24px 4px 10px' }}>
           {query ? `Results for "${query}"` : activeTopic ? activeTopic : 'Frequently Asked'}
         </div>
 
         {filtered.length === 0 ? (
-          <div style={{ textAlign:'center', padding:'30px 24px', color:C.subtle, fontSize:15 }}>
+          <div style={{ textAlign:'center', padding:'30px 24px', color:C.subtle, fontSize:13 }}>
             No articles match "{query}". Try contacting support below.
           </div>
         ) : (
@@ -1884,7 +1884,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
                     background:'none', padding:15, cursor:'pointer', textAlign:'left',
                     fontFamily:"'Montserrat',-apple-system,sans-serif",
                   }}>
-                    <span style={{ flex:1, fontSize:16, fontWeight:700, color:C.ink,
+                    <span style={{ flex:1, fontSize:14, fontWeight:700, color:C.ink,
                                    lineHeight:1.35 }}>{f.q}</span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                       style={{ flexShrink:0, transition:'transform .2s',
@@ -1894,7 +1894,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
                     </svg>
                   </button>
                   {open && (
-                    <div style={{ padding:'0 15px 16px', fontSize:15, lineHeight:1.55,
+                    <div style={{ padding:'0 15px 16px', fontSize:13, lineHeight:1.55,
                                   color:'#6B7385' }}>{f.a}</div>
                   )}
                 </div>
@@ -1904,7 +1904,7 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
         )}
 
         {/* Contact */}
-        <div style={{ fontSize:13, fontWeight:800, letterSpacing:0.6, textTransform:'uppercase',
+        <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.6, textTransform:'uppercase',
                       color:C.subtle, margin:'24px 4px 10px' }}>Still need help?</div>
         <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
           {[
@@ -1922,8 +1922,8 @@ function HelpCenterScreen({ goBack, navigate, showToast }) {
                             background:item.iconBg, display:'flex', alignItems:'center',
                             justifyContent:'center' }}>{item.icon}</div>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>{item.title}</div>
-                <div style={{ fontSize:13.5, color:C.subtle, marginTop:2 }}>{item.sub}</div>
+                <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{item.title}</div>
+                <div style={{ fontSize:11.5, color:C.subtle, marginTop:2 }}>{item.sub}</div>
               </div>
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
                 <path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1978,7 +1978,7 @@ function FeedbackScreen({ goBack, showToast }) {
             <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Send Feedback</div>
         <div style={{ width:40 }}/>
       </div>
@@ -1997,16 +1997,16 @@ function FeedbackScreen({ goBack, showToast }) {
             </svg>
           </div>
         </div>
-        <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.5, color:C.ink,
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink,
                       marginTop:22 }}>Thank you!</div>
-        <div style={{ fontSize:15.5, lineHeight:1.55, color:'#7B8499', marginTop:9,
+        <div style={{ fontSize:13.5, lineHeight:1.55, color:'#7B8499', marginTop:9,
                       maxWidth:280 }}>
           Your feedback has been sent to the Riply team. We read every message and use it to improve the app.
         </div>
         <button onClick={goBack} style={{
           display:'flex', alignItems:'center', justifyContent:'center', width:'100%',
           height:52, marginTop:28, border:'none', borderRadius:16,
-          background:C.grad, color:'#fff', fontSize:18, fontWeight:800, cursor:'pointer',
+          background:C.grad, color:'#fff', fontSize:16, fontWeight:800, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           boxShadow:'0 8px 20px rgba(2,162,240,0.4)',
         }}>
@@ -2015,7 +2015,7 @@ function FeedbackScreen({ goBack, showToast }) {
         <button onClick={() => setSent(false)} style={{
           border:'none', background:'none', cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
-          fontSize:15.5, fontWeight:700, color:C.primary, marginTop:16,
+          fontSize:13.5, fontWeight:700, color:C.primary, marginTop:16,
         }}>
           Send more feedback
         </button>
@@ -2037,16 +2037,16 @@ function FeedbackScreen({ goBack, showToast }) {
             <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Send Feedback</div>
         <div style={{ width:40 }}/>
       </div>
 
       <div style={{ flex:1, overflowY:'auto', padding:'20px 16px 30px' }}>
-        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>
+        <div style={{ fontSize:20, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>
           How was your experience?
         </div>
-        <div style={{ fontSize:15, color:'#7B8499', marginTop:6, lineHeight:1.5 }}>
+        <div style={{ fontSize:13, color:'#7B8499', marginTop:6, lineHeight:1.5 }}>
           Your feedback helps us make Riply better for campus life.
         </div>
 
@@ -2066,13 +2066,13 @@ function FeedbackScreen({ goBack, showToast }) {
             </button>
           ))}
         </div>
-        <div style={{ textAlign:'center', fontSize:15, fontWeight:700, color:C.primary,
+        <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:C.primary,
                       marginTop:10, height:18 }}>
           {LABELS[rating] || ''}
         </div>
 
         {/* Category */}
-        <div style={{ fontSize:13, fontWeight:800, letterSpacing:0.5, textTransform:'uppercase',
+        <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.5, textTransform:'uppercase',
                       color:C.subtle, margin:'22px 0 10px' }}>
           What's this about?
         </div>
@@ -2081,7 +2081,7 @@ function FeedbackScreen({ goBack, showToast }) {
             <button key={c} onClick={() => setCategory(c)} style={{
               border: category===c ? 'none' : `1.5px solid ${C.border}`,
               cursor:'pointer', height:38, padding:'0 16px', borderRadius:999,
-              fontSize:15, fontWeight:700,
+              fontSize:13, fontWeight:700,
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               background: category===c ? C.primary : '#fff',
               color: category===c ? '#fff' : C.muted,
@@ -2091,7 +2091,7 @@ function FeedbackScreen({ goBack, showToast }) {
         </div>
 
         {/* Message */}
-        <div style={{ fontSize:13, fontWeight:800, letterSpacing:0.5, textTransform:'uppercase',
+        <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.5, textTransform:'uppercase',
                       color:C.subtle, margin:'22px 0 10px' }}>
           Tell us more
         </div>
@@ -2099,7 +2099,7 @@ function FeedbackScreen({ goBack, showToast }) {
           placeholder="Share details, ideas, or a bug you ran into…"
           style={{ width:'100%', boxSizing:'border-box', minHeight:120,
                    border:`1.5px solid ${C.border}`, borderRadius:16, background:'#fff',
-                   padding:14, fontSize:16, fontWeight:500, lineHeight:1.55,
+                   padding:14, fontSize:14, fontWeight:500, lineHeight:1.55,
                    color:C.body, outline:'none', resize:'none',
                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
 
@@ -2117,7 +2117,7 @@ function FeedbackScreen({ goBack, showToast }) {
             <circle cx="12" cy="12.5" r="3"
                     stroke={attached ? C.primary : C.primary} strokeWidth="1.9"/>
           </svg>
-          <span style={{ flex:1, textAlign:'left', fontSize:15.5, fontWeight:700,
+          <span style={{ flex:1, textAlign:'left', fontSize:13.5, fontWeight:700,
                          color: attached ? C.primary : C.muted }}>
             {attached ? 'Screenshot attached ✓' : 'Attach a screenshot (optional)'}
           </span>
@@ -2126,7 +2126,7 @@ function FeedbackScreen({ goBack, showToast }) {
         {/* Submit */}
         <button onClick={handleSubmit} style={{
           width:'100%', height:52, marginTop:22, border:'none', borderRadius:16,
-          fontSize:18, fontWeight:800, cursor: canSubmit ? 'pointer' : 'not-allowed',
+          fontSize:16, fontWeight:800, cursor: canSubmit ? 'pointer' : 'not-allowed',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           background: canSubmit ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#E4E8EF',
           color: canSubmit ? '#fff' : '#A8B0BD',
@@ -2164,7 +2164,7 @@ function LegalScreen({ goBack, showToast }) {
   const tabStyle = (id) => ({
     border:'none', background:'none', cursor:'pointer',
     fontFamily:"'Montserrat',-apple-system,sans-serif",
-    padding:'0 0 12px', fontSize:15.5,
+    padding:'0 0 12px', fontSize:13.5,
     fontWeight: id===tab ? 800 : 600,
     color: id===tab ? C.primary : C.subtle,
     borderBottom: `2.5px solid ${id===tab ? C.primary : 'transparent'}`,
@@ -2185,7 +2185,7 @@ function LegalScreen({ goBack, showToast }) {
               <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+          <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                         letterSpacing:-0.3, color:C.ink }}>Terms &amp; Privacy</div>
           <div style={{ width:40 }}/>
         </div>
@@ -2198,20 +2198,20 @@ function LegalScreen({ goBack, showToast }) {
       </div>
 
       <div style={{ flex:1, overflowY:'auto', padding:'20px 18px 30px' }}>
-        <div style={{ fontSize:13.5, fontWeight:700, color:C.subtle, marginBottom:16 }}>
+        <div style={{ fontSize:11.5, fontWeight:700, color:C.subtle, marginBottom:16 }}>
           Last updated June 1, 2026
         </div>
         {sections.map((s, i) => (
           <div key={i} style={{ marginBottom:20 }}>
-            <div style={{ fontSize:17, fontWeight:800, color:C.ink, marginBottom:7 }}>
+            <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:7 }}>
               {s.heading}
             </div>
-            <div style={{ fontSize:15, lineHeight:1.62, color:'#5B6473' }}>{s.body}</div>
+            <div style={{ fontSize:13, lineHeight:1.62, color:'#5B6473' }}>{s.body}</div>
           </div>
         ))}
         <div style={{ background:'#fff', borderRadius:14, padding:15,
                       boxShadow:'0 4px 14px rgba(16,24,40,0.05)', marginTop:6 }}>
-          <div style={{ fontSize:14.5, lineHeight:1.55, color:'#7B8499' }}>
+          <div style={{ fontSize:12.5, lineHeight:1.55, color:'#7B8499' }}>
             Questions about these terms? Contact us at{' '}
             <span style={{ color:C.primary, fontWeight:700 }}>legal@riply.app</span>.
           </div>
@@ -2256,7 +2256,7 @@ function AboutScreen({ goBack, navigate, showToast }) {
             <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>About Riply</div>
         <div style={{ width:40 }}/>
       </div>
@@ -2276,15 +2276,15 @@ function AboutScreen({ goBack, navigate, showToast }) {
                         margin:'0 auto' }}>
             <RiplyMark size={84} white />
           </div>
-          <div style={{ position:'relative', fontSize:30, fontWeight:800, letterSpacing:0.5,
+          <div style={{ position:'relative', fontSize:28, fontWeight:800, letterSpacing:0.5,
                         color:'#fff', marginTop:12 }}>RIPLY</div>
-          <div style={{ position:'relative', fontSize:14, fontWeight:700, letterSpacing:1.5,
+          <div style={{ position:'relative', fontSize:12, fontWeight:700, letterSpacing:1.5,
                         color:'rgba(255,255,255,0.9)', marginTop:6 }}>
             CAMPUS CONNECTIONS MADE EASY
           </div>
           <div style={{ position:'relative', display:'inline-flex', alignItems:'center',
                         height:26, padding:'0 13px', borderRadius:999,
-                        background:'rgba(255,255,255,0.2)', fontSize:13.5, fontWeight:700,
+                        background:'rgba(255,255,255,0.2)', fontSize:11.5, fontWeight:700,
                         color:'#fff', marginTop:14 }}>
             Version 1.0.0
           </div>
@@ -2292,7 +2292,7 @@ function AboutScreen({ goBack, navigate, showToast }) {
 
         {/* Mission */}
         <div style={{ padding:'22px 18px 0' }}>
-          <div style={{ fontSize:15.5, lineHeight:1.62, color:'#5B6473' }}>
+          <div style={{ fontSize:13.5, lineHeight:1.62, color:'#5B6473' }}>
             Riply is the home for campus life. We help students discover events, join clubs and communities, buy tickets, and stay connected — while giving organizers the tools and insights to grow engagement on campus.
           </div>
         </div>
@@ -2303,9 +2303,9 @@ function AboutScreen({ goBack, navigate, showToast }) {
             <div key={s.label} style={{ flex:1, background:'#fff', borderRadius:16,
                                          padding:'15px 8px', textAlign:'center',
                                          boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
-              <div style={{ fontSize:22, fontWeight:800, color:C.primary,
+              <div style={{ fontSize:20, fontWeight:800, color:C.primary,
                             letterSpacing:-0.5 }}>{s.value}</div>
-              <div style={{ fontSize:12.5, fontWeight:600, color:C.subtle,
+              <div style={{ fontSize:10.5, fontWeight:600, color:C.subtle,
                             marginTop:3 }}>{s.label}</div>
             </div>
           ))}
@@ -2325,7 +2325,7 @@ function AboutScreen({ goBack, navigate, showToast }) {
                 <div style={{ width:38, height:38, borderRadius:11, flexShrink:0,
                               background:l.iconBg, display:'flex', alignItems:'center',
                               justifyContent:'center' }}>{l.icon}</div>
-                <span style={{ flex:1, textAlign:'left', fontSize:16.5, fontWeight:700,
+                <span style={{ flex:1, textAlign:'left', fontSize:14.5, fontWeight:700,
                                color:C.ink }}>{l.title}</span>
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
                   <path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2"
@@ -2347,7 +2347,7 @@ function AboutScreen({ goBack, navigate, showToast }) {
           ))}
         </div>
 
-        <div style={{ textAlign:'center', fontSize:13, color:'#B6BCC8', marginTop:22,
+        <div style={{ textAlign:'center', fontSize:11, color:'#B6BCC8', marginTop:22,
                       lineHeight:1.6, padding:'0 24px' }}>
           Made with care for campus communities.<br/>© 2026 Riply. All rights reserved.
         </div>
@@ -2415,11 +2415,11 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <span style={{ fontSize:23, fontWeight:800, letterSpacing:-0.5, color:C.ink }}>
+        <span style={{ fontSize:21, fontWeight:800, letterSpacing:-0.5, color:C.ink }}>
           Filters
         </span>
         <button onClick={clearAll} style={{ marginLeft:'auto', height:34, padding:'0 14px',
-          border:'none', borderRadius:11, background:'transparent', fontSize:15,
+          border:'none', borderRadius:11, background:'transparent', fontSize:13,
           fontWeight:700, color: count > 0 ? C.primary : C.subtle,
           cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
           Clear all
@@ -2439,7 +2439,7 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
                 cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
               }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontSize:20, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>
+                  <span style={{ fontSize:18, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>
                     {sec.title}
                   </span>
                   {/* Active count badge for this section */}
@@ -2448,7 +2448,7 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
                                    justifyContent:'center', minWidth:20, height:20,
                                    padding:'0 6px', borderRadius:999,
                                    background:C.primary, color:'#fff',
-                                   fontSize:12, fontWeight:800 }}>
+                                   fontSize:10, fontWeight:800 }}>
                       {sec.opts.filter(o => selected[`${sec.id}:${o}`]).length}
                     </span>
                   )}
@@ -2469,7 +2469,7 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
                     return (
                       <button key={opt} onClick={() => toggleChip(key)} style={{
                         flexShrink:0, height:42, padding:'0 18px', borderRadius:999,
-                        fontSize:15, fontWeight:700, cursor:'pointer',
+                        fontSize:13, fontWeight:700, cursor:'pointer',
                         fontFamily:"'Montserrat',-apple-system,sans-serif",
                         border: on ? 'none' : `1.5px solid #D8DCE5`,
                         background: on ? C.primary : '#fff',
@@ -2505,7 +2505,7 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
                 <span key={key} onClick={() => toggleChip(key)} style={{
                   display:'inline-flex', alignItems:'center', gap:5, height:28,
                   padding:'0 10px', borderRadius:999, background:C.primary,
-                  color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer',
+                  color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer',
                 }}>
                   {opt}
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
@@ -2524,7 +2524,7 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
         }} style={{
           width:'100%', height:56, border:'none', borderRadius:18, cursor:'pointer',
           background: count > 0 ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-          color:'#fff', fontSize:17, fontWeight:800,
+          color:'#fff', fontSize:15, fontWeight:800,
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', gap:10,
           boxShadow: count > 0 ? '0 10px 24px rgba(2,162,240,0.42)' : 'none',
@@ -2647,7 +2647,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
                           background: avatarUrl ? 'transparent' : avatarColor,
                           display:'flex', alignItems:'center', justifyContent:'center', color:'#fff',
-                          fontSize:16, fontWeight:800, position:'relative', overflow:'hidden' }}>
+                          fontSize:14, fontWeight:800, position:'relative', overflow:'hidden' }}>
               {avatarUrl
                 ? <img src={avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
                 : <><span>{initial}</span>
@@ -2658,7 +2658,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         })()}
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>
+            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>
               {isMe ? (currentUser.name || p.author) : p.author}
             </span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -2666,7 +2666,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
               <path d="m9 12 2 2 4-4.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div style={{ fontSize:13.5, color:C.subtle, marginTop:1 }}>{p.time}</div>
+          <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{p.time}</div>
         </div>
         {p.is_pinned && (
           <div style={{ display:'flex', alignItems:'center', gap:4, marginRight:6 }}>
@@ -2676,7 +2676,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                 <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
               </g>
             </svg>
-            <span style={{ fontSize:12.5, fontWeight:800, color:C.primary }}>Pinned</span>
+            <span style={{ fontSize:10.5, fontWeight:800, color:C.primary }}>Pinned</span>
           </div>
         )}
         <button onClick={() => setShowOptions(true)} style={{ width:30, height:30, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
@@ -2689,7 +2689,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
       </div>
 
       {/* Post text */}
-      <div style={{ fontSize:16, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}><Linkify text={p.text} /></div>
+      <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}><Linkify text={p.text} /></div>
 
       {/* Poll */}
       {pollOptions && pollOptions.length >= 2 && (() => {
@@ -2733,12 +2733,12 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                                     display:'flex', alignItems:'center', justifyContent:'center' }}>
                         {isMyV && <div style={{ width:7, height:7, borderRadius:'50%', background:'#fff' }}/>}
                       </div>
-                      <span style={{ fontSize:15.5, fontWeight: isMyV ? 800 : 600,
+                      <span style={{ fontSize:13.5, fontWeight: isMyV ? 800 : 600,
                                      fontFamily:"'Montserrat',-apple-system,sans-serif",
                                      color: isMyV ? '#fff' : C.ink }}>{opt}</span>
                     </div>
                     {voted && (
-                      <span style={{ fontSize:14, fontWeight:700, fontFamily:"'Montserrat',-apple-system,sans-serif", color: isMyV ? '#fff' : C.subtle }}>
+                      <span style={{ fontSize:12, fontWeight:700, fontFamily:"'Montserrat',-apple-system,sans-serif", color: isMyV ? '#fff' : C.subtle }}>
                         {pct}%
                       </span>
                     )}
@@ -2746,7 +2746,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                 </button>
               );
             })}
-            <div style={{ fontSize:13, color:C.subtle, marginTop:2, textAlign:'center', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2, textAlign:'center', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
               {totalVotes} vote{totalVotes !== 1 ? 's' : ''}
               {pollExpired ? ' · Poll closed'
                 : daysLeft !== null ? ` · ${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`
@@ -2788,11 +2788,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             </svg>
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:15, fontWeight:700, color:C.ink,
+            <div style={{ fontSize:13, fontWeight:700, color:C.ink,
                           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
               {p.file_name || 'Attachment'}
             </div>
-            <div style={{ fontSize:13, color:C.subtle, marginTop:2 }}>Tap to download</div>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>Tap to download</div>
           </div>
           {/* download arrow */}
           <div style={{ width:32, height:32, borderRadius:999, background:'#fff',
@@ -2815,11 +2815,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
           <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
-            <div style={{ fontSize:14.5, fontWeight:800, color:C.primary, fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
               {p.linked_event_title}
             </div>
             {(p.linked_event_date || p.linked_event_time) && (
-              <div style={{ fontSize:13, fontWeight:600, color:C.subtle, fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:2 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:2 }}>
                 {[p.linked_event_date, p.linked_event_time].filter(Boolean).join(' · ')}
               </div>
             )}
@@ -2838,7 +2838,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"
                   fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize:15, fontWeight:700, color:liked?'#FF3B6B':'#7B8499' }}>{(p.likes||0)+(liked?1:0)}</span>
+          <span style={{ fontSize:13, fontWeight:700, color:liked?'#FF3B6B':'#7B8499' }}>{(p.likes||0)+(liked?1:0)}</span>
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
@@ -2846,7 +2846,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
                   stroke={cOpen?C.primary:C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize:15, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
+          <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
         </button>
         <button onClick={async () => {
             const shareText = p.text || 'Check this post on Riply';
@@ -2892,16 +2892,16 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
               <div style={{ display:'flex', gap:10 }}>
                 <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background:c.aColor,
                               display:'flex', alignItems:'center', justifyContent:'center',
-                              color:'#fff', fontSize:14, fontWeight:800 }}>{c.aInitial}</div>
+                              color:'#fff', fontSize:12, fontWeight:800 }}>{c.aInitial}</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
-                    <span style={{ fontSize:15.5, fontWeight:800, color:C.ink }}>{c.author}</span>
-                    <span style={{ fontSize:13, color:C.subtle }}>{c.time}</span>
+                    <span style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>{c.author}</span>
+                    <span style={{ fontSize:11, color:C.subtle }}>{c.time}</span>
                   </div>
                   {c.replyToName && (
-                    <div style={{ fontSize:12.5, color:C.primary, fontWeight:700, marginTop:2 }}>↩ {c.replyToName}</div>
+                    <div style={{ fontSize:10.5, color:C.primary, fontWeight:700, marginTop:2 }}>↩ {c.replyToName}</div>
                   )}
-                  <div style={{ fontSize:15.5, color:C.body, marginTop:3, lineHeight:1.4 }}><Linkify text={c.text} /></div>
+                  <div style={{ fontSize:13.5, color:C.body, marginTop:3, lineHeight:1.4 }}><Linkify text={c.text} /></div>
                   <div style={{ display:'flex', alignItems:'center', gap:16, marginTop:7 }}>
                     <button onClick={() => handleLikeComment(c.id)}
                       style={{ display:'flex', alignItems:'center', gap:5, border:'none', background:'none', cursor:'pointer', padding:0 }}>
@@ -2909,7 +2909,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                         <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
                               fill={isLiked?'#FF3B6B':'none'} stroke={isLiked?'#FF3B6B':C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
                       </svg>
-                      <span style={{ fontSize:14, fontWeight:700, color: isLiked?'#FF3B6B':C.subtle }}>{likeCount}</span>
+                      <span style={{ fontSize:12, fontWeight:700, color: isLiked?'#FF3B6B':C.subtle }}>{likeCount}</span>
                     </button>
                     {!isReply && (
                       <button onClick={() => setExpandedReplies(s => ({ ...s, [c.id]: !s[c.id] }))}
@@ -2920,13 +2920,13 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" stroke={C.subtle} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                        <span style={{ fontSize:14, fontWeight:700, color:C.subtle }}>{replies.length}</span>
+                        <span style={{ fontSize:12, fontWeight:700, color:C.subtle }}>{replies.length}</span>
                       </button>
                     )}
                     <button onClick={() => startReply(c)}
                       style={{ display:'flex', alignItems:'center', gap:5, border:'none', cursor:'pointer',
                                padding:'3px 10px', borderRadius:999, background:C.chip }}>
-                      <span style={{ fontSize:13.5, fontWeight:700, color:C.body }}>reply</span>
+                      <span style={{ fontSize:11.5, fontWeight:700, color:C.body }}>reply</span>
                     </button>
                     {!isReply && replies.length > 0 && (
                       <button onClick={() => setExpandedReplies(s => ({ ...s, [c.id]: !s[c.id] }))}
@@ -2963,7 +2963,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
               <div style={{ width:38, height:4, borderRadius:99, background:'#D1D8E4', margin:'10px auto 0', flexShrink:0 }}/>
               {/* Header */}
               <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:8, padding:'14px 16px 12px' }}>
-                <span style={{ flex:1, fontSize:20, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>Top comments</span>
+                <span style={{ flex:1, fontSize:18, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>Top comments</span>
                 <button onClick={() => setCommentSearchOpen(v => !v)} aria-label="Search comments" style={{
                   width:36, height:36, border:'none', borderRadius:'50%', background: commentSearchOpen ? C.grad : C.chip,
                   display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
@@ -2985,7 +2985,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                   <input autoFocus value={commentQuery} onChange={e => setCommentQuery(e.target.value)}
                     placeholder="Search comments…"
                     style={{ width:'100%', boxSizing:'border-box', height:38, border:`1.5px solid ${C.border}`,
-                             borderRadius:999, background:C.chip, padding:'0 14px', fontSize:14.5, outline:'none',
+                             borderRadius:999, background:C.chip, padding:'0 14px', fontSize:12.5, outline:'none',
                              fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
                 </div>
               )}
@@ -2994,10 +2994,10 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
               {/* List */}
               <div style={{ flex:1, overflowY:'auto', padding:'14px 16px' }}>
                 {comments.length === 0 && (
-                  <div style={{ fontSize:14.5, color:C.subtle, textAlign:'center', padding:'24px 0' }}>No comments yet. Be the first!</div>
+                  <div style={{ fontSize:12.5, color:C.subtle, textAlign:'center', padding:'24px 0' }}>No comments yet. Be the first!</div>
                 )}
                 {comments.length > 0 && visible.length === 0 && (
-                  <div style={{ fontSize:14.5, color:C.subtle, textAlign:'center', padding:'24px 0' }}>No comments match "{commentQuery.trim()}"</div>
+                  <div style={{ fontSize:12.5, color:C.subtle, textAlign:'center', padding:'24px 0' }}>No comments match "{commentQuery.trim()}"</div>
                 )}
                 {visible.map(c => <CommentRow key={c.id} c={c} isReply={false} />)}
               </div>
@@ -3006,10 +3006,10 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
               {replyTo && (
                 <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:6, background:'rgba(0,152,240,0.07)',
                               margin:'0 16px', borderRadius:8, padding:'5px 10px' }}>
-                  <span style={{ fontSize:13, color:C.primary, fontWeight:600 }}>↩ Replying to {replyTo.author}</span>
+                  <span style={{ fontSize:11, color:C.primary, fontWeight:600 }}>↩ Replying to {replyTo.author}</span>
                   <button onClick={() => { setReplyTo(null); setDraft(''); }}
                     style={{ border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto',
-                             fontSize:14, color:C.subtle, lineHeight:1 }}>✕</button>
+                             fontSize:12, color:C.subtle, lineHeight:1 }}>✕</button>
                 </div>
               )}
 
@@ -3018,7 +3018,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                 <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0,
                               background:currentUser?.avatarUrl ? 'none' : (currentUser?.avatarColor || C.grad),
                               display:'flex', alignItems:'center', justifyContent:'center',
-                              color:'#fff', fontSize:14, fontWeight:800, overflow:'hidden' }}>
+                              color:'#fff', fontSize:12, fontWeight:800, overflow:'hidden' }}>
                   {currentUser?.avatarUrl
                     ? <img src={currentUser.avatarUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
                     : (currentUser?.name?.[0] || 'Y').toUpperCase()}
@@ -3030,7 +3030,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submitComment(); } }}
                   placeholder={replyTo ? `Reply to ${replyTo.author}…` : 'Write a comment…'}
                   style={{ flex:1, height:38, border:`1.5px solid ${C.border}`, borderRadius:999,
-                           background:'#fff', padding:'0 13px', fontSize:14.5, outline:'none',
+                           background:'#fff', padding:'0 13px', fontSize:12.5, outline:'none',
                            fontFamily:"'Montserrat',-apple-system,sans-serif" }}
                 />
                 {draft.trim() && (
@@ -3088,7 +3088,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
                 borderTop:`1px solid ${C.divider}`,
               }}>
                 {opt.icon}
-                <span style={{ fontSize:16, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
+                <span style={{ fontSize:14, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
               </button>
             ))}
           </div>
@@ -3411,7 +3411,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             <div style={{ width:'100%', height:'100%', borderRadius:'50%',
                           background: g.logoColor || g.logo_color || C.grad,
                           display:'flex', alignItems:'center', justifyContent:'center',
-                          color:'#fff', fontSize:14, fontWeight:800,
+                          color:'#fff', fontSize:12, fontWeight:800,
                           border:'2px solid #F4F6FA', position:'relative', overflow:'hidden' }}>
               {g.avatar_url
                 ? <img src={g.avatar_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
@@ -3419,7 +3419,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               }
             </div>
           </div>
-          <span style={{ fontSize:17, fontWeight:800, color:C.ink, letterSpacing:'-0.3px',
+          <span style={{ fontSize:15, fontWeight:800, color:C.ink, letterSpacing:'-0.3px',
                         maxWidth:170, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             {g.name || 'Group'}
           </span>
@@ -3439,7 +3439,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         <div style={{ position:'relative', display:'inline-block', pointerEvents:'auto' }}>
           <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
                         background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
-                        justifyContent:'center', color:'#fff', fontSize:32, fontWeight:800,
+                        justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,
                         position:'relative', overflow:'hidden',
                         boxShadow:'0 6px 16px rgba(16,24,40,0.18)' }}>
             {g.avatar_url
@@ -3461,8 +3461,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 
         {/* ── Name + desc ─────────────────────────────────── */}
         <div style={{ padding:'11px 24px 0', textAlign:'center' }}>
-          <div style={{ fontSize:23, fontWeight:700, letterSpacing:-0.3, color:C.ink }}>{g.name}</div>
-          <div style={{ fontSize:15, lineHeight:1.55, color:'#7B8499', marginTop:6,
+          <div style={{ fontSize:21, fontWeight:700, letterSpacing:-0.3, color:C.ink }}>{g.name}</div>
+          <div style={{ fontSize:13, lineHeight:1.55, color:'#7B8499', marginTop:6,
                         display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
             {g.desc || g.description || ""}
           </div>
@@ -3472,8 +3472,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         <div style={{ display:'flex', justifyContent:'center', gap:34, marginTop:16 }}>
           {[{v: liveMembers ?? '—', l:'Members'},{v: livePosts2 ?? '—', l:'Posts'},{v: liveEvents2 !== null ? (liveEvents2 === 0 ? '—' : liveEvents2) : '—', l:'Events'}].map(s => (
             <div key={s.l} style={{ textAlign:'center' }}>
-              <div style={{ fontSize:20, fontWeight:800, color:C.ink }}>{s.v}</div>
-              <div style={{ fontSize:14, color:C.subtle, fontWeight:600, marginTop:1 }}>{s.l}</div>
+              <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>{s.v}</div>
+              <div style={{ fontSize:12, color:C.subtle, fontWeight:600, marginTop:1 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -3487,7 +3487,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             <button onClick={() => navigate('group-analytics', { groupId: g.id })} style={{
               flex:'0 1 170px', height:46, borderRadius:999, border:'none',
               background:C.ink, color:'#fff', boxShadow:'0 8px 20px rgba(14,23,38,0.28)',
-              fontSize:17, fontWeight:800, cursor:'pointer',
+              fontSize:15, fontWeight:800, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             }}>
@@ -3501,7 +3501,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             <button onClick={() => navigate('group-manage', { groupId: g.id })} style={{
               flex:'0 1 170px', height:46, borderRadius:999, border:'none',
               background:C.ink, color:'#fff', boxShadow:'0 8px 20px rgba(14,23,38,0.28)',
-              fontSize:17, fontWeight:800, cursor:'pointer',
+              fontSize:15, fontWeight:800, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             }}>
@@ -3526,7 +3526,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               </svg>
               <span style={{ position:'absolute', top:-2, right:-2, minWidth:18, height:18,
                              padding:'0 4px', borderRadius:999, background:C.primary,
-                             color:'#fff', fontSize:12, fontWeight:800,
+                             color:'#fff', fontSize:10, fontWeight:800,
                              display:'flex', alignItems:'center', justifyContent:'center',
                              border:'2px solid #F4F6FA' }}>5</span>
             </button>
@@ -3537,7 +3537,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           <button onClick={handlePrimary} disabled={membershipMutating} style={{
             flex:'0 1 auto', height:46, padding:'0 24px', borderRadius:999, border:btn.border||'none',
             background:btn.bg, color:btn.color, boxShadow:btn.shadow,
-            fontSize:17, fontWeight:800, cursor: membershipMutating ? 'default' : 'pointer',
+            fontSize:15, fontWeight:800, cursor: membershipMutating ? 'default' : 'pointer',
             opacity: membershipMutating ? 0.7 : 1,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
@@ -3590,7 +3590,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               {isJoined && notifyOn && (
                 <span style={{ position:'absolute', top:-2, right:-2, minWidth:18, height:18,
                                padding:'0 4px', borderRadius:999, background:C.primary,
-                               color:'#fff', fontSize:12, fontWeight:800,
+                               color:'#fff', fontSize:10, fontWeight:800,
                                display:'flex', alignItems:'center', justifyContent:'center',
                                border:'2px solid #F4F6FA' }}>5</span>
               )}
@@ -3623,20 +3623,20 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 {pinnedEvent.image_url && (
                   <img src={pinnedEvent.image_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.55 }}/>
                 )}
-                <span style={{ position:'relative', fontSize:22, fontWeight:800, color:'#fff', lineHeight:1, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{day}</span>
-                <span style={{ position:'relative', fontSize:12, fontWeight:700, color:'#fff', letterSpacing:0.5, marginTop:2, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{mon}</span>
+                <span style={{ position:'relative', fontSize:20, fontWeight:800, color:'#fff', lineHeight:1, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{day}</span>
+                <span style={{ position:'relative', fontSize:10, fontWeight:700, color:'#fff', letterSpacing:0.5, marginTop:2, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{mon}</span>
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:17, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                <div style={{ fontSize:15, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {pinnedEvent.title}
                 </div>
                 {location && (
-                  <div style={{ fontSize:14.5, color:C.subtle, marginTop:2, whiteSpace:'normal', overflowWrap:'anywhere' }}>
+                  <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, whiteSpace:'normal', overflowWrap:'anywhere' }}>
                     {location}
                   </div>
                 )}
                 {when && (
-                  <div style={{ fontSize:14.5, color:C.primary, fontWeight:700, marginTop:5 }}>
+                  <div style={{ fontSize:12.5, color:C.primary, fontWeight:700, marginTop:5 }}>
                     {when}
                   </div>
                 )}
@@ -3655,7 +3655,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             {/* Group Details card */}
             <div style={{ margin:'16px 16px 0', background:'#fff', borderRadius:18,
                           boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:16 }}>
-              <div style={{ fontSize:18, fontWeight:800, color:C.ink, marginBottom:13 }}>
+              <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:13 }}>
                 Group Details
               </div>
               {[
@@ -3676,10 +3676,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                                        padding:'9px 0',
                                        borderTop: i>0 ? `1px solid ${C.divider}` : 'none' }}>
                   {row.icon}
-                  <span style={{ flex:1, fontSize:15.5, fontWeight:600, color:'#3A4252' }}>
+                  <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:'#3A4252' }}>
                     {row.label}
                   </span>
-                  <span style={{ fontSize:15, fontWeight:700, color:row.valColor }}>
+                  <span style={{ fontSize:13, fontWeight:700, color:row.valColor }}>
                     {row.val}
                   </span>
                 </div>
@@ -3694,7 +3694,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                   <circle cx="12" cy="12" r="9" fill={C.primary}/>
                   <path d="M12 11v5M12 8h.01" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
-                <span style={{ fontSize:18, fontWeight:800, color:C.ink }}>Group Rules</span>
+                <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Group Rules</span>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 {(g.rules || ['Be respectful','No spam','Keep it on-topic','Credit sources']).map((r,i) => (
@@ -3703,7 +3703,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                       <path d="M5 12.5l4.5 4.5L19 7" stroke="#C2493D" strokeWidth="2.4"
                             strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    <span style={{ fontSize:15.5, fontWeight:500, color:C.muted }}>{r}</span>
+                    <span style={{ fontSize:13.5, fontWeight:500, color:C.muted }}>{r}</span>
                   </div>
                 ))}
               </div>
@@ -3746,7 +3746,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 <button key={t} onClick={() => setActiveTab(t)} style={{
                   flex:1, border:'none', background:'none', cursor:'pointer',
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  fontSize:16, padding:'0 0 11px',
+                  fontSize:14, padding:'0 0 11px',
                   fontWeight: t===activeTab ? 800 : 700,
                   color: t===activeTab ? C.primary : C.subtle,
                   textTransform:'capitalize',
@@ -3783,7 +3783,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 {isJoined && (
                   <button onClick={() => navigate('create-event', { groupId })}
                     style={{ width:'100%', height:44, border:`1.5px dashed ${C.primary}`, borderRadius:14,
-                             background:'rgba(2,162,240,0.05)', color:C.primary, fontSize:15,
+                             background:'rgba(2,162,240,0.05)', color:C.primary, fontSize:13,
                              fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center',
                              justifyContent:'center', gap:8,
                              fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -3794,7 +3794,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                   </button>
                 )}
                 {groupEvents.length === 0
-                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:14 }}>No upcoming events</div>
+                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No upcoming events</div>
                   : [...groupEvents].sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0)).map(ev => {
                     const d = ev.date ? new Date(ev.date) : null;
                     const day = d ? d.getDate().toString() : '';
@@ -3820,12 +3820,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                             ? <img src={ev.image_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
                             : <div style={{ position:'absolute', inset:0, background:
                                 'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>}
-                          <span style={{ position:'relative', fontSize:20, fontWeight:800, lineHeight:1 }}>{day}</span>
-                          <span style={{ position:'relative', fontSize:11.5, fontWeight:700, letterSpacing:0.5, marginTop:2 }}>{mon}</span>
+                          <span style={{ position:'relative', fontSize:18, fontWeight:800, lineHeight:1 }}>{day}</span>
+                          <span style={{ position:'relative', fontSize:9.5, fontWeight:700, letterSpacing:0.5, marginTop:2 }}>{mon}</span>
                         </div>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                            <div style={{ fontSize:16.5, fontWeight:800, color:C.ink, lineHeight:1.25, flex:1, minWidth:0,
+                            <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25, flex:1, minWidth:0,
                                           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
                             {ev.is_pinned && (
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
@@ -3834,11 +3834,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                               </svg>
                             )}
                           </div>
-                          <div style={{ fontSize:14, color:C.subtle, marginTop:4 }}>
+                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>
                             {fmtDate(ev.full_date || ev.date)}{(ev.start_time || ev.time_range) ? ` · ${fmtRange(ev.time_range) || fmt12(ev.start_time)}` : ''}
                           </div>
                           {(ev.location || ev.venue) && (
-                            <div style={{ fontSize:13.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
+                            <div style={{ fontSize:11.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
                                           overflow:'hidden', textOverflow:'ellipsis' }}>{ev.venue || ev.location}</div>
                           )}
                           <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
@@ -3846,7 +3846,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                               <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
                               <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
                             </svg>
-                            <span style={{ fontSize:13.5, fontWeight:700, color:C.primary }}>{ev.attendees_count || ev.going || 0} going</span>
+                            <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{ev.attendees_count || ev.going || 0} going</span>
                           </div>
                         </div>
                         {isGroupAdmin && (
@@ -3871,7 +3871,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               {/* MEDIA */}
               {activeTab === 'media' && (
                 mediaImages.length === 0
-                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:14 }}>No photos yet</div>
+                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No photos yet</div>
                   : <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
                     {mediaImages.map((m) => (
                       <div key={m.id}
@@ -3894,9 +3894,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                                            borderBottom: i<arr.length-1 ? `1px solid ${C.divider}` : 'none' }}>
                       <div style={{ width:26, height:26, borderRadius:8, flexShrink:0,
                                     background:'#E9F6FF', display:'flex', alignItems:'center',
-                                    justifyContent:'center', fontSize:15, fontWeight:800,
+                                    justifyContent:'center', fontSize:13, fontWeight:800,
                                     color:C.primary }}>{i+1}</div>
-                      <span style={{ flex:1, fontSize:15.5, fontWeight:600, lineHeight:1.45,
+                      <span style={{ flex:1, fontSize:13.5, fontWeight:600, lineHeight:1.45,
                                      color:C.body, marginTop:2 }}>{r}</span>
                     </div>
                   ))}
@@ -3967,7 +3967,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 borderTop:`1px solid ${C.divider}`,
               }}>
                 {opt.icon}
-                <span style={{ fontSize:16, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
+                <span style={{ fontSize:14, fontWeight:700, color: opt.danger ? '#C2493D' : C.ink }}>{opt.label}</span>
               </button>
             ))}
           </div>
@@ -4048,7 +4048,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
             <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
-        <div style={{ flex:1, textAlign:'center', fontSize:16, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink, whiteSpace:'nowrap',
                       overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
         <HeaderBtn onClick={async () => {
@@ -4116,17 +4116,17 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                 background:'linear-gradient(to top,rgba(14,23,38,0.75) 0%,rgba(14,23,38,0.2) 55%,transparent 100%)' }}/>
               <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
                             alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
-                            background:'rgba(255,255,255,0.92)', fontSize:12, fontWeight:700, color:C.body }}>
+                            background:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:700, color:C.body }}>
                 {th.label} · Event
               </div>
               <div style={{ position:'absolute', bottom:14, left:14, right:14 }}>
-                <div style={{ fontSize:22, fontWeight:800, color:'#fff', letterSpacing:-0.5,
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', letterSpacing:-0.5,
                               lineHeight:1.2, textShadow:'0 1px 6px rgba(0,0,0,0.5)' }}>{ev.title}</div>
               </div>
               {ev.badge && (
                 <div style={{ position:'absolute', top:12, right:12, display:'inline-flex',
                               alignItems:'center', height:24, padding:'0 10px', borderRadius:7,
-                              background:'rgba(14,23,38,0.55)', fontSize:12, fontWeight:700, color:'#fff' }}>
+                              background:'rgba(14,23,38,0.55)', fontSize:10, fontWeight:700, color:'#fff' }}>
                   {ev.badge}
                 </div>
               )}
@@ -4150,20 +4150,20 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           <div style={{ width:44, height:44, borderRadius:13, flexShrink:0,
                         background: ev.org_avatar ? 'transparent' : (ev.org_color || th.grad),
                         display:'flex', alignItems:'center', overflow:'hidden',
-                        justifyContent:'center', color:'#fff', fontSize:16, fontWeight:800 }}>
+                        justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800 }}>
             {ev.org_avatar
               ? <img src={ev.org_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
               : (ev.orgInitial || 'O')}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-              <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>{ev.org}</span>
+              <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>{ev.org}</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2.5l2.2 1.6 2.7-.2 1 2.5 2.3 1.4-.6 2.6.6 2.6-2.3 1.4-1 2.5-2.7-.2L12 21.5 9.8 19.9l-2.7.2-1-2.5-2.3-1.4.6-2.6L3.8 11l2.3-1.4 1-2.5 2.7.2L12 2.5Z" fill="#02B6FE"/>
                 <path d="m9 12 2 2 4-4.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div style={{ fontSize:13, color:'#8A93A6', marginTop:2 }}>Verified Organizer</div>
+            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Verified Organizer</div>
           </div>
           {ev.group_id && (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
@@ -4186,14 +4186,14 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
               </svg>
             </div>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+              <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Date &amp; Time</div>
-              <div style={{ fontSize:15, fontWeight:700, color:C.body, marginTop:3 }}>{fmtDate(ev.fullDate || ev.full_date || ev.date)}</div>
-              <div style={{ fontSize:13, color:'#6B7385', marginTop:1 }}>{fmtRange(ev.timeRange || ev.time_range)}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{fmtDate(ev.fullDate || ev.full_date || ev.date)}</div>
+              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtRange(ev.timeRange || ev.time_range)}</div>
               <button onClick={() => addToCalendar({ title: ev.title, location: ev.venue || ev.location, description: ev.description, dateStr: ev.fullDate || ev.full_date || ev.date, timeStr: ev.start_time, durationMins: 90 })} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',
-                borderRadius:999, fontSize:13, fontWeight:700, color:C.primary,
+                borderRadius:999, fontSize:11, fontWeight:700, color:C.primary,
                 cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
               }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -4215,10 +4215,10 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
               </svg>
             </div>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+              <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Location</div>
-              <div style={{ fontSize:15, fontWeight:700, color:C.body, marginTop:3 }}>{ev.venue}</div>
-              <div style={{ fontSize:13, color:'#6B7385', marginTop:1 }}>{ev.room}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>{ev.venue}</div>
+              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{ev.room}</div>
               {/* Map thumbnail — tappable, opens Google Maps */}
               {(() => {
                 const addr = [ev.venue, ev.room, ev.location].filter(Boolean).join(', ');
@@ -4246,14 +4246,14 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                       </svg>
                       {/* "Tap to open" hint */}
                       <div style={{ position:'absolute', bottom:7, right:9, background:'rgba(255,255,255,0.85)',
-                        borderRadius:6, padding:'2px 7px', fontSize:11, fontWeight:700, color:C.primary }}>
+                        borderRadius:6, padding:'2px 7px', fontSize:9, fontWeight:700, color:C.primary }}>
                         Open Maps ↗
                       </div>
                     </a>
                     <div style={{ display:'flex', gap:8, marginTop:9 }}>
                       <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{
                         flex:1, height:34, border:`1.5px solid ${C.border}`, background:'#fff',
-                        borderRadius:9, fontSize:13.5, fontWeight:700, color:C.body,
+                        borderRadius:9, fontSize:11.5, fontWeight:700, color:C.body,
                         cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
                         display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none',
                       }}>
@@ -4265,7 +4265,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                       </a>
                       <a href={directionsUrl} target="_blank" rel="noopener noreferrer" style={{
                         flex:1, height:34, border:'none', background:'#E9F6FF',
-                        borderRadius:9, fontSize:13.5, fontWeight:700, color:C.primary,
+                        borderRadius:9, fontSize:11.5, fontWeight:700, color:C.primary,
                         cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
                         display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none',
                       }}>
@@ -4304,14 +4304,14 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                   )}
                 </div>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+                  <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                                 textTransform:'uppercase', color:C.subtle }}>Price</div>
-                  <div style={{ fontSize:15, fontWeight:800, marginTop:3,
+                  <div style={{ fontSize:13, fontWeight:800, marginTop:3,
                                 color: isFreeEv ? '#10B981' : '#F59E0B' }}>
                     {isFreeEv ? 'Free for students' : `$${evPriceAmount}`}
                   </div>
                 </div>
-                <span style={{ fontSize:12, fontWeight:800,
+                <span style={{ fontSize:10, fontWeight:800,
                                color: isFreeEv ? '#0E9F6E' : '#D97706',
                                background: isFreeEv ? '#E6F8F0' : '#FFF6E9',
                                padding:'4px 10px', borderRadius:999 }}>
@@ -4330,13 +4330,13 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
               <circle cx="12" cy="12" r="9" stroke={C.primary} strokeWidth="1.9"/>
               <path d="M12 11v5M12 8h.01" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>About This Event</span>
+            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>About This Event</span>
           </div>
-          <div style={{ fontSize:14.5, lineHeight:1.65, color:C.muted }}>
+          <div style={{ fontSize:12.5, lineHeight:1.65, color:C.muted }}>
             {expanded ? (ev.fullDesc || ev.full_desc || ev.description) : (ev.desc || ev.description)}
           </div>
           <button onClick={() => setExpanded(e => !e)} style={{ marginTop:8, border:'none',
-            background:'none', padding:0, fontSize:14, fontWeight:800, color:C.primary,
+            background:'none', padding:0, fontSize:12, fontWeight:800, color:C.primary,
             cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
             {expanded ? 'Show less' : 'Read more'}
           </button>
@@ -4350,7 +4350,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
               <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
                     stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
-            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Rules &amp; Guidelines</span>
+            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Rules &amp; Guidelines</span>
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
             {(ev.rules || []).map((r, i) => (
@@ -4363,7 +4363,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                           strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <span style={{ fontSize:14, fontWeight:600, color:'#3A4252' }}>{r}</span>
+                <span style={{ fontSize:12, fontWeight:600, color:'#3A4252' }}>{r}</span>
               </div>
             ))}
           </div>
@@ -4380,9 +4380,9 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                 <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
                 <path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
               </svg>
-              <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Attending</span>
+              <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Attending</span>
             </div>
-            <div style={{ fontSize:14, color:'#6B7385' }}>
+            <div style={{ fontSize:12, color:'#6B7385' }}>
               <span style={{ fontWeight:800, color:C.body }}>{attendeeCount} attending</span>
             </div>
           </div>
@@ -4393,7 +4393,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           <div style={{ marginTop:16 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                           padding:'0 2px 10px' }}>
-              <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Guest Speakers</span>
+              <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Guest Speakers</span>
             </div>
             <div style={{ display:'flex', gap:11, overflowX:'auto', padding:'2px 2px 4px',
                           scrollbarWidth:'none' }}>
@@ -4406,16 +4406,16 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                     <div style={{ height:84, borderRadius:11, background:GRAD[i % GRAD.length],
                                   position:'relative', overflow:'hidden', display:'flex',
                                   alignItems:'center', justifyContent:'center' }}>
-                      <span style={{ fontSize:24, fontWeight:800, color:'#fff' }}>
+                      <span style={{ fontSize:22, fontWeight:800, color:'#fff' }}>
                         {(g.name || '?')[0].toUpperCase()}
                       </span>
                     </div>
-                    <div style={{ fontSize:14, fontWeight:800, color:C.ink, marginTop:8,
+                    <div style={{ fontSize:12, fontWeight:800, color:C.ink, marginTop:8,
                                   whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       {g.name}
                     </div>
                     {g.role && (
-                      <div style={{ fontSize:12, color:'#8A93A6', marginTop:2, whiteSpace:'nowrap',
+                      <div style={{ fontSize:10, color:'#8A93A6', marginTop:2, whiteSpace:'nowrap',
                                     overflow:'hidden', textOverflow:'ellipsis' }}>{g.role}</div>
                     )}
                   </div>
@@ -4428,7 +4428,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
         {/* You may also like */}
         {similarEvents.length > 0 && (
           <div style={{ marginTop:18 }}>
-            <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:11 }}>
+            <div style={{ fontSize:14, fontWeight:800, color:C.ink, marginBottom:11 }}>
               You May Also Like
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -4447,16 +4447,16 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                   </div>
                   <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column',
                                 justifyContent:'center' }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:C.primary,
+                    <span style={{ fontSize:9, fontWeight:700, color:C.primary,
                                    background:'#E9F6FF', padding:'2px 7px', borderRadius:999,
                                    alignSelf:'flex-start' }}>
                       {(THEME[e2.category||e2.primary]||THEME.social).label}
                     </span>
-                    <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginTop:4,
+                    <div style={{ fontSize:13, fontWeight:800, color:C.ink, marginTop:4,
                                   whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       {e2.title}
                     </div>
-                    <div style={{ fontSize:13, color:'#8A93A6', marginTop:2 }}>{fmtDate(e2.full_date || e2.date)}</div>
+                    <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>{fmtDate(e2.full_date || e2.date)}</div>
                   </div>
                 </div>
               ))}
@@ -4471,7 +4471,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
           <button onClick={() => navigate('check-in', {eventId: ev.id})} style={{
             width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
             background:'linear-gradient(135deg,#0E1726,#1A2538)', color:'#fff',
-            fontSize:16, fontWeight:800,
+            fontSize:14, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow:'0 10px 28px rgba(14,23,38,0.35)',
@@ -4484,7 +4484,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
         ) : (
           <button onClick={() => navigate('tickets', {eventId: ev.id})} style={{
             width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
-            background:C.grad, color:'#fff', fontSize:17, fontWeight:800,
+            background:C.grad, color:'#fff', fontSize:15, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow:'0 10px 28px rgba(2,162,240,0.45)',
@@ -4576,7 +4576,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   if (!sp) return (
     <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-      <div style={{ fontSize:15, color:C.subtle }}>Loading space…</div>
+      <div style={{ fontSize:13, color:C.subtle }}>Loading space…</div>
     </div>
   );
 
@@ -4651,7 +4651,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
-        <div style={{ flex:1, textAlign:'center', fontSize:16, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink, whiteSpace:'nowrap',
                       overflow:'hidden', textOverflow:'ellipsis' }}>{sp.title}</div>
         <HeaderBtn onClick={async () => {
@@ -4695,17 +4695,17 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             'repeating-linear-gradient(135deg,rgba(255,255,255,0.08) 0,rgba(255,255,255,0.08) 2px,transparent 2px,transparent 16px)'}}/>
           <div style={{ position:'absolute', top:12, left:12, display:'inline-flex',
                         alignItems:'center', height:24, padding:'0 10px', borderRadius:999,
-                        background:'rgba(255,255,255,0.92)', fontSize:12, fontWeight:700, color:C.body }}>
+                        background:'rgba(255,255,255,0.92)', fontSize:10, fontWeight:700, color:C.body }}>
             {spCat.charAt(0).toUpperCase()+spCat.slice(1)} · Space
           </div>
           <div style={{ position:'absolute', top:'50%', left:'50%',
                         transform:'translate(-50%,-50%)', textAlign:'center' }}>
-            <div style={{ fontSize:24, fontWeight:800, color:'#fff', letterSpacing:-0.5,
+            <div style={{ fontSize:22, fontWeight:800, color:'#fff', letterSpacing:-0.5,
                           maxWidth:280, lineHeight:1.2, textShadow:'0 2px 8px rgba(0,0,0,0.25)' }}>{sp.title}</div>
           </div>
           <div style={{ position:'absolute', bottom:12, right:12, display:'inline-flex',
                         alignItems:'center', height:24, padding:'0 10px', borderRadius:7,
-                        background:'rgba(14,23,38,0.55)', fontSize:12, fontWeight:700, color:'#fff' }}>
+                        background:'rgba(14,23,38,0.55)', fontSize:10, fontWeight:700, color:'#fff' }}>
             {sp.time}{sp.duration ? ` · ${fmtDur(sp.duration)}` : ''}
           </div>
         </div>
@@ -4716,14 +4716,14 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                       display:'flex', alignItems:'center', gap:11, position:'relative' }}>
           <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0, overflow:'hidden',
                         background: sp.host_avatar ? 'transparent' : (sp.host_color || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)'),
-                        display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:18, fontWeight:800 }}>
+                        display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:16, fontWeight:800 }}>
             {sp.host_avatar
               ? <img src={sp.host_avatar} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
               : (hostName?.[0] || 'S').toUpperCase()}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>{hostName || 'Organizer'}</div>
-            <div style={{ fontSize:13, color:'#8A93A6', marginTop:2 }}>Space Host</div>
+            <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{hostName || 'Organizer'}</div>
+            <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Space Host</div>
           </div>
           <div style={{ position:'relative', flexShrink:0 }}>
             <button onClick={() => setMoreOpen(v => !v)} style={{
@@ -4756,7 +4756,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                   }
                 }} style={{
                   width:'100%', padding:'12px 16px', border:'none', background:'none',
-                  textAlign:'left', fontSize:15, fontWeight:700, color:C.body,
+                  textAlign:'left', fontSize:13, fontWeight:700, color:C.body,
                   cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
                   display:'flex', alignItems:'center', gap:8,
                 }}>
@@ -4776,15 +4776,15 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:15 }}>
           <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
             <div>
-              <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+              <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Participants</div>
-              <div style={{ fontSize:24, fontWeight:800, marginTop:3, lineHeight:1,
+              <div style={{ fontSize:22, fontWeight:800, marginTop:3, lineHeight:1,
                             color: isFull ? '#FF3B6B' : C.ink }}>
                 {count}/{sp.max_spots || sp.max || 10}{' '}
-                <span style={{ fontSize:15, fontWeight:700, color:C.subtle }}>spots filled</span>
+                <span style={{ fontSize:13, fontWeight:700, color:C.subtle }}>spots filled</span>
               </div>
             </div>
-            <span style={{ fontSize:12, fontWeight:800, padding:'4px 10px', borderRadius:999,
+            <span style={{ fontSize:10, fontWeight:800, padding:'4px 10px', borderRadius:999,
                            background: isFull ? '#FDE7E4' : '#E6F8F0',
                            color: isFull ? C.danger : '#0E9F6E' }}>
               {isFull ? 'Full' : `${sp.max_spots || sp.max || 10 - count} left`}
@@ -4802,7 +4802,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               <div key={i} style={{ width:30, height:30, borderRadius:'50%',
                                     marginLeft: i > 0 ? -8 : 0, border:'2.5px solid #fff',
                                     flexShrink:0, display:'flex', alignItems:'center',
-                                    justifyContent:'center', color:'#fff', fontSize:12,
+                                    justifyContent:'center', color:'#fff', fontSize:10,
                                     fontWeight:800, background: p.avatar_url ? 'transparent' : p.color,
                                     overflow:'hidden' }}>
                 {p.avatar_url
@@ -4814,11 +4814,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               <div style={{ width:30, height:30, borderRadius:'50%', marginLeft:-8,
                             border:'2.5px solid #fff', flexShrink:0, display:'flex',
                             alignItems:'center', justifyContent:'center',
-                            background:C.chip, color:C.muted, fontSize:11, fontWeight:800 }}>
+                            background:C.chip, color:C.muted, fontSize:9, fontWeight:800 }}>
                 +{count - 6}
               </div>
             )}
-            <span style={{ fontSize:14, color:'#6B7385', marginLeft:10 }}>
+            <span style={{ fontSize:12, color:'#6B7385', marginLeft:10 }}>
               <span style={{ fontWeight:800, color:C.body }}>{count} joined</span>
               {' '}· {sp.max_spots || sp.max || 10 - count > 0 ? `${sp.max_spots || sp.max || 10 - count} spots left` : 'full'}
             </span>
@@ -4837,11 +4837,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                                    animation:'riplyPulse 1.6s ease-out infinite' }}/>
                     <span style={{ width:9, height:9, borderRadius:'50%', background:'#10B981' }}/>
                   </span>
-                  <span style={{ fontSize:13, fontWeight:800, color:'#10B981', letterSpacing:0.2 }}>
+                  <span style={{ fontSize:11, fontWeight:800, color:'#10B981', letterSpacing:0.2 }}>
                     {done ? 'ENDED' : 'IN PROGRESS'}
                   </span>
                 </div>
-                <span style={{ fontSize:13, fontWeight:700, color:C.subtle }}>
+                <span style={{ fontSize:11, fontWeight:700, color:C.subtle }}>
                   {done ? 'Completed' : `${liveProgress}%`}
                 </span>
               </div>
@@ -4856,8 +4856,8 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                               transition:'left .7s linear' }}/>
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', marginTop:7 }}>
-                <span style={{ fontSize:12, fontWeight:600, color:C.subtle }}>Started {sp.time}</span>
-                <span style={{ fontSize:12, fontWeight:600, color:C.subtle }}>
+                <span style={{ fontSize:10, fontWeight:600, color:C.subtle }}>Started {sp.time}</span>
+                <span style={{ fontSize:10, fontWeight:600, color:C.subtle }}>
                   {sp.duration ? fmtDur(sp.duration) : ''}
                 </span>
               </div>
@@ -4879,16 +4879,16 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               </svg>
             </div>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+              <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Schedule</div>
-              <div style={{ fontSize:15, fontWeight:700, color:C.body, marginTop:3 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
                 {spDayLabel}{sp.time ? ` · ${sp.time}` : ''}
               </div>
-              <div style={{ fontSize:13, color:'#6B7385', marginTop:1 }}>{fmtDur(sp.duration)} session</div>
+              <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>{fmtDur(sp.duration)} session</div>
               <button onClick={() => addToCalendar({ title: sp.title, location: sp.location, description: sp.desc || sp.description, timeStr: sp.time, durationMins: sp.duration ? (parseInt(sp.duration) || 60) : 60 })} style={{
                 marginTop:8, display:'inline-flex', alignItems:'center', gap:5,
                 height:28, padding:'0 11px', border:`1.5px solid ${C.border}`, background:'#fff',
-                borderRadius:999, fontSize:13, fontWeight:700, color:C.primary,
+                borderRadius:999, fontSize:11, fontWeight:700, color:C.primary,
                 cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
               }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -4910,9 +4910,9 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               </svg>
             </div>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+              <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Location</div>
-              <div style={{ fontSize:15, fontWeight:700, color:C.body, marginTop:3 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
                 {sp.location}
               </div>
               {(() => {
@@ -4935,20 +4935,20 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                         <circle cx="12" cy="10" r="2.6" fill="#fff"/>
                       </svg>
                       <div style={{ position:'absolute', bottom:6, right:8, background:'rgba(255,255,255,0.85)',
-                        borderRadius:5, padding:'2px 6px', fontSize:11, fontWeight:700, color:C.primary }}>
+                        borderRadius:5, padding:'2px 6px', fontSize:9, fontWeight:700, color:C.primary }}>
                         Open Maps ↗
                       </div>
                     </a>
                     <div style={{ display:'flex', gap:8, marginTop:9 }}>
                       <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{
                         flex:1, height:32, border:`1.5px solid ${C.border}`, background:'#fff',
-                        borderRadius:9, fontSize:13, fontWeight:700, color:C.body,
+                        borderRadius:9, fontSize:11, fontWeight:700, color:C.body,
                         cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
                         display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none',
                       }}>View on Map</a>
                       <a href={directionsUrl} target="_blank" rel="noopener noreferrer" style={{
                         flex:1, height:32, border:'none', background:'#E9F6FF',
-                        borderRadius:9, fontSize:13, fontWeight:700, color:C.primary,
+                        borderRadius:9, fontSize:11, fontWeight:700, color:C.primary,
                         cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
                         display:'flex', alignItems:'center', justifyContent:'center', textDecoration:'none',
                       }}>Get Directions</a>
@@ -4976,12 +4976,12 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               )}
             </div>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+              <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Price</div>
-              <div style={{ fontSize:15, fontWeight:800, marginTop:3,
+              <div style={{ fontSize:13, fontWeight:800, marginTop:3,
                             color: spPrice === 'Free' ? '#10B981' : '#F59E0B' }}>
                 {spPrice}
-                {spPrice !== 'Free' && <span style={{ fontSize:13, fontWeight:600, color:C.subtle }}> per session</span>}
+                {spPrice !== 'Free' && <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}> per session</span>}
               </div>
             </div>
           </div>
@@ -4995,13 +4995,13 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               <circle cx="12" cy="12" r="9" stroke={C.primary} strokeWidth="1.9"/>
               <path d="M12 11v5M12 8h.01" stroke={C.primary} strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>About This Space</span>
+            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>About This Space</span>
           </div>
-          <div style={{ fontSize:14.5, lineHeight:1.65, color:C.muted }}>
+          <div style={{ fontSize:12.5, lineHeight:1.65, color:C.muted }}>
             {expanded ? ABOUT_FULL : ABOUT_SHORT}
           </div>
           <button onClick={() => setExpanded(e => !e)} style={{ marginTop:8, border:'none',
-            background:'none', padding:0, fontSize:14, fontWeight:800, color:C.primary,
+            background:'none', padding:0, fontSize:12, fontWeight:800, color:C.primary,
             cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
             {expanded ? 'Show less' : 'Read more'}
           </button>
@@ -5015,7 +5015,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
               <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
                     stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
-            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Rules &amp; Guidelines</span>
+            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>Rules &amp; Guidelines</span>
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
             {RULES.map((r, i) => (
@@ -5028,7 +5028,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                           strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <span style={{ fontSize:14, fontWeight:600, color:'#3A4252' }}>{r}</span>
+                <span style={{ fontSize:12, fontWeight:600, color:'#3A4252' }}>{r}</span>
               </div>
             ))}
           </div>
@@ -5039,13 +5039,13 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
       {/* ── Floating join button ────────────────────────── */}
       <div style={{ position:'absolute', bottom:24, left:24, right:24, zIndex:6 }}>
         {done ? (
-          <button disabled style={{ width:'100%', height:54, border:'none', borderRadius:18, cursor:'not-allowed', background:'#D1D5DB', color:'#6B7280', fontSize:17, fontWeight:800, fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <button disabled style={{ width:'100%', height:54, border:'none', borderRadius:18, cursor:'not-allowed', background:'#D1D5DB', color:'#6B7280', fontSize:15, fontWeight:800, fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center' }}>
             Space Ended
           </button>
         ) : isFull && !joined ? (
           <button onClick={() => showToast("You'll be notified when a spot opens")} style={{
             width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
-            background:C.subtle, color:'#fff', fontSize:17, fontWeight:800,
+            background:C.subtle, color:'#fff', fontSize:15, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow:'0 10px 28px rgba(14,23,38,0.25)',
@@ -5073,7 +5073,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             border: joined ? `1.6px solid #10B981` : 'none',
             background: joined ? '#E6F8F0' : C.grad,
             color: joined ? '#0E9F6E' : '#fff',
-            fontSize:17, fontWeight:800,
+            fontSize:15, fontWeight:800,
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow: joined ? 'none' : '0 10px 28px rgba(2,162,240,0.45)',
@@ -5128,19 +5128,19 @@ function GifPickerSheet({ onClose, onSelect }) {
         aria-label="Search GIFs"
         autoFocus
         style={{ width:'100%', height:42, border:'none', borderRadius:12, background:C.chip,
-                 padding:'0 14px', fontSize:15, fontFamily:"'Montserrat',-apple-system,sans-serif",
+                 padding:'0 14px', fontSize:13, fontFamily:"'Montserrat',-apple-system,sans-serif",
                  color:C.body, outline:'none', marginBottom:14, boxSizing:'border-box' }}
       />
       {!apiKey ? (
-        <div style={{ textAlign:'center', color:C.subtle, fontSize:15, padding:'30px 10px' }}>
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>
           GIF search isn't configured yet.
         </div>
       ) : loading ? (
-        <div style={{ textAlign:'center', color:C.subtle, fontSize:15, padding:'30px 10px' }}>Loading…</div>
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>Loading…</div>
       ) : error ? (
-        <div style={{ textAlign:'center', color:C.subtle, fontSize:15, padding:'30px 10px' }}>Couldn't load GIFs -- try again.</div>
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>Couldn't load GIFs -- try again.</div>
       ) : gifs.length === 0 ? (
-        <div style={{ textAlign:'center', color:C.subtle, fontSize:15, padding:'30px 10px' }}>No GIFs found.</div>
+        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>No GIFs found.</div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, maxHeight:340, overflowY:'auto' }}>
           {gifs.map(g => (
@@ -5308,21 +5308,21 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
 
         {/* Name + status */}
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:16, fontWeight:800, letterSpacing:-0.3, color:C.ink,
+          <div style={{ fontSize:14, fontWeight:800, letterSpacing:-0.3, color:C.ink,
                         whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             {chat.name}
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:1 }}>
             <span style={{ width:7, height:7, borderRadius:'50%', background:statusColor,
                            display:'inline-block', flexShrink:0 }}/>
-            <span style={{ fontSize:13, fontWeight:600, color:statusColor }}>{onlineLabel}</span>
+            <span style={{ fontSize:11, fontWeight:600, color:statusColor }}>{onlineLabel}</span>
           </div>
         </div>
 
         {/* Avatar */}
         <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
                       background: chat.avatarUrl ? 'transparent' : chat.color, display:'flex', alignItems:'center',
-                      justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800,
+                      justifyContent:'center', color:'#fff', fontSize:13, fontWeight:800,
                       position:'relative', overflow:'hidden' }}>
           {chat.avatarUrl
             ? <img src={chat.avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -5355,7 +5355,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                         overflow:'hidden', zIndex:20, minWidth:170 }}>
             {['View Profile','Mute Notifications','Search in Chat','Clear Chat','Block'].map((item,i) => (
               <div key={item} onClick={()=>{ setMenuOpen(false); showToast(item); }}
-                style={{ padding:'13px 16px', fontSize:15, fontWeight:600,
+                style={{ padding:'13px 16px', fontSize:13, fontWeight:600,
                          color: item==='Block' ? C.danger : C.body,
                          borderBottom: i<4 ? `1px solid ${C.divider}` : 'none',
                          cursor:'pointer', background:C.card }}>
@@ -5378,7 +5378,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
         {/* Date pill */}
         <div style={{ alignSelf:'center', margin:'4px 0 10px', padding:'4px 12px',
                       borderRadius:999, background:'rgba(16,24,40,0.06)',
-                      fontSize:12, fontWeight:700, color:'#7B8499' }}>
+                      fontSize:10, fontWeight:700, color:'#7B8499' }}>
           Today
         </div>
 
@@ -5395,7 +5395,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
               {!isOut && firstOfGroup && (
                 <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
                               background: m.aAvatar ? 'transparent' : m.aColor, display:'flex', alignItems:'center',
-                              justifyContent:'center', color:'#fff', fontSize:12,
+                              justifyContent:'center', color:'#fff', fontSize:10,
                               fontWeight:800, alignSelf:'flex-start', position:'relative',
                               overflow:'hidden' }}>
                   {m.aAvatar
@@ -5413,7 +5413,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                             alignItems: isOut ? 'flex-end' : 'flex-start' }}>
                 {/* Sender name */}
                 {!isOut && firstOfGroup && (
-                  <span style={{ fontSize:12, fontWeight:700, color:'#8A93A6',
+                  <span style={{ fontSize:10, fontWeight:700, color:'#8A93A6',
                                  marginBottom:3, marginLeft:4 }}>{m.aName}</span>
                 )}
 
@@ -5447,7 +5447,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" stroke={isOut?'#fff':'#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/>
                         <path d="M14 2v6h6" stroke={isOut?'#fff':'#7B8499'} strokeWidth="1.8" strokeLinejoin="round"/>
                       </svg>
-                      <span style={{ fontSize:13, fontWeight:700, color: isOut ? '#fff' : C.body,
+                      <span style={{ fontSize:11, fontWeight:700, color: isOut ? '#fff' : C.body,
                                      whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:140 }}>
                         {m.attachUrl?.split('/').pop() || 'File'}
                       </span>
@@ -5455,7 +5455,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                   )}
                   {/* Text */}
                   {m.hasText && (
-                    <span style={{ fontSize:15, lineHeight:1.47,
+                    <span style={{ fontSize:13, lineHeight:1.47,
                                    color: isOut ? '#fff' : '#1A2233' }}>
                       {m.text}
                     </span>
@@ -5468,7 +5468,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                 <span style={{ display:'flex', alignItems:'center', gap:3,
                                marginTop:4, marginLeft:4,
                                alignSelf: isOut ? 'flex-end' : 'flex-start' }}>
-                  <span style={{ fontSize:11.5, color:C.subtle, fontWeight:600 }}>{m.time}</span>
+                  <span style={{ fontSize:9.5, color:C.subtle, fontWeight:600 }}>{m.time}</span>
                   {isOut && i === messages.length - 1 && (
                     <svg width="14" height="10" viewBox="0 0 16 11" fill="none">
                       <path d="M1 5.5 4.5 9 11 1.5" stroke={C.primary} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -5504,11 +5504,11 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
               )}
             </div>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:14, fontWeight:700, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                 {pendingAttachment.kind === 'gif' ? 'GIF' : pendingAttachment.file.name}
               </div>
               {pendingAttachment.kind === 'file' && (
-                <div style={{ fontSize:12.5, color:C.subtle, marginTop:1 }}>
+                <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>
                   {(pendingAttachment.file.size / 1024).toFixed(0)} KB
                 </div>
               )}
@@ -5548,7 +5548,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
           <button onClick={() => setGifPickerOpen(true)} style={{ height:32, padding:'0 9px',
             border:'none', borderRadius:9, background:C.chip, display:'flex', alignItems:'center',
             justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-            <span style={{ fontSize:13, fontWeight:800, color:'#7B8499', letterSpacing:0.2 }}>GIF</span>
+            <span style={{ fontSize:11, fontWeight:800, color:'#7B8499', letterSpacing:0.2 }}>GIF</span>
           </button>
 
           {/* Input pill */}
@@ -5563,7 +5563,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
               placeholder={pendingAttachment ? 'Add a caption…' : 'Type a message…'}
               style={{ flex:1, minWidth:0, border:'none', background:'none', outline:'none',
                        fontFamily:"'Montserrat',-apple-system,sans-serif",
-                       fontSize:15, color:C.body }}
+                       fontSize:13, color:C.body }}
             />
           </div>
 
@@ -5618,8 +5618,8 @@ function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColo
     }
   };
 
-  const inputStyle = { width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:15, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" };
-  const labelStyle = { fontSize:11, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 };
+  const inputStyle = { width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:13, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" };
+  const labelStyle = { fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 };
 
   return (
     <Sheet onClose={onClose} title="Change Password">
@@ -5635,7 +5635,7 @@ function ChangePasswordSheet({ onClose, showToast, chipBg, borderColor, textColo
         <div style={labelStyle}>Confirm Password</div>
         <input type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} style={inputStyle} />
       </div>
-      <button onClick={handleUpdate} disabled={loading} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:16, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
+      <button onClick={handleUpdate} disabled={loading} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
         {loading ? 'Updating…' : 'Update Password'}
       </button>
     </Sheet>
@@ -5703,37 +5703,37 @@ function ChangeEmailSheet({ onClose, showToast, currentUser, chipBg, borderColor
     }
   };
 
-  const inputStyle = { width:'100%', boxSizing:'border-box', height:50, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:17, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" };
-  const labelStyle = { fontSize:13, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 };
+  const inputStyle = { width:'100%', boxSizing:'border-box', height:50, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:15, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" };
+  const labelStyle = { fontSize:11, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 };
 
   return (
     <Sheet onClose={onClose} title="Change Email">
       {step === 'email' ? (
         <>
-          <div style={{ fontSize:14, color:subColor, marginBottom:16, lineHeight:1.5 }}>
+          <div style={{ fontSize:12, color:subColor, marginBottom:16, lineHeight:1.5 }}>
             Current email: <span style={{ fontWeight:700, color:textColor }}>{currentUser.email || '—'}</span>
           </div>
           <div style={{ marginBottom:14 }}>
             <div style={labelStyle}>New Email</div>
             <input type="email" value={newEmail} onChange={e=>setNewEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
           </div>
-          <button onClick={sendCode} disabled={loading} style={{ width:'100%', height:54, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:18, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
+          <button onClick={sendCode} disabled={loading} style={{ width:'100%', height:54, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:16, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
             {loading ? 'Sending…' : 'Send Verification Code'}
           </button>
         </>
       ) : (
         <>
-          <div style={{ fontSize:14, color:subColor, marginBottom:16, lineHeight:1.5 }}>
+          <div style={{ fontSize:12, color:subColor, marginBottom:16, lineHeight:1.5 }}>
             Enter the code we sent to <span style={{ fontWeight:700, color:textColor }}>{newEmail.trim()}</span>
           </div>
           <div style={{ marginBottom:14 }}>
             <div style={labelStyle}>Verification Code</div>
             <input value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))} inputMode="numeric" maxLength={6} placeholder="123456" style={inputStyle} />
           </div>
-          <button onClick={verifyCode} disabled={loading} style={{ width:'100%', height:54, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:18, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
+          <button onClick={verifyCode} disabled={loading} style={{ width:'100%', height:54, marginTop:6, border:'none', borderRadius:15, background: loading ? C.border : C.grad, color:'#fff', fontSize:16, fontWeight:800, cursor: loading ? 'default' : 'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow: loading ? 'none' : '0 8px 20px rgba(2,162,240,0.4)' }}>
             {loading ? 'Verifying…' : 'Verify & Save'}
           </button>
-          <button onClick={()=>{ setStep('email'); setCode(''); }} disabled={loading} style={{ width:'100%', height:44, marginTop:10, border:'none', background:'none', color:subColor, fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+          <button onClick={()=>{ setStep('email'); setCode(''); }} disabled={loading} style={{ width:'100%', height:44, marginTop:10, border:'none', background:'none', color:subColor, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
             Use a different email
           </button>
         </>
@@ -5867,7 +5867,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'background .3s' }}>
       {/* Header */}
       <div style={{ flexShrink:0, background:cardBg, padding:'52px 16px 10px', boxShadow:'0 1px 0 rgba(16,24,40,0.04)', zIndex:4, transition:'background .3s' }}>
-        <span style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:textColor }}>Profile & Settings</span>
+        <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.6, color:textColor }}>Profile & Settings</span>
       </div>
 
       {/* Content */}
@@ -5895,17 +5895,17 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
               {currentUser.avatarUrl
                 ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                 : <><div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 12px)' }} />
-                    <span style={{ fontSize:30, fontWeight:800, color:'#fff', letterSpacing:-1 }}>{initials}</span></>
+                    <span style={{ fontSize:28, fontWeight:800, color:'#fff', letterSpacing:-1 }}>{initials}</span></>
               }
             </div>
             <div style={{ position:'absolute', bottom:4, right:4, width:26, height:26, borderRadius:'50%', background:C.primary, display:'flex', alignItems:'center', justifyContent:'center', border:`2px solid ${cardBg}` }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/></svg>
             </div>
           </button>
-          <div style={{ fontSize:21, fontWeight:800, letterSpacing:-0.5, color:textColor, marginTop:13 }}>{name}</div>
+          <div style={{ fontSize:19, fontWeight:800, letterSpacing:-0.5, color:textColor, marginTop:13 }}>{name}</div>
           <div style={{ display:'flex', alignItems:'center', gap:7, marginTop:7, flexWrap:'wrap', justifyContent:'center' }}>
-            <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:'#E9F6FF', fontSize:11.5, fontWeight:700, color:C.primary }}>{[currentUser.year, currentUser.program].filter(Boolean).join(' · ') || currentUser.university || 'Student'}</div>
-            <button onClick={()=>setRoleOpen(r=>!r)} style={{ display:'inline-flex', alignItems:'center', gap:5, height:24, padding:'0 11px', border:'none', borderRadius:999, background:rc.bg, fontSize:11.5, fontWeight:800, color:rc.color, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+            <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:'#E9F6FF', fontSize:9.5, fontWeight:700, color:C.primary }}>{[currentUser.year, currentUser.program].filter(Boolean).join(' · ') || currentUser.university || 'Student'}</div>
+            <button onClick={()=>setRoleOpen(r=>!r)} style={{ display:'inline-flex', alignItems:'center', gap:5, height:24, padding:'0 11px', border:'none', borderRadius:999, background:rc.bg, fontSize:9.5, fontWeight:800, color:rc.color, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
               {rc.label}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d={`m6 9 6 6 6-6`} stroke={rc.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
@@ -5913,22 +5913,22 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           {roleOpen && (
             <div style={{ background:cardBg, borderRadius:14, boxShadow:'0 8px 24px rgba(16,24,40,0.16)', overflow:'hidden', marginTop:9, width:200 }}>
               {Object.entries(roleConfig).map(([k,v]) => (
-                <button key={k} onClick={async ()=>{ setRoleOpen(false); const {error}=await currentUser.updateProfile({role:k}); if(error) showToast('Failed to update role'); else showToast(`Role updated to ${v.label}`); }} style={{ display:'flex', width:'100%', padding:'12px 16px', border:'none', background: profileRole===k?v.bg:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:13.5, fontWeight:800, color: profileRole===k?v.color:textColor, textAlign:'left', alignItems:'center', justifyContent:'space-between' }}>
+                <button key={k} onClick={async ()=>{ setRoleOpen(false); const {error}=await currentUser.updateProfile({role:k}); if(error) showToast('Failed to update role'); else showToast(`Role updated to ${v.label}`); }} style={{ display:'flex', width:'100%', padding:'12px 16px', border:'none', background: profileRole===k?v.bg:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:11.5, fontWeight:800, color: profileRole===k?v.color:textColor, textAlign:'left', alignItems:'center', justifyContent:'space-between' }}>
                   {v.label}
                   {profileRole===k && <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4 4L19 7" stroke={v.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </button>
               ))}
             </div>
           )}
-          <div style={{ fontSize:12.5, color:subColor, marginTop:6 }}>{email}</div>
+          <div style={{ fontSize:10.5, color:subColor, marginTop:6 }}>{email}</div>
         </div>
 
         {/* Stats */}
         <div style={{ display:'flex', gap:10, marginTop:20 }}>
           {[{v:stats.groups||'–',l:'Groups Joined'},{v:stats.spaces||'–',l:'Spaces Involved'},{v:stats.events||'–',l:'Events Attended'}].map(s=>(
             <div key={s.l} style={{ flex:1, background:cardBg, borderRadius:18, padding:'13px 8px', textAlign:'center', boxShadow:'0 4px 14px rgba(16,24,40,0.05)', transition:'background .3s' }}>
-              <div style={{ fontSize:19, fontWeight:800, color:textColor }}>{s.v}</div>
-              <div style={{ fontSize:11, fontWeight:600, color:subColor, marginTop:2 }}>{s.l}</div>
+              <div style={{ fontSize:17, fontWeight:800, color:textColor }}>{s.v}</div>
+              <div style={{ fontSize:9, fontWeight:600, color:subColor, marginTop:2 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -5936,7 +5936,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         {/* Settings groups */}
         {SETTINGS_GROUPS.map(g => (
           <div key={g.title} style={{ marginTop:24 }}>
-            <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.6, textTransform:'uppercase', color:subColor, margin:'0 4px 9px' }}>{g.title}</div>
+            <div style={{ fontSize:9, fontWeight:800, letterSpacing:0.6, textTransform:'uppercase', color:subColor, margin:'0 4px 9px' }}>{g.title}</div>
             <div style={{ background:cardBg, borderRadius:18, boxShadow:'0 4px 14px rgba(16,24,40,0.05)', overflow:'hidden', transition:'background .3s' }}>
               {g.rows.map((r, i) => (
                 <div key={r.title}>
@@ -5948,12 +5948,12 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d={r.iconPath} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>{r.iconPath2&&<path d={r.iconPath2} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={r.iconPath2Dash?'0.5 3':undefined}/>}</svg>
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:14.5, fontWeight:700, color:textColor }}>{r.title}</div>
+                      <div style={{ fontSize:12.5, fontWeight:700, color:textColor }}>{r.title}</div>
                     </div>
                     {r.isToggle && <Toggle value={r.toggleVal} onChange={e => { e.stopPropagation(); r.onToggle(); }} />}
                     {r.hasChevron && (
                       <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                        {r.value && <span style={{ fontSize:13, fontWeight:700, color:subColor }}>{r.value}</span>}
+                        {r.value && <span style={{ fontSize:11, fontWeight:700, color:subColor }}>{r.value}</span>}
                         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </div>
                     )}
@@ -5966,11 +5966,11 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
         ))}
 
         {/* Logout */}
-        <button onClick={async ()=>{ if (cu.logout) await cu.logout(); else showToast('Signed out'); }} style={{ width:'100%', height:52, marginTop:24, border:'none', borderRadius:16, background:'linear-gradient(135deg,#FF6B4D,#F4452B)', color:'#fff', fontSize:15.5, fontWeight:800, letterSpacing:0.4, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:9, boxShadow:'0 8px 20px rgba(244,69,43,0.32)' }}>
+        <button onClick={async ()=>{ if (cu.logout) await cu.logout(); else showToast('Signed out'); }} style={{ width:'100%', height:52, marginTop:24, border:'none', borderRadius:16, background:'linear-gradient(135deg,#FF6B4D,#F4452B)', color:'#fff', fontSize:13.5, fontWeight:800, letterSpacing:0.4, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:9, boxShadow:'0 8px 20px rgba(244,69,43,0.32)' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 12h10m0 0-3-3m3 3-3 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           LOGOUT
         </button>
-        <div style={{ textAlign:'center', fontSize:11, color:subColor, marginTop:16 }}>Riply · v1.0.0</div>
+        <div style={{ textAlign:'center', fontSize:9, color:subColor, marginTop:16 }}>Riply · v1.0.0</div>
       </div>
 
       {/* Edit Profile Sheet */}
@@ -5997,14 +5997,14 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
               <div style={{ width:'100%', height:'100%', borderRadius:'50%', background: currentUser.avatarColor || 'linear-gradient(135deg,#FF8A3D,#FF5A8A)', display:'flex', alignItems:'center', justifyContent:'center', border:`3px solid ${cardBg}`, overflow:'hidden' }}>
                 {currentUser.avatarUrl
                   ? <img src={currentUser.avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  : <span style={{ fontSize:26, fontWeight:800, color:'#fff' }}>{initials}</span>
+                  : <span style={{ fontSize:24, fontWeight:800, color:'#fff' }}>{initials}</span>
                 }
               </div>
               <div style={{ position:'absolute', bottom:2, right:2, width:24, height:24, borderRadius:'50%', background:C.primary, display:'flex', alignItems:'center', justifyContent:'center', border:`2px solid ${cardBg}` }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/></svg>
               </div>
             </button>
-            <div style={{ fontSize:13, color:subColor, marginTop:8 }}>Tap to change photo</div>
+            <div style={{ fontSize:11, color:subColor, marginTop:8 }}>Tap to change photo</div>
           </div>
 
           {/* Fields */}
@@ -6015,10 +6015,10 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             { label:'Program / Major', val:draftProgram, set:setDraftProgram, type:'text', mode:undefined, placeholder:'e.g. Computer Science' },
           ].map(f => (
             <div key={f.label} style={{ marginBottom:14 }}>
-              <div style={{ fontSize:11, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>{f.label}</div>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:subColor, marginBottom:7 }}>{f.label}</div>
               {f.type === 'textarea'
-                ? <textarea value={f.val} onChange={e=>f.set(e.target.value)} placeholder="Tell people about yourself…" rows={3} style={{ width:'100%', boxSizing:'border-box', border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'12px 14px', fontSize:14, fontWeight:600, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif", resize:'none', lineHeight:1.5 }} />
-                : <input value={f.val} onChange={e=>f.set(e.target.value)} inputMode={f.mode} placeholder={f.placeholder||''} style={{ width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:15, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }} />
+                ? <textarea value={f.val} onChange={e=>f.set(e.target.value)} placeholder="Tell people about yourself…" rows={3} style={{ width:'100%', boxSizing:'border-box', border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'12px 14px', fontSize:12, fontWeight:600, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif", resize:'none', lineHeight:1.5 }} />
+                : <input value={f.val} onChange={e=>f.set(e.target.value)} inputMode={f.mode} placeholder={f.placeholder||''} style={{ width:'100%', boxSizing:'border-box', height:48, border:`1.5px solid ${borderColor}`, borderRadius:14, background:chipBg, padding:'0 14px', fontSize:13, fontWeight:700, color:textColor, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }} />
               }
             </div>
           ))}
@@ -6032,7 +6032,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
             await currentUser.refetchProfile();
             setEditOpen(false);
             showToast('Profile updated ✓');
-          }} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:16, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)', opacity: saving?0.7:1 }}>{saving ? 'Saving…' : 'Save Changes'}</button>
+          }} style={{ width:'100%', height:52, marginTop:6, border:'none', borderRadius:15, background:C.grad, color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", boxShadow:'0 8px 20px rgba(2,162,240,0.4)', opacity: saving?0.7:1 }}>{saving ? 'Saving…' : 'Save Changes'}</button>
         </Sheet>
       )}
 
@@ -6052,11 +6052,11 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
                 <div style={{ width:40, height:40, borderRadius:12, background:chipBg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d={p.icon} stroke={C.primary} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
-                <span style={{ flex:1, fontSize:15, fontWeight:700, color:textColor }}>{p.label}</span>
+                <span style={{ flex:1, fontSize:13, fontWeight:700, color:textColor }}>{p.label}</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m9 6 6 6-6 6" stroke="#C5CBD6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
             ))}
-            <button onClick={()=>showToast('Add payment method coming soon')} style={{ width:'100%', height:50, marginTop:18, border:`1.5px dashed ${borderColor}`, borderRadius:14, background:'none', color:C.primary, fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+            <button onClick={()=>showToast('Add payment method coming soon')} style={{ width:'100%', height:50, marginTop:18, border:`1.5px dashed ${borderColor}`, borderRadius:14, background:'none', color:C.primary, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={C.primary} strokeWidth="2.2" strokeLinecap="round"/></svg>
               Add Payment Method
             </button>
@@ -6143,10 +6143,10 @@ function WelcomeScreen({ navigate, setScreen }) {
         {/* Logo block */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginTop:40 }}>
           <RiplyMark w={440} h={220} blue />
-          <div style={{ fontSize:34, fontWeight:900, letterSpacing:6, color:'#19BFFF', marginTop:-12 }}>
+          <div style={{ fontSize:32, fontWeight:900, letterSpacing:6, color:'#19BFFF', marginTop:-12 }}>
             RIPLY
           </div>
-          <div style={{ fontSize:13, fontWeight:800, letterSpacing:3, color:'rgba(255,255,255,0.85)',
+          <div style={{ fontSize:11, fontWeight:800, letterSpacing:3, color:'rgba(255,255,255,0.85)',
                         marginTop:6, textAlign:'center' }}>
             CAMPUS CONNECTIONS MADE EASY
           </div>
@@ -6159,7 +6159,7 @@ function WelcomeScreen({ navigate, setScreen }) {
         {!onSlide2 && (
           <div style={{ width:'100%', padding:'0 28px 60px', display:'flex',
                         flexDirection:'column', alignItems:'center' }}>
-            <div style={{ fontSize:24, fontWeight:800, color:'#fff', textAlign:'center',
+            <div style={{ fontSize:22, fontWeight:800, color:'#fff', textAlign:'center',
                           lineHeight:1.45, marginBottom:48 }}>
               Find your space.<br/>
               Explore campus events.<br/>
@@ -6169,7 +6169,7 @@ function WelcomeScreen({ navigate, setScreen }) {
               style={{ border:'none', background:'none', cursor:'pointer', padding:0,
                        display:'flex', alignItems:'center', gap:11,
                        fontFamily:"'Montserrat',-apple-system,sans-serif",
-                       fontSize:19, fontWeight:700, letterSpacing:1.2, color:'#19BFFF' }}>
+                       fontSize:17, fontWeight:700, letterSpacing:1.2, color:'#19BFFF' }}>
               Get Started
               <svg width="14" height="22" viewBox="0 0 14 22" fill="none">
                 <path d="M2 2l9 9-9 9" stroke="#19BFFF" strokeWidth="2.6"
@@ -6183,11 +6183,11 @@ function WelcomeScreen({ navigate, setScreen }) {
         {onSlide2 && (
           <div style={{ width:'100%', padding:'0 22px 32px', display:'flex',
                         flexDirection:'column', alignItems:'center' }}>
-            <div style={{ fontSize:26, fontWeight:800, color:'#fff', textAlign:'center',
+            <div style={{ fontSize:24, fontWeight:800, color:'#fff', textAlign:'center',
                           marginBottom:10 }}>
               Let's get started!
             </div>
-            <div style={{ fontSize:16, color:'rgba(255,255,255,0.78)', textAlign:'center',
+            <div style={{ fontSize:14, color:'rgba(255,255,255,0.78)', textAlign:'center',
                           lineHeight:1.55, marginBottom:28 }}>
               Join thousands of students on campus<br/>and make meaningful connections
             </div>
@@ -6196,14 +6196,14 @@ function WelcomeScreen({ navigate, setScreen }) {
               width:'100%', height:54, border:'none', borderRadius:999,
               background:'#19BFFF', cursor:'pointer',
               display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-              fontSize:17, fontWeight:700, color:'#fff',
+              fontSize:15, fontWeight:700, color:'#fff',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               boxShadow:'0 6px 20px rgba(25,191,255,0.35)',
             }}>
               Get Started
             </button>
 
-            <div style={{ textAlign:'center', marginTop:16, fontSize:13.5,
+            <div style={{ textAlign:'center', marginTop:16, fontSize:11.5,
                           color:'rgba(255,255,255,0.55)', lineHeight:1.6 }}>
               By signing up, you agree to our{' '}
               <span style={{ color:'#19BFFF', cursor:'pointer' }}>Terms of Service</span> and{' '}
@@ -6233,7 +6233,7 @@ function AuthBigBtn({ onClick, children, color, loading, fullWidth }) {
         width: fullWidth ? '100%' : 204, height:52, border:'none', borderRadius:999,
         cursor: loading ? 'default' : 'pointer',
         background: color||'linear-gradient(135deg,#19BFFF,#1499F5)',
-        color:'#fff', fontSize:17, fontWeight:800,
+        color:'#fff', fontSize:15, fontWeight:800,
         fontFamily:"'Montserrat',-apple-system,sans-serif",
         boxShadow: pressed ? '0 2px 8px rgba(2,162,240,0.25)' : '0 8px 22px rgba(2,162,240,0.4)',
         transform: pressed ? 'scale(0.97)' : 'scale(1)',
@@ -6268,7 +6268,7 @@ function DarkPillInput({ value, onChange, placeholder, type='text', inputMode, i
       <input value={value} onChange={onChange} placeholder={placeholder}
         type={type} inputMode={inputMode}
         style={{ flex:1, border:'none', background:'none', outline:'none',
-          fontSize:16, fontWeight:600, color:'#111', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+          fontSize:14, fontWeight:600, color:'#111', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
       {right}
       {icon && <span style={{ flexShrink:0, opacity:0.5 }}>{icon}</span>}
     </div>
@@ -6375,8 +6375,8 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                       paddingTop:72, paddingBottom:36 }}>
           <RiplyMark w={220} h={110} blue />
-          <div style={{ fontSize:30, fontWeight:900, letterSpacing:4, color:'#19BFFF', marginTop:10 }}>RIPLY</div>
-          <div style={{ fontSize:13, fontWeight:700, letterSpacing:2.5, color:'rgba(255,255,255,0.75)',
+          <div style={{ fontSize:28, fontWeight:900, letterSpacing:4, color:'#19BFFF', marginTop:10 }}>RIPLY</div>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:2.5, color:'rgba(255,255,255,0.75)',
                         marginTop:4, textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>
         </div>
         {/* Fields */}
@@ -6392,7 +6392,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </div>
         {/* Forgot */}
         <span onClick={()=>{ setResetEmail(email); go('forgot-password'); }}
-          style={{ fontSize:15, fontWeight:700, color:'#19BFFF', marginTop:14,
+          style={{ fontSize:13, fontWeight:700, color:'#19BFFF', marginTop:14,
                    cursor:'pointer', alignSelf:'flex-end' }}>
           Forgot Password?
         </span>
@@ -6401,7 +6401,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         <button onClick={withLoading(()=>login(email, password))} disabled={loading}
           style={{ width:'100%', height:54, border:'none', borderRadius:999,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
-            fontSize:17, fontWeight:800, cursor: loading?'default':'pointer',
+            fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow:'0 10px 26px rgba(2,162,240,0.50)', opacity: loading?0.75:1 }}>
@@ -6410,7 +6410,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </button>
         <div style={{ flex:1, minHeight:24 }}/>
         {/* Footer */}
-        <div style={{ textAlign:'center', fontSize:15, color:'rgba(255,255,255,0.7)', marginTop:24 }}>
+        <div style={{ textAlign:'center', fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:24 }}>
           New to RIPLY?{' '}
           <span onClick={()=>go('signup')} style={{ color:'#19BFFF', fontWeight:800, cursor:'pointer' }}>
             Sign Up
@@ -6431,8 +6431,8 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                       paddingTop:56, paddingBottom:28 }}>
           <RiplyMark w={220} h={110} blue />
-          <div style={{ fontSize:26, fontWeight:900, letterSpacing:4, color:'#19BFFF', marginTop:8 }}>RIPLY</div>
-          <div style={{ fontSize:12.5, fontWeight:700, letterSpacing:2.5, color:'rgba(255,255,255,0.75)',
+          <div style={{ fontSize:24, fontWeight:900, letterSpacing:4, color:'#19BFFF', marginTop:8 }}>RIPLY</div>
+          <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:2.5, color:'rgba(255,255,255,0.75)',
                         marginTop:3, textAlign:'center' }}>CAMPUS CONNECTIONS MADE EASY</div>
         </div>
         {/* Fields */}
@@ -6450,7 +6450,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
             <div onClick={()=>setGenderOpen(v=>!v)} style={{ display:'flex', alignItems:'center',
               gap:10, background:'rgba(255,255,255,0.95)', borderRadius:999,
               padding:'0 18px', height:54, cursor:'pointer' }}>
-              <span style={{ flex:1, fontSize:16, fontWeight:600,
+              <span style={{ flex:1, fontSize:14, fontWeight:600,
                              color: gender ? '#111' : 'rgba(0,0,0,0.45)' }}>
                 {gender || 'gender'}
               </span>
@@ -6463,7 +6463,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
                             boxShadow:'0 6px 18px rgba(0,0,0,0.20)', overflow:'hidden', marginTop:6 }}>
                 {GENDERS.map(g => (
                   <div key={g} onClick={()=>{setGender(g);setGenderOpen(false);}}
-                    style={{ padding:'13px 20px', fontSize:16, fontWeight:600,
+                    style={{ padding:'13px 20px', fontSize:14, fontWeight:600,
                              color: gender===g ? C.primary : '#111', cursor:'pointer',
                              background: gender===g ? '#EAF6FF' : 'none',
                              borderBottom:'1px solid rgba(0,0,0,0.07)' }}>
@@ -6488,14 +6488,14 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         <button onClick={withLoading(()=>signup(name, email, password, confirm))} disabled={loading}
           style={{ width:'100%', height:54, border:'none', borderRadius:999,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
-            fontSize:17, fontWeight:800, cursor: loading?'default':'pointer',
+            fontSize:15, fontWeight:800, cursor: loading?'default':'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             boxShadow:'0 10px 26px rgba(2,162,240,0.50)', opacity: loading?0.75:1 }}>
           {loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation:'riplySpin 0.7s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5"/><path d="M12 3a9 9 0 0 1 9 9" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>}
           {loading ? 'Creating account…' : 'Sign Up'}
         </button>
-        <div style={{ textAlign:'center', fontSize:15, color:'rgba(255,255,255,0.7)', marginTop:10 }}>
+        <div style={{ textAlign:'center', fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:10 }}>
           Already have an account?{' '}
           <span onClick={()=>go('login')} style={{ color:'#19BFFF', fontWeight:800, cursor:'pointer' }}>
             Log In
@@ -6538,7 +6538,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <span style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
                          letterSpacing:1.5, color:C.ink, marginRight:38 }}>
             EMAIL VERIFICATION
           </span>
@@ -6554,9 +6554,9 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               <path d="m4 7 8 6 8-6" stroke="#fff" strokeWidth="2" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.4, color:C.ink,
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink,
                         marginTop:24 }}>Enter Verification Code</div>
-          <div style={{ fontSize:15, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
                         marginTop:10, maxWidth:280 }}>
             We've sent a 6-digit code to your student email. Enter it below to continue.
           </div>
@@ -6573,12 +6573,12 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
                   style={{ width:44, height:44, border:'none',
                            borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,
                            background:'none', outline:'none', textAlign:'center',
-                           fontSize:22, fontWeight:700, color:C.ink, caretColor:C.primary,
+                           fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary,
                            transition:'border-color 0.15s' }}/>
               </div>
             ))}
           </div>
-          <div style={{ fontSize:15, color:'#7B8499', marginTop:24 }}>
+          <div style={{ fontSize:13, color:'#7B8499', marginTop:24 }}>
             Didn't receive the code?{' '}
             <span onClick={()=>{
               setCode(['1','2','3','4','5','6']);
@@ -6609,17 +6609,17 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <span style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
                          letterSpacing:1.5, color:C.ink, marginRight:38 }}>
             RESET PASSWORD
           </span>
         </div>
         <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column',
                       alignItems:'center', padding:'40px 32px 0' }}>
-          <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.4, color:C.ink, textAlign:'center' }}>
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink, textAlign:'center' }}>
             Forgot your password?
           </div>
-          <div style={{ fontSize:15, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
                         marginTop:10, maxWidth:280 }}>
             Enter your student email and we'll send you a code to reset it.
           </div>
@@ -6627,7 +6627,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
             <input value={resetEmail} onChange={e=>setResetEmail(e.target.value)}
               placeholder="student email" inputMode="email"
               style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
-                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:16, fontWeight:700,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
                        color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           </div>
         </div>
@@ -6673,16 +6673,16 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <span style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
                          letterSpacing:1.5, color:C.ink, marginRight:38 }}>
             RESET PASSWORD
           </span>
         </div>
         <div style={{ position:'relative', flex:1, overflowY:'auto', display:'flex', flexDirection:'column',
                       alignItems:'center', padding:'32px 32px 0' }}>
-          <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.4, color:C.ink,
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink,
                         textAlign:'center' }}>Enter the code</div>
-          <div style={{ fontSize:15, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
                         marginTop:10, maxWidth:280 }}>
             We've sent a 6-digit code to {resetEmail || 'your email'}. Enter it below with your new password.
           </div>
@@ -6698,12 +6698,12 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
                   style={{ width:44, height:44, border:'none',
                            borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,
                            background:'none', outline:'none', textAlign:'center',
-                           fontSize:22, fontWeight:700, color:C.ink, caretColor:C.primary,
+                           fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary,
                            transition:'border-color 0.15s' }}/>
               </div>
             ))}
           </div>
-          <div style={{ fontSize:15, color:'#7B8499', marginTop:18 }}>
+          <div style={{ fontSize:13, color:'#7B8499', marginTop:18 }}>
             Didn't receive the code?{' '}
             <span onClick={resendPasswordReset} style={{ color:C.primary, fontWeight:800, cursor:'pointer' }}>Resend</span>
           </div>
@@ -6711,12 +6711,12 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
             <input value={newPw} onChange={e=>setNewPw(e.target.value)} type="password"
               placeholder="new password"
               style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
-                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:16, fontWeight:700,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
                        color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
             <input value={confirmNewPw} onChange={e=>setConfirmNewPw(e.target.value)} type="password"
               placeholder="confirm new password"
               style={{ width:'100%', boxSizing:'border-box', height:52, border:`1.5px solid ${C.border}`,
-                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:16, fontWeight:700,
+                       borderRadius:16, background:C.chip, padding:'0 16px', fontSize:14, fontWeight:700,
                        color:C.ink, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           </div>
         </div>
@@ -6776,7 +6776,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <span style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
+          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:800,
                          letterSpacing:1.5, color:C.ink, marginRight:38 }}>
             TWO-STEP VERIFICATION
           </span>
@@ -6792,9 +6792,9 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </div>
-          <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.4, color:C.ink,
+          <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.4, color:C.ink,
                         marginTop:24, textAlign:'center' }}>{title}</div>
-          <div style={{ fontSize:15, lineHeight:1.6, color:'#7B8499', textAlign:'center',
+          <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', textAlign:'center',
                         marginTop:10, maxWidth:280 }}>
             {subtitle}
           </div>
@@ -6803,7 +6803,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               placeholder="Backup code" autoCapitalize="none" autoCorrect="off"
               style={{ width:'100%', maxWidth:280, height:54, border:`1.5px solid ${C.border}`,
                        borderRadius:999, padding:'0 20px', marginTop:28,
-                       fontSize:17, fontWeight:600, color:C.ink, outline:'none',
+                       fontSize:15, fontWeight:600, color:C.ink, outline:'none',
                        fontFamily:"'Montserrat',-apple-system,sans-serif", textAlign:'center' }}/>
           ) : (
             <div style={{ display:'flex', gap:11, marginTop:28 }}>
@@ -6818,14 +6818,14 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
                     style={{ width:44, height:44, border:'none',
                              borderBottom: `2.5px solid ${code[i]?C.primary:'#D4D9E2'}`,
                              background:'none', outline:'none', textAlign:'center',
-                             fontSize:22, fontWeight:700, color:C.ink, caretColor:C.primary,
+                             fontSize:20, fontWeight:700, color:C.ink, caretColor:C.primary,
                              transition:'border-color 0.15s' }}/>
                 </div>
               ))}
             </div>
           )}
           {canResend && (
-            <div style={{ fontSize:15, color:'#7B8499', marginTop:24 }}>
+            <div style={{ fontSize:13, color:'#7B8499', marginTop:24 }}>
               Didn't receive the code?{' '}
               <button type="button" onClick={withLoading(resendSecondFactor)} disabled={loading}
                 style={{ border:'none', padding:0, background:'none', font:'inherit',
@@ -6856,19 +6856,19 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               background: i<=currentStepIndex ? C.primary : '#E4E8EF' }}/>
           ))}
         </div>
-        <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.5, color:C.ink, marginBottom:20 }}>
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink, marginBottom:20 }}>
           Tell us about yourself
         </div>
 
         {/* University */}
-        <div style={{ fontSize:15, fontWeight:700, color:C.ink, marginBottom:8 }}>University</div>
+        <div style={{ fontSize:13, fontWeight:700, color:C.ink, marginBottom:8 }}>University</div>
         <div style={{ display:'flex', alignItems:'center', gap:11, background:'#fff',
                       border:`1.5px solid ${C.border}`, borderRadius:999,
                       padding:'0 20px', height:54,
                       boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
           <input value={university} onChange={e=>setUniversity(e.target.value)}
             placeholder="Search your university"
-            style={{ flex:1, border:'none', background:'none', fontSize:16, fontWeight:600,
+            style={{ flex:1, border:'none', background:'none', fontSize:14, fontWeight:600,
                      color:C.body, outline:'none',
                      fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
@@ -6878,12 +6878,12 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </div>
 
         {/* Campus */}
-        <div style={{ fontSize:15, fontWeight:700, color:C.ink, margin:'18px 0 8px' }}>Campus</div>
+        <div style={{ fontSize:13, fontWeight:700, color:C.ink, margin:'18px 0 8px' }}>Campus</div>
         <div onClick={()=>setCampusOpen(v=>!v)} style={{ display:'flex', alignItems:'center',
           gap:11, background:'#fff', border:`1.5px solid ${C.border}`, borderRadius:999,
           padding:'0 20px', height:54, cursor:'pointer',
           boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
-          <span style={{ flex:1, fontSize:16, fontWeight:600,
+          <span style={{ flex:1, fontSize:14, fontWeight:600,
                          color: campus ? C.body : C.subtle }}>
             {campus || 'Select your campus'}
           </span>
@@ -6897,7 +6897,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
                         marginTop:6 }}>
             {CAMPUSES.map(c=>(
               <div key={c} onClick={()=>{setCampus(c);setCampusOpen(false);}}
-                style={{ padding:'13px 20px', fontSize:16, fontWeight:600,
+                style={{ padding:'13px 20px', fontSize:14, fontWeight:600,
                          color: campus===c ? C.primary : C.body, cursor:'pointer',
                          background: campus===c ? '#EAF6FF' : 'none',
                          borderBottom:`1px solid ${C.divider}` }}>
@@ -6908,14 +6908,14 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         )}
 
         {/* Program */}
-        <div style={{ fontSize:15, fontWeight:700, color:C.ink, margin:'18px 0 8px' }}>Program</div>
+        <div style={{ fontSize:13, fontWeight:700, color:C.ink, margin:'18px 0 8px' }}>Program</div>
         <div style={{ display:'flex', alignItems:'center', gap:11, background:'#fff',
                       border:`1.5px solid ${C.border}`, borderRadius:999,
                       padding:'0 20px', height:54,
                       boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
           <input value={program} onChange={e=>setProgram(e.target.value)}
             placeholder="e.g. Computer Science"
-            style={{ flex:1, border:'none', background:'none', fontSize:16, fontWeight:600,
+            style={{ flex:1, border:'none', background:'none', fontSize:14, fontWeight:600,
                      color:C.body, outline:'none',
                      fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
@@ -6925,7 +6925,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
         </div>
 
         {/* Year */}
-        <div style={{ fontSize:15, fontWeight:700, color:C.ink, margin:'20px 0 11px' }}>
+        <div style={{ fontSize:13, fontWeight:700, color:C.ink, margin:'20px 0 11px' }}>
           What year are you in?
         </div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
@@ -6933,7 +6933,7 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
             <button key={y} onClick={()=>setYear(y)} style={{
               height:38, padding:'0 16px', border:'none', borderRadius:999, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
-              fontSize:14, fontWeight:700,
+              fontSize:12, fontWeight:700,
               background: year===y ? C.primary : C.card,
               color: year===y ? '#fff' : C.muted,
               boxShadow: year===y ? '0 4px 12px rgba(2,162,240,0.3)' : `0 0 0 1.5px ${C.border}`,
@@ -6966,11 +6966,11 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
               background: i<=currentStepIndex ? C.primary : '#E4E8EF' }}/>
           ))}
         </div>
-        <div style={{ fontSize:26, fontWeight:800, letterSpacing:-0.6, color:C.ink,
+        <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.6, color:C.ink,
                       lineHeight:1.18 }}>
           How will you use Riply?
         </div>
-        <div style={{ fontSize:15, lineHeight:1.6, color:'#7B8499', marginTop:9 }}>
+        <div style={{ fontSize:13, lineHeight:1.6, color:'#7B8499', marginTop:9 }}>
           Choose your account type. You can always change this later in settings.
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:24 }}>
@@ -6994,8 +6994,8 @@ function AuthScreen({ setScreen, showToast, initialStep, initialRole, currentUse
                   </svg>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:17, fontWeight:800, color:C.ink }}>{r.title}</div>
-                  <div style={{ fontSize:14, color:'#7B8499', marginTop:3, lineHeight:1.45 }}>{r.sub}</div>
+                  <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>{r.title}</div>
+                  <div style={{ fontSize:12, color:'#7B8499', marginTop:3, lineHeight:1.45 }}>{r.sub}</div>
                 </div>
                 <div style={{ width:22, height:22, borderRadius:'50%', flexShrink:0,
                               display:'flex', alignItems:'center', justifyContent:'center',
@@ -7121,13 +7121,13 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
               <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
           </button>
-          <span style={{ fontSize:20, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>Saved</span>
+          <span style={{ fontSize:18, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>Saved</span>
         </div>
         <div style={{ display:'flex', gap:0, borderTop:`1px solid ${C.divider}` }}>
           {['events','spaces'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex:1, height:40, border:'none', background:'none', cursor:'pointer',
-              fontSize:15, fontWeight:700,
+              fontSize:13, fontWeight:700,
               color: tab === t ? C.primary : C.subtle,
               borderBottom: tab === t ? `2px solid ${C.primary}` : '2px solid transparent',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -7145,8 +7145,8 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ margin:'0 auto 14px', display:'block' }}>
                   <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" stroke={C.border} strokeWidth="1.8" strokeLinejoin="round"/>
                 </svg>
-                <div style={{ fontSize:17, fontWeight:700, color:C.ink }}>No saved events yet</div>
-                <div style={{ fontSize:15, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any event to save it here</div>
+                <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>No saved events yet</div>
+                <div style={{ fontSize:13, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any event to save it here</div>
               </div>
             )}
             {allEvents.map(ev => {
@@ -7159,15 +7159,15 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
                     <img src={img} alt={ev.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)' }}/>
                     <div style={{ position:'absolute', bottom:10, left:12, right:12,
-                                  fontSize:17, fontWeight:800, color:'#fff',
+                                  fontSize:15, fontWeight:800, color:'#fff',
                                   textShadow:'0 1px 4px rgba(0,0,0,0.4)', lineHeight:1.3 }}>{ev.title}</div>
                   </div>
                   <div style={{ padding:'10px 14px 14px' }}>
-                    <div style={{ fontSize:14, color:C.primary, fontWeight:700 }}>
+                    <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
                       {ev.full_date || ev.date}{ev.time_range ? ' · ' + fmtRange(ev.time_range) : ''}
                     </div>
                     {(ev.venue || ev.location) && (
-                      <div style={{ fontSize:14, color:C.subtle, marginTop:3 }}>{ev.venue || ev.location}</div>
+                      <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{ev.venue || ev.location}</div>
                     )}
                   </div>
                 </div>
@@ -7182,8 +7182,8 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ margin:'0 auto 14px', display:'block' }}>
                   <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" stroke={C.border} strokeWidth="1.8" strokeLinejoin="round"/>
                 </svg>
-                <div style={{ fontSize:17, fontWeight:700, color:C.ink }}>No saved spaces yet</div>
-                <div style={{ fontSize:15, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any space to save it here</div>
+                <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>No saved spaces yet</div>
+                <div style={{ fontSize:13, color:C.subtle, marginTop:6 }}>Tap the bookmark icon on any space to save it here</div>
               </div>
             )}
             {allSpaces.map(sp => {
@@ -7196,14 +7196,14 @@ function SavedEventsScreen({ goBack, navigate, saved, spaceSaved }) {
                     <img src={img} alt={sp.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)' }}/>
                     <div style={{ position:'absolute', bottom:10, left:12, right:12,
-                                  fontSize:17, fontWeight:800, color:'#fff',
+                                  fontSize:15, fontWeight:800, color:'#fff',
                                   textShadow:'0 1px 4px rgba(0,0,0,0.4)', lineHeight:1.3 }}>{sp.title}</div>
                   </div>
                   <div style={{ padding:'10px 14px 14px' }}>
-                    <div style={{ fontSize:14, color:C.primary, fontWeight:700 }}>
+                    <div style={{ fontSize:12, color:C.primary, fontWeight:700 }}>
                       {(() => { const raw = sp.day; if (!raw || raw === 'today') return 'Today'; if (raw === 'tomorrow') return 'Tomorrow'; const d = new Date(raw + 'T00:00:00'); if (isNaN(d)) return raw; const t = new Date(); const ts = t.toISOString().slice(0,10); const tm = new Date(t.getTime()+86400000).toISOString().slice(0,10); if (raw===ts) return 'Today'; if (raw===tm) return 'Tomorrow'; return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); })()}{sp.time ? ' · ' + sp.time : ''}
                     </div>
-                    {sp.location && <div style={{ fontSize:14, color:C.subtle, marginTop:3 }}>{sp.location}</div>}
+                    {sp.location && <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{sp.location}</div>}
                   </div>
                 </div>
               );
@@ -7292,7 +7292,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                     strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <div style={{ flex:1, textAlign:'center', fontSize:18, fontWeight:800,
+          <div style={{ flex:1, textAlign:'center', fontSize:16, fontWeight:800,
                         letterSpacing:-0.4, color:C.ink }}>My Tickets</div>
           <div style={{ width:40, flexShrink:0 }}/>
         </div>
@@ -7303,7 +7303,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex:1, height:40, border:'none', background:'none', cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
-              fontSize:15, fontWeight: t.id===tab ? 800 : 600,
+              fontSize:13, fontWeight: t.id===tab ? 800 : 600,
               color: t.id===tab ? C.primary : C.subtle,
               borderBottom: t.id===tab ? `2.5px solid ${C.primary}` : '2.5px solid transparent',
               marginBottom:-1, transition:'all .2s',
@@ -7315,7 +7315,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
       {/* ── List ──────────────────────────────────────────── */}
       <div style={{ flex:1, overflowY:'auto', padding:'14px 14px 32px' }}>
         {loading && (
-          <div style={{ textAlign:'center', padding:'60px 24px', color:C.subtle, fontSize:16, fontWeight:700 }}>
+          <div style={{ textAlign:'center', padding:'60px 24px', color:C.subtle, fontSize:14, fontWeight:700 }}>
             Loading tickets…
           </div>
         )}
@@ -7333,13 +7333,13 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                       strokeLinecap="round" strokeDasharray="0.5 3"/>
               </svg>
             </div>
-            <div style={{ fontSize:16, fontWeight:700, color:C.muted }}>No tickets here yet</div>
-            <div style={{ fontSize:14, color:C.subtle, marginTop:6, lineHeight:1.5 }}>
+            <div style={{ fontSize:14, fontWeight:700, color:C.muted }}>No tickets here yet</div>
+            <div style={{ fontSize:12, color:C.subtle, marginTop:6, lineHeight:1.5 }}>
               Reserve a spot at an event and your<br/>ticket will appear here.
             </div>
             <button onClick={() => setScreen('home')} style={{ marginTop:18, height:44, padding:'0 28px',
               border:'none', borderRadius:14, background:C.grad, color:'#fff',
-              fontSize:15, fontWeight:800, cursor:'pointer',
+              fontSize:13, fontWeight:800, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               boxShadow:'0 8px 20px rgba(2,162,240,0.32)' }}>
               Browse Events
@@ -7364,14 +7364,14 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
               <div style={{ padding:'14px 16px 0', display:'flex',
                             alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
                 <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:19, fontWeight:800, letterSpacing:-0.4,
+                  <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.4,
                                 color:C.ink, lineHeight:1.2 }}>{tk.title}</div>
-                  <div style={{ fontSize:14, fontWeight:700, color:C.primary, marginTop:5 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:C.primary, marginTop:5 }}>
                     {tk.access}
                   </div>
                 </div>
                 <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center',
-                               height:26, padding:'0 12px', borderRadius:999, fontSize:12,
+                               height:26, padding:'0 12px', borderRadius:999, fontSize:10,
                                fontWeight:800, letterSpacing:0.5, color:'#fff',
                                background: isActive
                                  ? 'linear-gradient(135deg,#10B981,#06B6D4)'
@@ -7391,11 +7391,11 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                 ].map(row => (
                   <div key={row.label}
                     style={{ gridColumn: row.full ? '1 / -1' : 'auto' }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:C.subtle,
+                    <div style={{ fontSize:10, fontWeight:600, color:C.subtle,
                                   textTransform:'uppercase', letterSpacing:0.3 }}>
                       {row.label}
                     </div>
-                    <div style={{ fontSize:14.5, fontWeight:700, color:C.body, marginTop:3 }}>
+                    <div style={{ fontSize:12.5, fontWeight:700, color:C.body, marginTop:3 }}>
                       {row.value}
                     </div>
                   </div>
@@ -7416,7 +7416,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                 </div>
 
                 {/* Ticket ID */}
-                <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:13,
+                <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11,
                               color:C.subtle, letterSpacing:0.5 }}>
                   {tk.id}
                 </div>
@@ -7431,7 +7431,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                       <path d="m8 12 2.5 2.5L16 9" stroke="#10B981" strokeWidth="2"
                             strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    <span style={{ fontSize:13, fontWeight:700, color:'#0E9F6E' }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#0E9F6E' }}>
                       Valid · Show QR at the door
                     </span>
                   </div>
@@ -7442,7 +7442,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
               <div style={{ padding:'10px 14px 16px', display:'flex', gap:9 }}>
                 <button onClick={() => showToast('Added to calendar')}
                   style={{ flex:1, height:44, border:`1.5px solid ${C.border}`,
-                           borderRadius:13, background:C.card, fontSize:14,
+                           borderRadius:13, background:C.card, fontSize:12,
                            fontWeight:700, color:C.body, cursor:'pointer',
                            fontFamily:"'Montserrat',-apple-system,sans-serif",
                            display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
@@ -7456,7 +7456,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                 </button>
                 <button onClick={() => showToast('Sharing ticket…')}
                   style={{ flex:1, height:44, border:`1.5px solid ${C.border}`,
-                           borderRadius:13, background:C.card, fontSize:14,
+                           borderRadius:13, background:C.card, fontSize:12,
                            fontWeight:700, color:C.body, cursor:'pointer',
                            fontFamily:"'Montserrat',-apple-system,sans-serif",
                            display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
@@ -7472,7 +7472,7 @@ function MyTicketsScreen({ goBack, navigate, showToast, setScreen }) {
                 {tk.isPast && (
                   <button onClick={() => navigate('review',{ticketId:tk.id})}
                     style={{ flex:1, height:44, border:'none', borderRadius:13,
-                             background:C.grad, fontSize:14, fontWeight:800,
+                             background:C.grad, fontSize:12, fontWeight:800,
                              color:'#fff', cursor:'pointer',
                              fontFamily:"'Montserrat',-apple-system,sans-serif",
                              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
@@ -7528,11 +7528,11 @@ function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
             </svg>
           </div>
         </div>
-        <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.5, color:C.ink,
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, color:C.ink,
                       marginTop:20, textAlign:'center' }}>
           {cfg.noun} {cfg.verb}! 🎉
         </div>
-        <div style={{ fontSize:15.5, lineHeight:1.55, color:'#7B8499',
+        <div style={{ fontSize:13.5, lineHeight:1.55, color:'#7B8499',
                       textAlign:'center', marginTop:8, maxWidth:280 }}>
           "{title}" is live. Anyone browsing {kind === 'event' ? 'events' : kind === 'space' ? 'spaces' : 'groups'} can find it now.
         </div>
@@ -7541,7 +7541,7 @@ function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
           <button onClick={() => navigate(cfg.detailScreen, { [cfg.detailParam]: id })} style={{
             width:'100%', height:50, border:'none', borderRadius:15,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
-            fontSize:16, fontWeight:800, cursor:'pointer',
+            fontSize:14, fontWeight:800, cursor:'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             boxShadow:'0 8px 20px rgba(2,162,240,0.4)' }}>
             View {cfg.noun}
@@ -7549,7 +7549,7 @@ function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
           <button onClick={() => setScreen(cfg.rootScreen)} style={{
             width:'100%', height:50, border:'none', borderRadius:15,
             background:'none', color:C.primary,
-            fontSize:15.5, fontWeight:700, cursor:'pointer',
+            fontSize:13.5, fontWeight:700, cursor:'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
             Done
           </button>
@@ -7639,7 +7639,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink }}>Create Campus Group</div>
         <div style={{ width:40 }} />
       </div>
@@ -7689,11 +7689,11 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
               <path d="M8.5 6l1-2h5l1 2" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span style={{ fontSize:14, fontWeight:800, color:'#fff', position:'relative' }}>
+          <span style={{ fontSize:12, fontWeight:800, color:'#fff', position:'relative' }}>
             {uploadingCover ? 'Uploading…' : coverUrl ? 'Change cover photo' : 'Add cover photo'}
           </span>
           {!coverUrl && !uploadingCover && (
-            <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11,
+            <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
                            color:'rgba(255,255,255,0.82)', position:'relative' }}>
               Recommended 1200×400
             </span>
@@ -7734,14 +7734,14 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
               : <>
                   <div style={{ position:'absolute', inset:0, background:
                     'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)' }}/>
-                  <span style={{ position:'relative', fontSize:24, fontWeight:800, color:'#fff' }}>
+                  <span style={{ position:'relative', fontSize:22, fontWeight:800, color:'#fff' }}>
                     {initial}
                   </span>
                 </>}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>Group icon</div>
-            <div style={{ fontSize:13, color:C.subtle, marginTop:2 }}>{uploadingAvatar ? 'Uploading…' : avatarUrl ? 'Tap to change logo' : 'Tap to upload a logo'}</div>
+            <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>Group icon</div>
+            <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>{uploadingAvatar ? 'Uploading…' : avatarUrl ? 'Tap to change logo' : 'Tap to upload a logo'}</div>
           </div>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M5 19h3l9-9-3-3-9 9v3Z" stroke={C.subtle} strokeWidth="1.8" strokeLinejoin="round"/>
@@ -7751,7 +7751,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* Group Name */}
         <div style={{ marginTop:22 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             Group Name
           </div>
@@ -7761,10 +7761,10 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             <input value={name} onChange={e => setName(e.target.value)}
               placeholder="e.g. Photography Club"
               style={{ flex:1, border:'none', background:'none', outline:'none',
-                       fontSize:15, fontWeight:700, color:C.body,
+                       fontSize:13, fontWeight:700, color:C.body,
                        fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
             {name.trim().length > 0 && (
-              <span style={{ fontSize:13, fontWeight:700, color:C.subtle, flexShrink:0 }}>
+              <span style={{ fontSize:11, fontWeight:700, color:C.subtle, flexShrink:0 }}>
                 {name.trim().length}/60
               </span>
             )}
@@ -7773,7 +7773,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* Category */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:9 }}>
             Category
           </div>
@@ -7782,7 +7782,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
               <button key={c.id} onClick={() => setCat(c.id)} style={{
                 flexShrink:0, height:34, padding:'0 14px', borderRadius:999, cursor:'pointer',
                 border: c.id===cat ? 'none' : `1.5px solid ${C.border}`,
-                fontSize:14, fontWeight:700,
+                fontSize:12, fontWeight:700,
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
                 background: c.id===cat ? C.primary : C.card,
                 color: c.id===cat ? '#fff' : C.muted,
@@ -7794,7 +7794,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* Privacy */}
         <div style={{ marginTop:22 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:9 }}>
             Privacy
           </div>
@@ -7814,8 +7814,8 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
               }}>
                 {p.icon}
                 <div>
-                  <div style={{ fontSize:15, fontWeight:800 }}>{p.label}</div>
-                  <div style={{ fontSize:12, opacity:0.75, fontWeight:600, marginTop:2 }}>
+                  <div style={{ fontSize:13, fontWeight:800 }}>{p.label}</div>
+                  <div style={{ fontSize:10, opacity:0.75, fontWeight:600, marginTop:2 }}>
                     {p.sub}
                   </div>
                 </div>
@@ -7826,7 +7826,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* Description */}
         <div style={{ marginTop:22 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             Description
           </div>
@@ -7834,14 +7834,14 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             placeholder="What is your group about? Who should join and what will you do together…"
             style={{ width:'100%', boxSizing:'border-box', minHeight:90,
                      border:`1.5px solid ${C.border}`, borderRadius:14, background:C.card,
-                     padding:13, fontSize:14.5, fontWeight:500, lineHeight:1.6,
+                     padding:13, fontSize:12.5, fontWeight:500, lineHeight:1.6,
                      color:C.body, outline:'none', resize:'none',
                      fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
         </div>
 
         {/* Where you meet */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             Where you meet
           </div>
@@ -7856,7 +7856,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             <input value={meets} onChange={e => setMeets(e.target.value)}
               placeholder="e.g. University Centre, Tier 3"
               style={{ flex:1, border:'none', background:'none', outline:'none',
-                       fontSize:14, fontWeight:600, color:C.body,
+                       fontSize:12, fontWeight:600, color:C.body,
                        fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           </div>
         </div>
@@ -7865,11 +7865,11 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
         <div style={{ marginTop:22 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                         marginBottom:10 }}>
-            <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                           textTransform:'uppercase', color:C.subtle }}>
               Group Rules
             </div>
-            <span style={{ fontSize:12, fontWeight:700, color:C.subtle }}>
+            <span style={{ fontSize:10, fontWeight:700, color:C.subtle }}>
               {rules.length} rule{rules.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -7881,10 +7881,10 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
                                      padding:'10px 12px 10px 13px' }}>
                 <div style={{ width:22, height:22, borderRadius:7, flexShrink:0,
                               display:'flex', alignItems:'center', justifyContent:'center',
-                              background:'#E9F6FF', fontSize:13, fontWeight:800, color:C.primary }}>
+                              background:'#E9F6FF', fontSize:11, fontWeight:800, color:C.primary }}>
                   {i + 1}
                 </div>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:C.body,
+                <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.body,
                                lineHeight:1.4 }}>{r}</span>
                 <button onClick={() => setRules(s => s.filter((_, idx) => idx !== i))} style={{
                   width:26, height:26, border:'none', borderRadius:8, background:C.chip,
@@ -7912,7 +7912,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
               }}
               placeholder="Add a custom rule…"
               style={{ flex:1, height:42, border:`1.5px solid ${C.border}`, borderRadius:12,
-                       background:C.card, padding:'0 13px', fontSize:14, fontWeight:600,
+                       background:C.card, padding:'0 13px', fontSize:12, fontWeight:600,
                        color:C.body, outline:'none',
                        fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
             <button onClick={() => {
@@ -7944,7 +7944,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
               <circle cx="12" cy="12" r="9" stroke="#F59E0B" strokeWidth="2"/>
               <path d="M12 8v5M12 16h.01" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontSize:13, fontWeight:600, color:'#92400E' }}>
+            <span style={{ fontSize:11, fontWeight:600, color:'#92400E' }}>
               Give your group a name to create it
             </span>
           </div>
@@ -7981,7 +7981,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
           background: canCreate ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-          color:'#fff', fontSize:16, fontWeight:800,
+          color:'#fff', fontSize:14, fontWeight:800,
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', gap:9,
           boxShadow: canCreate ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
@@ -8060,7 +8060,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
     <button onClick={onClick} style={{
       flex:1, height:44, cursor:'pointer',
       border: active ? 'none' : `1.5px solid ${C.border}`,
-      borderRadius:12, fontSize:14, fontWeight:700,
+      borderRadius:12, fontSize:12, fontWeight:700,
       fontFamily:"'Montserrat',-apple-system,sans-serif",
       background: active ? C.primary : C.card,
       color: active ? '#fff' : C.muted,
@@ -8086,7 +8086,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink }}>Create Student Space</div>
         <div style={{ width:40 }} />
       </div>
@@ -8133,10 +8133,10 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
               <path d="M8.5 6l1-2h5l1 2" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div style={{ fontSize:14, fontWeight:800, color:'#fff', position:'relative', zIndex:2 }}>
+          <div style={{ fontSize:12, fontWeight:800, color:'#fff', position:'relative', zIndex:2 }}>
             {uploading ? 'Uploading…' : coverUrl ? 'Cover uploaded ✓' : 'Add space cover'}
           </div>
-          <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11,
+          <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9,
                         color:'rgba(255,255,255,0.85)', position:'relative', zIndex:2 }}>
             {coverUrl ? 'Tap to change' : 'Recommended 1200×630'}
           </div>
@@ -8148,7 +8148,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* Category */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:9 }}>
             Category
           </div>
@@ -8157,7 +8157,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
               <button key={c.id} onClick={() => setCat(c.id)} style={{
                 flexShrink:0, height:34, padding:'0 15px', borderRadius:999,
                 cursor:'pointer', border: c.id===cat ? 'none' : `1.5px solid ${C.border}`,
-                fontSize:14, fontWeight:700,
+                fontSize:12, fontWeight:700,
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
                 background: c.id===cat ? C.primary : C.card,
                 color: c.id===cat ? '#fff' : C.muted,
@@ -8169,7 +8169,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* Space Name */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             Space Name
           </div>
@@ -8179,14 +8179,14 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             <input value={title} onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Seasonal Basketball 5v5"
               style={{ flex:1, border:'none', background:'none', outline:'none',
-                       fontSize:15, fontWeight:600, color:C.body,
+                       fontSize:13, fontWeight:600, color:C.body,
                        fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           </div>
         </div>
 
         {/* Schedule */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             Schedule
           </div>
@@ -8198,9 +8198,9 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
                 <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
                 <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
               </svg>
-              <span style={{ flex:1, fontSize:14, fontWeight:600, color:C.muted }}>First date</span>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>First date</span>
               <input type="date" value={firstDate} onChange={e => setFirstDate(e.target.value)}
-                style={{ border:'none', background:'none', fontSize:15, fontWeight:700,
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
                          color: firstDate ? C.body : C.muted, outline:'none', textAlign:'right',
                          fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}/>
             </div>
@@ -8210,9 +8210,9 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
                 <circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.9"/>
                 <path d="M12 8v4.5l3 2" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <span style={{ flex:1, fontSize:14, fontWeight:600, color:C.muted }}>Start time</span>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Start time</span>
               <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
-                style={{ border:'none', background:'none', fontSize:15, fontWeight:700,
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
                          color: startTime ? C.body : C.muted, outline:'none', textAlign:'right',
                          fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}/>
             </div>
@@ -8223,9 +8223,9 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
                 <path d="M12 9.5v4l2.5 1.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M9 3h6M12 3v2.5" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
               </svg>
-              <span style={{ flex:1, fontSize:14, fontWeight:600, color:C.muted }}>Duration</span>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Duration</span>
               <select value={duration} onChange={e => setDuration(e.target.value)}
-                style={{ border:'none', background:'none', fontSize:15, fontWeight:700,
+                style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
                          color: duration ? C.body : C.muted, outline:'none', textAlign:'right',
                          fontFamily:"'Montserrat',-apple-system,sans-serif", cursor:'pointer' }}>
                 <option value="">Select</option>
@@ -8241,7 +8241,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
               <path d="M4 7l3-3 3 3M7 4v8a4 4 0 0 0 8 0V8a4 4 0 0 1 8 0v3"
                 stroke={C.muted} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span style={{ flex:1, fontSize:14, fontWeight:600, color:C.muted }}>Repeats weekly</span>
+            <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Repeats weekly</span>
             {repeat && (
               <div style={{ display:'flex', alignItems:'center', gap:6, marginRight:8 }}>
                 <input
@@ -8249,11 +8249,11 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
                   placeholder="?"
                   inputMode="numeric"
                   style={{ width:36, height:26, border:`1.5px solid ${C.border}`, borderRadius:8,
-                           background:C.card, textAlign:'center', fontSize:14, fontWeight:700,
+                           background:C.card, textAlign:'center', fontSize:12, fontWeight:700,
                            color:C.body, outline:'none',
                            fontFamily:"'Montserrat',-apple-system,sans-serif" }}
                 />
-                <span style={{ fontSize:13, fontWeight:600, color:C.muted }}>wks</span>
+                <span style={{ fontSize:11, fontWeight:600, color:C.muted }}>wks</span>
               </div>
             )}
             <button onClick={() => setRepeat(v => !v)} style={{
@@ -8270,7 +8270,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* Location */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             Location
           </div>
@@ -8286,7 +8286,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             <input value={venue} onChange={e => setVenue(e.target.value)}
               placeholder="Venue (e.g. Active Living Centre)"
               style={{ flex:1, border:'none', background:'none', outline:'none',
-                       fontSize:14, fontWeight:600, color:C.body,
+                       fontSize:12, fontWeight:600, color:C.body,
                        fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           </div>
           {/* Court / Area */}
@@ -8301,14 +8301,14 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             <input value={area} onChange={e => setArea(e.target.value)}
               placeholder="Court / Area (e.g. Main Court · Fort Garry)"
               style={{ flex:1, border:'none', background:'none', outline:'none',
-                       fontSize:14, fontWeight:600, color:C.body,
+                       fontSize:12, fontWeight:600, color:C.body,
                        fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
           </div>
         </div>
 
         {/* Spots */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             Spots
           </div>
@@ -8316,7 +8316,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
                         borderRadius:16, padding:'14px 16px' }}>
             {/* Stepper */}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <span style={{ fontSize:15, fontWeight:700, color:C.body }}>
+              <span style={{ fontSize:13, fontWeight:700, color:C.body }}>
                 Max participants
               </span>
               <div style={{ display:'flex', alignItems:'center', gap:13 }}>
@@ -8329,7 +8329,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
                     <path d="M5 12h14" stroke="#39414F" strokeWidth="2.4" strokeLinecap="round"/>
                   </svg>
                 </button>
-                <span style={{ fontSize:18, fontWeight:800, color:C.ink,
+                <span style={{ fontSize:16, fontWeight:800, color:C.ink,
                                minWidth:24, textAlign:'center' }}>
                   {maxSpots}
                 </span>
@@ -8349,10 +8349,10 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             <div style={{ display:'flex', alignItems:'center', gap:9, marginTop:13,
                           paddingTop:13, borderTop:`1px solid ${C.divider}` }}>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:15, fontWeight:700, color:C.body }}>
+                <div style={{ fontSize:13, fontWeight:700, color:C.body }}>
                   Notify when a spot opens
                 </div>
-                <div style={{ fontSize:13, color:C.subtle, marginTop:2 }}>
+                <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>
                   Alert waiting participants automatically
                 </div>
               </div>
@@ -8363,7 +8363,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* Pricing */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:9 }}>
             Pricing
           </div>
@@ -8375,12 +8375,12 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:10,
                           background:C.card, border:`1.5px solid ${C.border}`,
                           borderRadius:13, padding:'0 14px', height:46 }}>
-              <span style={{ fontSize:18, fontWeight:800, color:C.muted }}>$</span>
+              <span style={{ fontSize:16, fontWeight:800, color:C.muted }}>$</span>
               <input value={price} onChange={e => setPrice(e.target.value)}
                 placeholder="Price per spot (e.g. 5.00)"
                 inputMode="decimal"
                 style={{ flex:1, border:'none', background:'none', outline:'none',
-                         fontSize:15, fontWeight:700, color:C.body,
+                         fontSize:13, fontWeight:700, color:C.body,
                          fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
             </div>
           )}
@@ -8388,7 +8388,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
 
         {/* About */}
         <div style={{ marginTop:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4,
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             About
           </div>
@@ -8396,7 +8396,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             placeholder="What is this space about? Who should join and what will you do…"
             style={{ width:'100%', boxSizing:'border-box', minHeight:88,
                      border:`1.5px solid ${C.border}`, borderRadius:14,
-                     background:C.card, padding:14, fontSize:14.5, fontWeight:500,
+                     background:C.card, padding:14, fontSize:12.5, fontWeight:500,
                      lineHeight:1.6, color:C.body, outline:'none', resize:'none',
                      fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
         </div>
@@ -8415,7 +8415,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
               <circle cx="12" cy="12" r="9" stroke="#F59E0B" strokeWidth="2"/>
               <path d="M12 8v5M12 16h.01" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontSize:13, fontWeight:600, color:'#92400E' }}>
+            <span style={{ fontSize:11, fontWeight:600, color:'#92400E' }}>
               Give your space a name to create it
             </span>
           </div>
@@ -8461,7 +8461,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
           background: canCreate ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-          color:'#fff', fontSize:16, fontWeight:800,
+          color:'#fff', fontSize:14, fontWeight:800,
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', gap:9,
           boxShadow: canCreate ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
@@ -8488,7 +8488,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
 
 function EventLabel({ children }) {
   return (
-    <div style={{ fontSize:12, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase',
+    <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase',
                   color:C.subtle, marginBottom:7 }}>
       {children}
     </div>
@@ -8501,7 +8501,7 @@ function EventInputField({ value, onChange, placeholder, inputMode, right }) {
                   border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
       <input
         value={value} onChange={onChange} placeholder={placeholder} inputMode={inputMode}
-        style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:15,
+        style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
                  fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
       />
       {right}
@@ -8522,7 +8522,7 @@ function EventSegBtn({ active, onClick, children }) {
   return (
     <button onClick={onClick} style={{
       flex:1, height:44, border: active ? 'none' : `1.5px solid ${C.border}`,
-      borderRadius:12, fontSize:14, fontWeight:700, cursor:'pointer',
+      borderRadius:12, fontSize:12, fontWeight:700, cursor:'pointer',
       fontFamily:"'Montserrat',-apple-system,sans-serif",
       background: active ? C.primary : C.card,
       color: active ? '#fff' : C.muted,
@@ -8860,7 +8860,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:15, fontWeight:800,
                       letterSpacing:-0.4, color:C.ink }}>{isEditing ? 'Edit Event' : 'Create Event'}</div>
         <div style={{ width:40 }} />
       </div>
@@ -8913,10 +8913,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               <path d="M8.5 6l1-2h5l1 2" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div style={{ fontSize:14.5, fontWeight:800, color:'#fff', position:'relative' }}>
+          <div style={{ fontSize:12.5, fontWeight:800, color:'#fff', position:'relative' }}>
             {uploading ? 'Uploading…' : coverUrl ? 'Cover uploaded ✓' : 'Add cover photo'}
           </div>
-          <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11.5,
+          <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:9.5,
                         color:'rgba(255,255,255,0.85)', position:'relative' }}>
             {coverUrl ? 'Tap to change' : 'Recommended 1200×630'}
           </div>
@@ -8933,7 +8933,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               <button key={c.id} onClick={() => setCat(c.id)} style={{
                 flexShrink:0, border: c.id===cat ? 'none' : `1.5px solid ${C.border}`,
                 cursor:'pointer', height:36, padding:'0 16px', borderRadius:999,
-                fontSize:14, fontWeight:700,
+                fontSize:12, fontWeight:700,
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
                 background: c.id===cat ? C.primary : C.card,
                 color: c.id===cat ? '#fff' : C.muted,
@@ -8953,7 +8953,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Karaoke Night"
               autoComplete="off"
-              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:15,
+              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
                        fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
             />
           </div>
@@ -8980,10 +8980,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                       <path d="M12 8v4.5l3 2" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                 }
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:C.muted }}>{r.label}</span>
+                <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>{r.label}</span>
                 <input
                   type={r.type} value={r.val} onChange={e => r.set(e.target.value)}
-                  style={{ border:'none', background:'none', fontSize:15, fontWeight:700,
+                  style={{ border:'none', background:'none', fontSize:13, fontWeight:700,
                            color: r.val ? C.body : C.muted, outline:'none', textAlign:'right',
                            fontFamily:"'Montserrat',-apple-system,sans-serif", colorScheme:'light' }}
                 />
@@ -8996,15 +8996,15 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               <path d="M4 7l3-3 3 3M7 4v8a4 4 0 0 0 8 0V8a4 4 0 0 1 8 0v3"
                 stroke={C.muted} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span style={{ flex:1, fontSize:14, fontWeight:600, color:C.muted }}>Repeats weekly</span>
+            <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Repeats weekly</span>
             {repeat && (
               <div style={{ display:'flex', alignItems:'center', gap:6, marginRight:8 }}>
                 <input value={repeatWeeks} onChange={e => setRepeatWeeks(e.target.value.replace(/\D/g,''))}
                   placeholder="?" inputMode="numeric"
                   style={{ width:36, height:26, border:`1.5px solid ${C.border}`, borderRadius:8,
-                           background:C.card, textAlign:'center', fontSize:14, fontWeight:700,
+                           background:C.card, textAlign:'center', fontSize:12, fontWeight:700,
                            color:C.body, outline:'none', fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
-                <span style={{ fontSize:13, fontWeight:600, color:C.muted }}>wks</span>
+                <span style={{ fontSize:11, fontWeight:600, color:C.muted }}>wks</span>
               </div>
             )}
             <button onClick={() => setRepeat(v => !v)} style={{
@@ -9030,7 +9030,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             </svg>
             <input value={venue} onChange={e => setVenue(e.target.value)}
               placeholder="Venue name (e.g. UMSU University Centre)"
-              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:14,
+              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12,
                        fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
             />
           </div>
@@ -9042,7 +9042,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             </svg>
             <input value={room} onChange={e => setRoom(e.target.value)}
               placeholder="Floor / Room (e.g. 3rd Floor · Multipurpose Room)"
-              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:14,
+              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12,
                        fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
             />
           </div>
@@ -9058,11 +9058,11 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           {isPaid && (
             <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:10, background:C.card,
                           border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
-              <span style={{ fontSize:18, fontWeight:800, color:C.muted }}>$</span>
+              <span style={{ fontSize:16, fontWeight:800, color:C.muted }}>$</span>
               <input value={price} onChange={e => setPrice(e.target.value)}
                 placeholder="Price per ticket (e.g. 15.00)"
                 inputMode="decimal" type="text"
-                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:15,
+                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:13,
                          fontWeight:700, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
               />
             </div>
@@ -9074,10 +9074,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           <EventLabel>Capacity</EventLabel>
           <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, padding:'14px 16px' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <span style={{ fontSize:15, fontWeight:700, color:C.body }}>Max attendees</span>
+              <span style={{ fontSize:13, fontWeight:700, color:C.body }}>Max attendees</span>
               <div style={{ display:'flex', alignItems:'center', gap:13 }}>
                 <EventCounterBtn minus onClick={() => !unlimited && setCapacity(v => Math.max(10, v - 10))}/>
-                <span style={{ fontSize:18, fontWeight:800, color:C.ink, minWidth:34, textAlign:'center' }}>
+                <span style={{ fontSize:16, fontWeight:800, color:C.ink, minWidth:34, textAlign:'center' }}>
                   {unlimited ? '∞' : capacity}
                 </span>
                 <EventCounterBtn onClick={() => !unlimited && setCapacity(v => v + 10)}/>
@@ -9085,7 +9085,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:9, marginTop:13,
                           paddingTop:13, borderTop:`1px solid ${C.divider}` }}>
-              <span style={{ flex:1, fontSize:14, fontWeight:600, color:C.muted }}>Unlimited capacity</span>
+              <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>Unlimited capacity</span>
               <button onClick={() => setUnlimited(v => !v)} style={{
                 width:44, height:26, border:'none', borderRadius:999, padding:0,
                 background: unlimited ? C.primary : '#D1D5DB', cursor:'pointer',
@@ -9107,7 +9107,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
             placeholder="Describe your event — who should come, what to expect, what to bring…"
             style={{ width:'100%', boxSizing:'border-box', minHeight:96,
                      border:`1.5px solid ${C.border}`, borderRadius:14, background:C.card,
-                     padding:14, fontSize:14.5, fontWeight:500, lineHeight:1.6,
+                     padding:14, fontSize:12.5, fontWeight:500, lineHeight:1.6,
                      color:C.body, outline:'none', resize:'none',
                      fontFamily:"'Montserrat',-apple-system,sans-serif" }}
           />
@@ -9117,7 +9117,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         <div style={{ marginTop:20 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
             <EventLabel>Guest List</EventLabel>
-            <span style={{ fontSize:12, fontWeight:700, color:C.subtle }}>{guests.length} added</span>
+            <span style={{ fontSize:10, fontWeight:700, color:C.subtle }}>{guests.length} added</span>
           </div>
           {/* Existing guests */}
           {guests.length > 0 && (
@@ -9128,13 +9128,13 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                   <div style={{ width:34, height:34, borderRadius:10, flexShrink:0,
                                 background:'linear-gradient(135deg,#7C5CFF,#B06BFF)',
                                 display:'flex', alignItems:'center', justifyContent:'center',
-                                color:'#fff', fontSize:15, fontWeight:800 }}>
+                                color:'#fff', fontSize:13, fontWeight:800 }}>
                     {g.name[0].toUpperCase()}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14.5, fontWeight:700, color:C.body,
+                    <div style={{ fontSize:12.5, fontWeight:700, color:C.body,
                                   whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{g.name}</div>
-                    {g.role && <div style={{ fontSize:12.5, color:C.subtle, marginTop:1 }}>{g.role}</div>}
+                    {g.role && <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>{g.role}</div>}
                   </div>
                   <button onClick={() => removeGuest(i)} style={{ border:'none', background:'none',
                     padding:4, cursor:'pointer', color:'#9AA3B2', flexShrink:0 }}>
@@ -9156,7 +9156,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               </svg>
               <input value={guestInput.name} onChange={e => setGuestInput(s => ({...s, name: e.target.value}))}
                 placeholder="Guest name"
-                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:14.5,
+                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12.5,
                          fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
               />
             </div>
@@ -9167,14 +9167,14 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               <input value={guestInput.role} onChange={e => setGuestInput(s => ({...s, role: e.target.value}))}
                 onKeyDown={e => e.key === 'Enter' && addGuest()}
                 placeholder="Role (e.g. MC, DJ, Live Band)"
-                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:14.5,
+                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12.5,
                          fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
               />
             </div>
           </div>
           <button onClick={addGuest} style={{
             marginTop:9, width:'100%', height:40, border:`1.5px solid ${C.border}`,
-            borderRadius:12, background:C.card, fontSize:14, fontWeight:700,
+            borderRadius:12, background:C.card, fontSize:12, fontWeight:700,
             color: guestInput.name.trim() ? C.primary : C.subtle,
             cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:6,
@@ -9190,7 +9190,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         <div style={{ marginTop:20 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
             <EventLabel>Rules &amp; Guidelines</EventLabel>
-            <span style={{ fontSize:12, fontWeight:700, color:C.subtle }}>
+            <span style={{ fontSize:10, fontWeight:700, color:C.subtle }}>
               {Object.values(rules).filter(Boolean).length} selected
             </span>
           </div>
@@ -9214,7 +9214,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                       </svg>
                     )}
                   </div>
-                  <span style={{ fontSize:14, fontWeight:600, color: on ? C.body : '#7B8499' }}>{r}</span>
+                  <span style={{ fontSize:12, fontWeight:600, color: on ? C.body : '#7B8499' }}>{r}</span>
                 </div>
               );
             })}
@@ -9232,10 +9232,10 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                         background:C.chip, borderRadius:13, padding:'11px 14px', marginBottom:12 }}>
             <div>
-              <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>
+              <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>
                 {isPublic ? 'Public event' : 'Group-only event'}
               </div>
-              <div style={{ fontSize:13, color:C.subtle, marginTop:2 }}>
+              <div style={{ fontSize:11, color:C.subtle, marginTop:2 }}>
                 {isPublic ? 'Visible on the home feed for everyone' : 'Only visible inside this group'}
               </div>
             </div>
@@ -9257,7 +9257,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               <circle cx="12" cy="12" r="9" stroke="#F59E0B" strokeWidth="2"/>
               <path d="M12 8v5M12 16h.01" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            <span style={{ fontSize:13, fontWeight:600, color:'#92400E' }}>
+            <span style={{ fontSize:11, fontWeight:600, color:'#92400E' }}>
               Add an event title to publish
             </span>
           </div>
@@ -9272,7 +9272,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                   flex:'0 0 auto', height:50, padding:'0 20px', borderRadius:15,
                   cursor: submitting ? 'not-allowed' : 'pointer',
                   border:`1.5px solid #FFD3CC`, background:'#FFF1ED', color:C.danger,
-                  fontSize:16, fontWeight:800,
+                  fontSize:14, fontWeight:800,
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
                   opacity: submitting ? 0.7 : 1,
                 }}>
@@ -9285,7 +9285,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                   flex:1, height:50, border:'none', borderRadius:15,
                   cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
                   background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-                  color:'#fff', fontSize:16, fontWeight:800,
+                  color:'#fff', fontSize:14, fontWeight:800,
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
                   opacity: submitting ? 0.7 : 1,
                 }}>
@@ -9303,7 +9303,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                   height:50, border:'none', borderRadius:15,
                   cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
                   background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-                  color:'#fff', fontSize:16, fontWeight:800,
+                  color:'#fff', fontSize:14, fontWeight:800,
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
                   display:'flex', alignItems:'center', justifyContent:'center', gap:9,
                   boxShadow: canPublish && !submitting ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
@@ -9326,7 +9326,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               flex:'0 0 auto', height:50, padding:'0 20px', borderRadius:15,
               cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
               border:`1.5px solid ${C.border}`, background:C.card, color:C.body,
-              fontSize:16, fontWeight:800,
+              fontSize:14, fontWeight:800,
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               opacity: submitting ? 0.7 : 1,
             }}>
@@ -9339,7 +9339,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
               flex:1, height:50, border:'none', borderRadius:15,
               cursor: canPublish && !submitting ? 'pointer' : 'not-allowed',
               background: canPublish ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
-              color:'#fff', fontSize:16, fontWeight:800,
+              color:'#fff', fontSize:14, fontWeight:800,
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               display:'flex', alignItems:'center', justifyContent:'center', gap:9,
               boxShadow: canPublish && !submitting ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
@@ -9435,8 +9435,8 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
       <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
                     justifyContent:'center', gap:12, padding:24, textAlign:'center',
                     fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-        <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>Admins only</div>
-        <div style={{ fontSize:15, color:C.subtle }}>You need to be an admin of this group to manage it.</div>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Admins only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be an admin of this group to manage it.</div>
         <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
           borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
       </div>
@@ -9506,11 +9506,11 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
       <div style={{ width:38, height:38, borderRadius:11, flexShrink:0,
                     background:iconBg, display:'flex', alignItems:'center',
                     justifyContent:'center' }}>{icon}</div>
-      <span style={{ flex:1, textAlign:'left', fontSize:16.5, fontWeight:700,
+      <span style={{ flex:1, textAlign:'left', fontSize:14.5, fontWeight:700,
                      color:C.ink }}>{label}</span>
       {badge && (
         <span style={{ minWidth:22, height:22, padding:'0 6px', borderRadius:999,
-                       background:'#F4452B', color:'#fff', fontSize:13,
+                       background:'#F4452B', color:'#fff', fontSize:11,
                        fontWeight:800, display:'flex', alignItems:'center',
                        justifyContent:'center', marginRight:6 }}>{badge}</span>
       )}
@@ -9540,7 +9540,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Group Settings</div>
         <div style={{ width:40 }}/>
       </div>
@@ -9564,8 +9564,8 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
             </svg>
           </div>
           <div style={{ flex:1, textAlign:'left' }}>
-            <div style={{ fontSize:17, fontWeight:800, color:'#fff' }}>Group Analytics</div>
-            <div style={{ fontSize:14, color:'rgba(255,255,255,0.85)', marginTop:1 }}>
+            <div style={{ fontSize:15, fontWeight:800, color:'#fff' }}>Group Analytics</div>
+            <div style={{ fontSize:12, color:'rgba(255,255,255,0.85)', marginTop:1 }}>
               Engagement, revenue &amp; top contributors
             </div>
           </div>
@@ -9576,7 +9576,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
         </button>
 
         {/* Group Settings rows */}
-        <div style={{ fontSize:18, fontWeight:800, color:C.ink, margin:'22px 4px 11px' }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink, margin:'22px 4px 11px' }}>
           Group Settings
         </div>
         <div style={{ background:'#fff', borderRadius:18,
@@ -9588,7 +9588,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
         </div>
 
         {/* Activity feed */}
-        <div style={{ fontSize:18, fontWeight:800, color:C.ink, margin:'22px 4px 11px' }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink, margin:'22px 4px 11px' }}>
           Recent Activity
         </div>
         <div style={{ background:'#fff', borderRadius:18,
@@ -9601,15 +9601,15 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
                             background:a.iconBg, display:'flex', alignItems:'center',
                             justifyContent:'center' }}>{a.icon}</div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:15.5, fontWeight:700, color:C.ink }}>{a.title}</div>
-                <div style={{ fontSize:13.5, color:C.subtle, marginTop:2 }}>{a.time}</div>
+                <div style={{ fontSize:13.5, fontWeight:700, color:C.ink }}>{a.title}</div>
+                <div style={{ fontSize:11.5, color:C.subtle, marginTop:2 }}>{a.time}</div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Moderation */}
-        <div style={{ fontSize:18, fontWeight:800, color:C.ink, margin:'22px 4px 11px' }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink, margin:'22px 4px 11px' }}>
           Moderation
         </div>
         <div style={{ background:'#fff', borderRadius:18,
@@ -9632,7 +9632,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
         }} style={{
           width:'100%', height:50, marginTop:18, border:`1.5px solid #FAD9D4`,
           borderRadius:15, background:'#fff', color:C.danger,
-          fontSize:16.5, fontWeight:800, cursor:'pointer',
+          fontSize:14.5, fontWeight:800, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', gap:8,
         }}>
@@ -9724,7 +9724,7 @@ function ReviewReportsScreen({ groupId, goBack, showToast }) {
             <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Review Reports</div>
         <div style={{ width:40 }}/>
       </div>
@@ -9742,8 +9742,8 @@ function ReviewReportsScreen({ groupId, goBack, showToast }) {
                 <path d="m5 12.5 4 4L19 7" stroke="#15A34A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div style={{ fontSize:19, fontWeight:800, color:C.ink, marginTop:18 }}>No open reports</div>
-            <div style={{ fontSize:15, color:C.subtle, marginTop:6, maxWidth:230 }}>All reports have been reviewed.</div>
+            <div style={{ fontSize:17, fontWeight:800, color:C.ink, marginTop:18 }}>No open reports</div>
+            <div style={{ fontSize:13, color:C.subtle, marginTop:6, maxWidth:230 }}>All reports have been reviewed.</div>
           </div>
         ) : open.map(r => (
           <div key={r.id} style={{ background:'#fff', borderRadius:18,
@@ -9757,28 +9757,28 @@ function ReviewReportsScreen({ groupId, goBack, showToast }) {
                 </svg>
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>{r.reason}</div>
-                <div style={{ fontSize:13.5, color:C.subtle, marginTop:1 }}>
+                <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>{r.reason}</div>
+                <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
                   Reported by {r.reporter} · {r.time}
                 </div>
               </div>
-              <span style={{ fontSize:12.5, fontWeight:700, padding:'3px 9px', borderRadius:999,
+              <span style={{ fontSize:10.5, fontWeight:700, padding:'3px 9px', borderRadius:999,
                              background:'#FFF1ED', color:'#F4452B' }}>post</span>
             </div>
             <div style={{ background:'#F7F8FB', borderRadius:12, padding:'10px 13px',
-                          fontSize:15, color:C.muted, lineHeight:1.45, marginBottom:12 }}>
+                          fontSize:13, color:C.muted, lineHeight:1.45, marginBottom:12 }}>
               <span style={{ fontWeight:700, color:C.ink }}>{r.reportee}: </span>{r.content}
             </div>
             <div style={{ display:'flex', gap:9 }}>
               <button onClick={() => resolve(r, 'remove')} style={{
                 flex:1, height:40, border:'none', borderRadius:12,
                 background:'linear-gradient(135deg,#FF3B6B,#F4452B)',
-                color:'#fff', fontSize:14.5, fontWeight:800, cursor:'pointer',
+                color:'#fff', fontSize:12.5, fontWeight:800, cursor:'pointer',
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
               }}>Remove content</button>
               <button onClick={() => resolve(r, 'dismiss')} style={{
                 flex:1, height:40, border:`1.5px solid ${C.border}`, borderRadius:12,
-                background:'#fff', color:C.muted, fontSize:14.5, fontWeight:800, cursor:'pointer',
+                background:'#fff', color:C.muted, fontSize:12.5, fontWeight:800, cursor:'pointer',
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
               }}>Dismiss</button>
             </div>
@@ -9875,7 +9875,7 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Pending Requests</div>
         <div style={{ width:40 }}/>
       </div>
@@ -9884,12 +9884,12 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
       {open.length > 0 && (
         <div style={{ flexShrink:0, padding:'13px 16px 0',
                       display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <span style={{ fontSize:15, fontWeight:700, color:C.muted }}>
+          <span style={{ fontSize:13, fontWeight:700, color:C.muted }}>
             {open.length} waiting to join
           </span>
           <button onClick={acceptAll} style={{
             height:34, padding:'0 14px', border:'none', borderRadius:11,
-            background:'#E4F7EC', color:'#15A34A', fontSize:14.5, fontWeight:800,
+            background:'#E4F7EC', color:'#15A34A', fontSize:12.5, fontWeight:800,
             cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
           }}>Accept all</button>
         </div>
@@ -9911,10 +9911,10 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
                       strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div style={{ fontSize:19, fontWeight:800, color:C.ink, marginTop:18 }}>
+            <div style={{ fontSize:17, fontWeight:800, color:C.ink, marginTop:18 }}>
               No pending requests
             </div>
-            <div style={{ fontSize:15, color:C.subtle, marginTop:6, maxWidth:230 }}>
+            <div style={{ fontSize:13, color:C.subtle, marginTop:6, maxWidth:230 }}>
               You're all caught up. New join requests will appear here.
             </div>
           </div>
@@ -9927,7 +9927,7 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
             <div style={{ display:'flex', alignItems:'center', gap:12 }}>
               <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0,
                             background: r.avatarUrl ? 'transparent' : r.color, display:'flex', alignItems:'center',
-                            justifyContent:'center', fontSize:17, fontWeight:800,
+                            justifyContent:'center', fontSize:15, fontWeight:800,
                             color:'#fff', position:'relative', overflow:'hidden' }}>
                 {r.avatarUrl
                   ? <img src={r.avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
@@ -9938,10 +9938,10 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
                     </>}
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:16.5, fontWeight:800, color:C.ink }}>{r.name}</div>
-                <div style={{ fontSize:13.5, color:C.subtle, marginTop:1 }}>{r.meta}</div>
+                <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>{r.name}</div>
+                <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{r.meta}</div>
               </div>
-              <span style={{ fontSize:13, color:'#B6BCC8', flexShrink:0 }}>{r.time}</span>
+              <span style={{ fontSize:11, color:'#B6BCC8', flexShrink:0 }}>{r.time}</span>
             </div>
 
             {/* Actions */}
@@ -9949,7 +9949,7 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
               <button onClick={() => resolve(r, true)} style={{
                 flex:1, height:42, border:'none', borderRadius:12,
                 background:'linear-gradient(135deg,#19BFFF,#008FF0)',
-                color:'#fff', fontSize:15, fontWeight:800, cursor:'pointer',
+                color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer',
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
                 display:'flex', alignItems:'center', justifyContent:'center', gap:6,
                 boxShadow:'0 4px 12px rgba(2,162,240,0.28)',
@@ -9962,7 +9962,7 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
               </button>
               <button onClick={() => resolve(r, false)} style={{
                 flex:1, height:42, border:`1.5px solid ${C.border}`, borderRadius:12,
-                background:'#fff', color:C.muted, fontSize:15, fontWeight:800,
+                background:'#fff', color:C.muted, fontSize:13, fontWeight:800,
                 cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
               }}>
                 Decline
@@ -10053,7 +10053,7 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Banned Members</div>
         <div style={{ width:40 }}/>
       </div>
@@ -10064,7 +10064,7 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
         {loading && <SkeletonRows />}
 
         {!loading && visible.length > 0 && (
-          <div style={{ fontSize:14.5, color:C.muted, lineHeight:1.55, marginBottom:14 }}>
+          <div style={{ fontSize:12.5, color:C.muted, lineHeight:1.55, marginBottom:14 }}>
             Banned members can't view, post, or join this group. You can lift a ban at any time.
           </div>
         )}
@@ -10082,10 +10082,10 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
                         stroke="#15A34A" strokeWidth="1.8" strokeLinecap="round"/>
                 </svg>
               </div>
-              <div style={{ fontSize:19, fontWeight:800, color:C.ink, marginTop:18 }}>
+              <div style={{ fontSize:17, fontWeight:800, color:C.ink, marginTop:18 }}>
                 No banned members
               </div>
-              <div style={{ fontSize:15, color:C.subtle, marginTop:6, maxWidth:230 }}>
+              <div style={{ fontSize:13, color:C.subtle, marginTop:6, maxWidth:230 }}>
                 Everyone's in good standing. Members you ban will appear here.
               </div>
             </div>
@@ -10099,7 +10099,7 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                 <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0,
                               background: m.avatarUrl ? 'transparent' : m.color, display:'flex', alignItems:'center',
-                              justifyContent:'center', fontSize:16, fontWeight:800,
+                              justifyContent:'center', fontSize:14, fontWeight:800,
                               color:'#fff', position:'relative', overflow:'hidden' }}>
                   {m.avatarUrl
                     ? <img src={m.avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
@@ -10110,8 +10110,8 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
                       </>}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:16.5, fontWeight:800, color:C.ink }}>{m.name}</div>
-                  <div style={{ fontSize:13.5, color:C.subtle, marginTop:1 }}>
+                  <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>{m.name}</div>
+                  <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
                     Banned {m.when} · by {m.by}
                   </div>
                 </div>
@@ -10119,7 +10119,7 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
                   flexShrink:0, height:36, padding:'0 15px',
                   border:`1.5px solid #BEE3FF`, borderRadius:11,
                   background:'#fff', color:C.primary,
-                  fontSize:14.5, fontWeight:800, cursor:'pointer',
+                  fontSize:12.5, fontWeight:800, cursor:'pointer',
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
                 }}>
                   Unban
@@ -10136,7 +10136,7 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
                   <path d="M12 7.5v5M12 16h.01" stroke="#F4452B" strokeWidth="2"
                         strokeLinecap="round"/>
                 </svg>
-                <div style={{ fontSize:13.5, color:'#B43425', lineHeight:1.45 }}>
+                <div style={{ fontSize:11.5, color:'#B43425', lineHeight:1.45 }}>
                   {m.reason}
                 </div>
               </div>
@@ -10230,8 +10230,8 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
       <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
                     justifyContent:'center', gap:12, padding:24, textAlign:'center',
                     fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-        <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>Admins only</div>
-        <div style={{ fontSize:15, color:C.subtle }}>You need to be an admin of this group to view its analytics.</div>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Admins only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be an admin of this group to view its analytics.</div>
         <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
           borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
       </div>
@@ -10261,7 +10261,7 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Group Analytics</div>
         <div style={{ width:40 }}/>
       </div>
@@ -10273,13 +10273,13 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:18 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                         marginBottom:18 }}>
-            <span style={{ fontSize:18, fontWeight:800, color:C.ink }}>Engagement Overview</span>
+            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Engagement Overview</span>
             {/* Period picker */}
             <div style={{ display:'flex', gap:5 }}>
               {PERIODS.map((p, i) => (
                 <button key={p} onClick={() => setPeriodIdx(i)} style={{
                   height:30, padding:'0 10px', border:'none', borderRadius:9,
-                  fontSize:13.5, fontWeight:700, cursor:'pointer',
+                  fontSize:11.5, fontWeight:700, cursor:'pointer',
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
                   background: i===periodIdx ? C.primary : C.chip,
                   color: i===periodIdx ? '#fff' : C.muted,
@@ -10305,7 +10305,7 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
                     transition:'height .3s ease',
                   }}/>
                 </div>
-                <span style={{ fontSize:12, fontWeight:600, color:C.subtle }}>
+                <span style={{ fontSize:10, fontWeight:600, color:C.subtle }}>
                   {d.labels[i]}
                 </span>
               </div>
@@ -10337,9 +10337,9 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
               <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0,
                             background:k.iconBg, display:'flex', alignItems:'center',
                             justifyContent:'center' }}>{k.icon}</div>
-              <div style={{ fontSize:26, fontWeight:800, letterSpacing:-0.8,
+              <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.8,
                             color:C.ink, marginTop:12 }}>{k.value}</div>
-              <div style={{ fontSize:14, fontWeight:600, color:C.subtle,
+              <div style={{ fontSize:12, fontWeight:600, color:C.subtle,
                             marginTop:2 }}>{k.label}</div>
             </div>
           ))}
@@ -10349,11 +10349,11 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
         <div style={{ background:'#fff', borderRadius:20,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
                       padding:18, marginTop:14 }}>
-          <div style={{ fontSize:18, fontWeight:800, color:C.ink, marginBottom:16 }}>
+          <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:16 }}>
             Top Contributors
           </div>
           {contributors.length === 0
-            ? <div style={{ textAlign:'center', padding:'20px 0', color:C.subtle, fontSize:15 }}>No posts yet</div>
+            ? <div style={{ textAlign:'center', padding:'20px 0', color:C.subtle, fontSize:13 }}>No posts yet</div>
             : <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               {contributors.map((c, i) => {
                 const badges = ['MVP','Star','Rising'];
@@ -10363,20 +10363,20 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
                   <div key={i} style={{ display:'flex', alignItems:'center', gap:12 }}>
                     <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
                                   background:c.color, display:'flex', alignItems:'center',
-                                  justifyContent:'center', color:'#fff', fontSize:15,
+                                  justifyContent:'center', color:'#fff', fontSize:13,
                                   fontWeight:800, position:'relative', overflow:'hidden' }}>
                       <span style={{ position:'relative', zIndex:1 }}>{c.initial}</span>
                       <div style={{ position:'absolute', inset:0, background:
                         'repeating-linear-gradient(135deg,rgba(255,255,255,0.12) 0,rgba(255,255,255,0.12) 2px,transparent 2px,transparent 9px)'}}/>
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:16, fontWeight:700, color:C.ink }}>{c.name}</div>
-                      <div style={{ fontSize:13.5, color:C.subtle, marginTop:1 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>{c.name}</div>
+                      <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
                         {c.posts} post{c.posts !== 1 ? 's' : ''} · {c.likes} like{c.likes !== 1 ? 's' : ''}
                       </div>
                     </div>
                     <span style={{ flexShrink:0, height:26, padding:'0 10px', borderRadius:999,
-                                   fontSize:13, fontWeight:800, display:'flex',
+                                   fontSize:11, fontWeight:800, display:'flex',
                                    alignItems:'center', justifyContent:'center',
                                    background:badgeBgs[i], color:badgeColors[i] }}>{badges[i]}</span>
                   </div>
@@ -10536,8 +10536,8 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
       <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
                     justifyContent:'center', gap:12, padding:24, textAlign:'center',
                     fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-        <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>Admins only</div>
-        <div style={{ fontSize:15, color:C.subtle }}>You need to be an admin of this group to edit it.</div>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Admins only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be an admin of this group to edit it.</div>
         <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
           borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
       </div>
@@ -10564,7 +10564,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                     strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+          <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                         letterSpacing:-0.3, color:C.ink }}>Edit Group</div>
           <button disabled={saving} onClick={async () => {
             setSaving(true);
@@ -10581,7 +10581,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
           }} style={{
             height:40, padding:'0 16px', border:'none', borderRadius:13,
             background:'linear-gradient(135deg,#19BFFF,#008FF0)', color:'#fff',
-            fontSize:15, fontWeight:800, cursor: saving ? 'default' : 'pointer',
+            fontSize:13, fontWeight:800, cursor: saving ? 'default' : 'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",
             boxShadow:'0 4px 10px rgba(2,162,240,0.3)', flexShrink:0,
             opacity: saving ? 0.7 : 1,
@@ -10593,7 +10593,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
             <button key={t} onClick={() => setTab(tabId(t))} style={{
               flexShrink:0, height:38, padding:'0 14px', border:'none', background:'none', cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
-              fontSize:15, fontWeight: tabId(t)===tab ? 800 : 600,
+              fontSize:13, fontWeight: tabId(t)===tab ? 800 : 600,
               color: tabId(t)===tab ? C.primary : C.subtle,
               borderBottom: `2.5px solid ${tabId(t)===tab ? C.primary : 'transparent'}`,
               marginBottom:-1, whiteSpace:'nowrap',
@@ -10630,7 +10630,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
               }}>
                 <div style={{ width:84, height:84, borderRadius:'50%',
                               background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
-                              justifyContent:'center', color:'#fff', fontSize:28,
+                              justifyContent:'center', color:'#fff', fontSize:26,
                               fontWeight:800, position:'relative', overflow:'hidden' }}>
                   {avatarUrl
                     ? <img src={avatarUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
@@ -10648,14 +10648,14 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                   </svg>
                 </div>
               </button>
-              <div style={{ fontSize:14, fontWeight:700, color: uploadingIcon ? C.subtle : C.primary, marginTop:9 }}>
+              <div style={{ fontSize:12, fontWeight:700, color: uploadingIcon ? C.subtle : C.primary, marginTop:9 }}>
                 {uploadingIcon ? 'Uploading…' : 'Change icon'}
               </div>
             </div>
 
             {/* Cover photo upload */}
             <div style={{ marginTop:16 }}>
-              <label style={{ display:'block', fontSize:13, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:C.subtle, marginBottom:8 }}>Cover Photo</label>
+              <label style={{ display:'block', fontSize:11, fontWeight:700, letterSpacing:0.4, textTransform:'uppercase', color:C.subtle, marginBottom:8 }}>Cover Photo</label>
               <label style={{ display:'block', cursor:'pointer' }}>
                 <div style={{ height:80, borderRadius:16, overflow:'hidden', position:'relative',
                   background: coverUrl ? 'transparent' : 'linear-gradient(135deg,#1A1F2E,#465067)',
@@ -10664,11 +10664,11 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                     ? <img src={coverUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
                     : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="6" width="17" height="13" rx="3" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="12.5" r="3" stroke={C.subtle} strokeWidth="1.9"/><path d="M8.5 6l1-2h5l1 2" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/></svg>
-                        <span style={{ fontSize:13, color:C.subtle, fontWeight:600 }}>Tap to upload cover</span>
+                        <span style={{ fontSize:11, color:C.subtle, fontWeight:600 }}>Tap to upload cover</span>
                       </div>}
                   {uploadingCoverEdit && (
                     <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      <span style={{ color:'#fff', fontSize:14, fontWeight:700 }}>Uploading…</span>
+                      <span style={{ color:'#fff', fontSize:12, fontWeight:700 }}>Uploading…</span>
                     </div>
                   )}
                 </div>
@@ -10690,7 +10690,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
               <input value={name} onChange={e => setName(e.target.value)}
                 style={{ width:'100%', boxSizing:'border-box', height:48,
                          border:`1.5px solid ${C.border}`, borderRadius:14,
-                         background:'#fff', padding:'0 14px', fontSize:17,
+                         background:'#fff', padding:'0 14px', fontSize:15,
                          fontWeight:700, color:C.body, outline:'none',
                          fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
             </Field>
@@ -10699,7 +10699,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
               <textarea value={desc} onChange={e => setDesc(e.target.value)}
                 style={{ width:'100%', boxSizing:'border-box', minHeight:96,
                          border:`1.5px solid ${C.border}`, borderRadius:14,
-                         background:'#fff', padding:13, fontSize:16, fontWeight:500,
+                         background:'#fff', padding:13, fontSize:14, fontWeight:500,
                          lineHeight:1.55, color:C.body, outline:'none', resize:'none',
                          fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
             </Field>
@@ -10712,7 +10712,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                     <button key={c} onClick={() => setCategory(c.toLowerCase())} style={{
                       flexShrink:0, height:36, padding:'0 15px', borderRadius:999,
                       cursor:'pointer', border: on ? 'none' : `1.5px solid ${C.border}`,
-                      fontSize:15, fontWeight:700,
+                      fontSize:13, fontWeight:700,
                       fontFamily:"'Montserrat',-apple-system,sans-serif",
                       background: on ? C.primary : '#fff',
                       color: on ? '#fff' : C.muted,
@@ -10725,14 +10725,14 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
 
             {/* Danger Zone */}
             <div style={{ marginTop:32, padding:16, borderRadius:16, border:'1.5px solid #FECACA', background:'#FFF5F5' }}>
-              <div style={{ fontSize:15, fontWeight:800, color:'#EF4444', marginBottom:12 }}>Danger Zone</div>
+              <div style={{ fontSize:13, fontWeight:800, color:'#EF4444', marginBottom:12 }}>Danger Zone</div>
               <button onClick={async () => {
                 if (!window.confirm('Delete this group? This cannot be undone.')) return;
                 const { error } = await supabase.from('groups').delete().eq('id', groupId);
                 if (error) { showToast('Delete failed: ' + error.message); return; }
                 showToast('Group deleted');
                 goBack();
-              }} style={{ width:'100%', height:44, border:'1.5px solid #EF4444', borderRadius:13, background:'#fff', color:'#EF4444', fontSize:15, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+              }} style={{ width:'100%', height:44, border:'1.5px solid #EF4444', borderRadius:13, background:'#fff', color:'#EF4444', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
                 Delete Group
               </button>
             </div>
@@ -10742,7 +10742,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
         {/* ── PRIVACY ── */}
         {tab === 'privacy' && (
           <>
-            <div style={{ fontSize:15, color:C.muted, lineHeight:1.55, marginBottom:18 }}>
+            <div style={{ fontSize:13, color:C.muted, lineHeight:1.55, marginBottom:18 }}>
               Control who can find and join your group, and what members are allowed to do.
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -10763,8 +10763,8 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                       {v.icon}
                     </div>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:17, fontWeight:800, color:C.ink }}>{v.label}</div>
-                      <div style={{ fontSize:14, color:C.subtle, marginTop:2 }}>{v.sub}</div>
+                      <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>{v.label}</div>
+                      <div style={{ fontSize:12, color:C.subtle, marginTop:2 }}>{v.sub}</div>
                     </div>
                     <div style={{ width:22, height:22, borderRadius:'50%', flexShrink:0,
                                   border: on ? 'none' : `2px solid ${C.border}`,
@@ -10788,8 +10788,8 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                                            padding:'14px 0',
                                            borderBottom: i<PERMS_LIST.length-1 ? `1px solid ${C.divider}` : 'none' }}>
                   <div style={{ flex:1 }}>
-                    <div style={{ fontSize:16, fontWeight:700, color:C.ink }}>{p.label}</div>
-                    <div style={{ fontSize:13.5, color:C.subtle, marginTop:2 }}>{p.sub}</div>
+                    <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>{p.label}</div>
+                    <div style={{ fontSize:11.5, color:C.subtle, marginTop:2 }}>{p.sub}</div>
                   </div>
                   <Toggle on={perms[p.key]}
                     onToggle={() => setPerms(s => ({ ...s, [p.key]: !s[p.key] }))}/>
@@ -10809,9 +10809,9 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                                        borderRadius:14, padding:'11px 13px' }}>
                   <div style={{ width:24, height:24, borderRadius:7, flexShrink:0,
                                 background:'#E9F6FF', display:'flex', alignItems:'center',
-                                justifyContent:'center', fontSize:14,
+                                justifyContent:'center', fontSize:12,
                                 fontWeight:800, color:C.primary }}>{i+1}</div>
-                  <span style={{ flex:1, fontSize:15, fontWeight:600, color:C.body,
+                  <span style={{ flex:1, fontSize:13, fontWeight:600, color:C.body,
                                  lineHeight:1.4 }}>{r}</span>
                   <button onClick={() => setRules(s => s.filter((_,idx) => idx!==i))}
                     style={{ width:26, height:26, border:'none', borderRadius:8,
@@ -10831,7 +10831,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                   setRules(s => [...s, ruleDraft.trim()]); setRuleDraft(''); }}}
                 placeholder="Add a custom rule…"
                 style={{ flex:1, height:44, border:`1.5px solid ${C.border}`, borderRadius:13,
-                         background:'#fff', padding:'0 13px', fontSize:15,
+                         background:'#fff', padding:'0 13px', fontSize:13,
                          fontWeight:600, color:C.body, outline:'none',
                          fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
               <button onClick={() => {
@@ -10855,7 +10855,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {SOCIALS.map(s => (
               <div key={s.key}>
-                <div style={{ fontSize:13, fontWeight:700, letterSpacing:0.4,
+                <div style={{ fontSize:11, fontWeight:700, letterSpacing:0.4,
                               textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
                   {s.label}
                 </div>
@@ -10867,7 +10867,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                     onChange={e => setSocial(prev => ({ ...prev, [s.key]: e.target.value }))}
                     placeholder={s.ph}
                     style={{ flex:1, border:'none', background:'none', outline:'none',
-                             fontSize:16, fontWeight:600, color:C.body,
+                             fontSize:14, fontWeight:600, color:C.body,
                              fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
                 </div>
               </div>
@@ -10878,9 +10878,9 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
         {/* ── MEMBERS ── */}
         {tab === 'members' && (
           <div>
-            <div style={{ fontSize:15, color:C.muted, marginBottom:14 }}>Manage who's in your group. Remove members or change their roles.</div>
-            {membersLoading && <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:15 }}>Loading members…</div>}
-            {!membersLoading && members.length === 0 && <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:15 }}>No members yet</div>}
+            <div style={{ fontSize:13, color:C.muted, marginBottom:14 }}>Manage who's in your group. Remove members or change their roles.</div>
+            {membersLoading && <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:13 }}>Loading members…</div>}
+            {!membersLoading && members.length === 0 && <div style={{ textAlign:'center', color:C.subtle, padding:'40px 0', fontSize:13 }}>No members yet</div>}
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {members.map(m => {
                 const u = m.users || {};
@@ -10888,12 +10888,12 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                 const isAdmin = m.role === 'admin' || m.role === 'owner';
                 return (
                   <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:12, background:'#fff', borderRadius:16, padding:'12px 14px', boxShadow:'0 2px 8px rgba(16,24,40,0.05)' }}>
-                    <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0, background: u.avatar_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:800, color:'#fff', overflow:'hidden' }}>
+                    <div style={{ width:44, height:44, borderRadius:'50%', flexShrink:0, background: u.avatar_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:800, color:'#fff', overflow:'hidden' }}>
                       {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : displayName[0]?.toUpperCase()}
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>{displayName}</div>
-                      <div style={{ fontSize:13, color: isAdmin ? C.primary : C.subtle, marginTop:2, fontWeight: isAdmin ? 700 : 500 }}>{m.role || 'member'}</div>
+                      <div style={{ fontSize:13, fontWeight:800, color:C.ink }}>{displayName}</div>
+                      <div style={{ fontSize:11, color: isAdmin ? C.primary : C.subtle, marginTop:2, fontWeight: isAdmin ? 700 : 500 }}>{m.role || 'member'}</div>
                     </div>
                     <div style={{ display:'flex', gap:7 }}>
                       <button onClick={async () => {
@@ -10911,7 +10911,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                           // `error` -- catch it too so the click doesn't silently no-op.
                           showToast('Failed to update role');
                         }
-                      }} style={{ height:32, padding:'0 12px', border:`1.5px solid ${C.border}`, borderRadius:10, background:'#fff', fontSize:13, fontWeight:700, color:C.body, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                      }} style={{ height:32, padding:'0 12px', border:`1.5px solid ${C.border}`, borderRadius:10, background:'#fff', fontSize:11, fontWeight:700, color:C.body, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
                         {isAdmin ? 'Demote' : 'Make Admin'}
                       </button>
                       <button onClick={async () => {
@@ -10943,7 +10943,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                           } catch {
                             showToast('Failed to ban member');
                           }
-                        }} style={{ height:32, padding:'0 12px', border:'none', borderRadius:10, background:'#FFF0F0', fontSize:13, fontWeight:700, color:'#EF4444', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                        }} style={{ height:32, padding:'0 12px', border:'none', borderRadius:10, background:'#FFF0F0', fontSize:11, fontWeight:700, color:'#EF4444', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
                           Ban
                         </button>
                       )}
@@ -10967,9 +10967,9 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                 { label:'Engagement',    value: analytics.postCount > 0 ? Math.round((analytics.memberCount / Math.max(analytics.postCount,1)) * 10) / 10 + 'x' : '—', icon:'⚡', color:'#F5F3FF', text:'#7C5CFF' },
               ].map(stat => (
                 <div key={stat.label} style={{ background:stat.color, borderRadius:18, padding:'16px 14px' }}>
-                  <div style={{ fontSize:24, marginBottom:6 }}>{stat.icon}</div>
-                  <div style={{ fontSize:26, fontWeight:800, color:stat.text, letterSpacing:-0.5 }}>{stat.value}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color:C.subtle, marginTop:3 }}>{stat.label}</div>
+                  <div style={{ fontSize:22, marginBottom:6 }}>{stat.icon}</div>
+                  <div style={{ fontSize:24, fontWeight:800, color:stat.text, letterSpacing:-0.5 }}>{stat.value}</div>
+                  <div style={{ fontSize:11, fontWeight:600, color:C.subtle, marginTop:3 }}>{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -10977,19 +10977,19 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
             {/* Top members */}
             {analytics.topMembers.length > 0 && (
               <div style={{ background:'#fff', borderRadius:18, padding:'14px 16px', boxShadow:'0 2px 10px rgba(16,24,40,0.06)' }}>
-                <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:12 }}>Founding Members</div>
+                <div style={{ fontSize:13, fontWeight:800, color:C.ink, marginBottom:12 }}>Founding Members</div>
                 {analytics.topMembers.map((m, i) => {
                   const u = m.users || {};
                   const name = u.name || 'Member';
                   return (
                     <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:10, paddingBottom: i < analytics.topMembers.length-1 ? 10 : 0, marginBottom: i < analytics.topMembers.length-1 ? 10 : 0, borderBottom: i < analytics.topMembers.length-1 ? `1px solid ${C.divider}` : 'none' }}>
                       <div style={{ width:10, height:10, borderRadius:'50%', background:['#F59E0B','#9AA3B2','#CD7F32'][i] || C.subtle, flexShrink:0 }} />
-                      <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background: u.avatar_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:800, color:'#fff', overflow:'hidden' }}>
+                      <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, background: u.avatar_color || C.grad, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'#fff', overflow:'hidden' }}>
                         {u.avatar_url ? <img src={u.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : name[0]?.toUpperCase()}
                       </div>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontSize:15, fontWeight:700, color:C.ink }}>{name}</div>
-                        <div style={{ fontSize:12, color:C.subtle }}>{m.role || 'member'}</div>
+                        <div style={{ fontSize:13, fontWeight:700, color:C.ink }}>{name}</div>
+                        <div style={{ fontSize:10, color:C.subtle }}>{m.role || 'member'}</div>
                       </div>
                     </div>
                   );
@@ -10998,7 +10998,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
             )}
 
             <div style={{ marginTop:14, background:'#F8FAFC', borderRadius:16, padding:'14px 16px' }}>
-              <div style={{ fontSize:14, color:C.subtle, lineHeight:1.6 }}>
+              <div style={{ fontSize:12, color:C.subtle, lineHeight:1.6 }}>
                 📊 More detailed analytics — post reach, member activity charts, and retention metrics — will be available in the Riply admin dashboard.
               </div>
             </div>
@@ -11153,10 +11153,10 @@ function CheckInScreen({ eventId, goBack, showToast }) {
           </svg>
         </button>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:19, fontWeight:800, letterSpacing:-0.3, color:'#fff' }}>
+          <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.3, color:'#fff' }}>
             Check-In
           </div>
-          <div style={{ fontSize:14, color:'rgba(255,255,255,0.55)', marginTop:1 }}>
+          <div style={{ fontSize:12, color:'rgba(255,255,255,0.55)', marginTop:1 }}>
             {eventTitle} · Organizer
           </div>
         </div>
@@ -11164,7 +11164,7 @@ function CheckInScreen({ eventId, goBack, showToast }) {
                       height:30, padding:'0 11px', borderRadius:999 }}>
           <span style={{ width:7, height:7, borderRadius:'50%', background:'#22C55E',
                          display:'block', flexShrink:0 }}/>
-          <span style={{ fontSize:13.5, fontWeight:800, color:'#4ADE80' }}>Scanning</span>
+          <span style={{ fontSize:11.5, fontWeight:800, color:'#4ADE80' }}>Scanning</span>
         </div>
       </div>
 
@@ -11173,14 +11173,14 @@ function CheckInScreen({ eventId, goBack, showToast }) {
         <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between',
                       marginBottom:9 }}>
           <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
-            <span style={{ fontSize:32, fontWeight:800, color:'#fff', letterSpacing:-1 }}>
+            <span style={{ fontSize:30, fontWeight:800, color:'#fff', letterSpacing:-1 }}>
               {checkedIn}
             </span>
-            <span style={{ fontSize:17, fontWeight:600, color:'rgba(255,255,255,0.55)' }}>
+            <span style={{ fontSize:15, fontWeight:600, color:'rgba(255,255,255,0.55)' }}>
               / {total} checked in
             </span>
           </div>
-          <span style={{ fontSize:15, fontWeight:800, color:'#19BFFF' }}>{pct}%</span>
+          <span style={{ fontSize:13, fontWeight:800, color:'#19BFFF' }}>{pct}%</span>
         </div>
         <div style={{ height:8, borderRadius:999, background:'rgba(255,255,255,0.12)',
                       overflow:'hidden' }}>
@@ -11204,12 +11204,12 @@ function CheckInScreen({ eventId, goBack, showToast }) {
           <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column',
                         alignItems:'center', justifyContent:'center', gap:8, padding:24,
                         textAlign:'center' }}>
-            <span style={{ fontSize:15, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>{cameraError}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>{cameraError}</span>
           </div>
         ) : (
           <>
             <div style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
-                          fontFamily:"'JetBrains Mono',monospace", fontSize:12, letterSpacing:1,
+                          fontFamily:"'JetBrains Mono',monospace", fontSize:10, letterSpacing:1,
                           color:'rgba(255,255,255,0.7)', textShadow:'0 1px 4px rgba(0,0,0,0.6)' }}>
               POINT AT ATTENDEE QR
             </div>
@@ -11250,12 +11250,12 @@ function CheckInScreen({ eventId, goBack, showToast }) {
                         strokeLinecap="round"/>
                 </svg>
               )}
-              <div style={{ fontSize:22, fontWeight:800, color:'#fff', marginTop:12 }}>
+              <div style={{ fontSize:20, fontWeight:800, color:'#fff', marginTop:12 }}>
                 {result.valid ? 'Valid Ticket' : 'Invalid'}
               </div>
-              <div style={{ fontSize:17, fontWeight:700, color:'rgba(255,255,255,0.9)',
+              <div style={{ fontSize:15, fontWeight:700, color:'rgba(255,255,255,0.9)',
                             marginTop:5 }}>{result.name}</div>
-              <div style={{ fontSize:14, color:'rgba(255,255,255,0.75)', marginTop:3 }}>
+              <div style={{ fontSize:12, color:'rgba(255,255,255,0.75)', marginTop:3 }}>
                 {result.valid ? result.ticket : result.reason}
               </div>
             </div>
@@ -11273,12 +11273,12 @@ function CheckInScreen({ eventId, goBack, showToast }) {
                                      borderRadius:12, padding:'8px 11px' }}>
                 <div style={{ width:28, height:28, borderRadius:'50%', flexShrink:0,
                               background:a.color, display:'flex', alignItems:'center',
-                              justifyContent:'center', fontSize:11, fontWeight:800,
+                              justifyContent:'center', fontSize:9, fontWeight:800,
                               color:'#fff' }}>{a.initial}</div>
-                <span style={{ flex:1, fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.9)' }}>
+                <span style={{ flex:1, fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.9)' }}>
                   {a.name}
                 </span>
-                <span style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.5)' }}>
+                <span style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.5)' }}>
                   {a.time}
                 </span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -11301,7 +11301,7 @@ function CheckInScreen({ eventId, goBack, showToast }) {
             onKeyDown={e => { if (e.key === 'Enter' && manualId.trim()) { handleScan(manualId.trim()); setManualId(''); } }}
             style={{ flex:1, height:50, borderRadius:16, border:'1.5px solid rgba(255,255,255,0.14)',
                      background:'rgba(255,255,255,0.06)', color:'#fff', padding:'0 16px',
-                     fontSize:15, fontFamily:"'JetBrains Mono',monospace", outline:'none' }}/>
+                     fontSize:13, fontFamily:"'JetBrains Mono',monospace", outline:'none' }}/>
           <button
             disabled={!manualId.trim()}
             onClick={() => { handleScan(manualId.trim()); setManualId(''); }}
@@ -11310,7 +11310,7 @@ function CheckInScreen({ eventId, goBack, showToast }) {
               cursor: manualId.trim() ? 'pointer' : 'not-allowed',
               background: manualId.trim() ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : 'rgba(255,255,255,0.08)',
               color: manualId.trim() ? '#fff' : 'rgba(255,255,255,0.35)',
-              fontSize:16, fontWeight:800,
+              fontSize:14, fontWeight:800,
               fontFamily:"'Montserrat',-apple-system,sans-serif",
             }}>
             Check In
@@ -11378,7 +11378,7 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Write a Review</div>
         <div style={{ width:40 }}/>
       </div>
@@ -11396,9 +11396,9 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
             </svg>
           </div>
         </div>
-        <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.5,
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5,
                       color:C.ink, marginTop:22 }}>Review posted!</div>
-        <div style={{ fontSize:15.5, lineHeight:1.55, color:'#7B8499', marginTop:9,
+        <div style={{ fontSize:13.5, lineHeight:1.55, color:'#7B8499', marginTop:9,
                       maxWidth:280 }}>
           Thanks for sharing your experience. Your review helps other students decide which events to attend.
         </div>
@@ -11414,13 +11414,13 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
         </div>
         <button onClick={() => { goBack(); }} style={{
           width:'100%', height:52, marginTop:24, border:'none', borderRadius:16,
-          background:C.grad, color:'#fff', fontSize:18, fontWeight:800, cursor:'pointer',
+          background:C.grad, color:'#fff', fontSize:16, fontWeight:800, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           boxShadow:'0 8px 20px rgba(2,162,240,0.4)',
         }}>Discover more events</button>
         <button onClick={() => setSent(false)} style={{ border:'none', background:'none',
           cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-          fontSize:15.5, fontWeight:700, color:C.primary, marginTop:16 }}>
+          fontSize:13.5, fontWeight:700, color:C.primary, marginTop:16 }}>
           Write another review
         </button>
       </div>
@@ -11442,7 +11442,7 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Write a Review</div>
         <div style={{ width:40 }}/>
       </div>
@@ -11467,11 +11467,11 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
           <div style={{ flex:1, minWidth:0 }}>
             <span style={{ display:'inline-flex', alignItems:'center', height:20,
                            padding:'0 8px', borderRadius:6, background:'#E4F7EC',
-                           fontSize:12, fontWeight:800, color:'#15A34A' }}>ATTENDED</span>
-            <div style={{ fontSize:18, fontWeight:800, color:C.ink, marginTop:5 }}>
+                           fontSize:10, fontWeight:800, color:'#15A34A' }}>ATTENDED</span>
+            <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginTop:5 }}>
               {tk?.eventTitle || 'Karaoke Night'}
             </div>
-            <div style={{ fontSize:13.5, color:C.subtle, marginTop:2 }}>
+            <div style={{ fontSize:11.5, color:C.subtle, marginTop:2 }}>
               {tk?.date || 'Jan 15, 2026'} · University Centre
             </div>
           </div>
@@ -11479,19 +11479,19 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
 
         {/* Overall rating */}
         <div style={{ textAlign:'center', marginTop:24 }}>
-          <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>How was the event?</div>
+          <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>How was the event?</div>
           <div style={{ display:'flex', justifyContent:'center', gap:6, marginTop:14 }}>
             {[1,2,3,4,5].map(n => (
               <Star key={n} filled={n<=rating} onClick={() => setRating(n)}/>
             ))}
           </div>
-          <div style={{ fontSize:15, fontWeight:700, color:C.primary, marginTop:10, height:18 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:C.primary, marginTop:10, height:18 }}>
             {LABELS[rating]}
           </div>
         </div>
 
         {/* Aspect ratings */}
-        <div style={{ fontSize:13, fontWeight:800, letterSpacing:0.5,
+        <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.5,
                       textTransform:'uppercase', color:C.subtle,
                       margin:'22px 4px 10px' }}>Rate the details</div>
         <div style={{ background:'#fff', borderRadius:18,
@@ -11500,7 +11500,7 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
             <div key={a.id} style={{ display:'flex', alignItems:'center', gap:10,
                                       padding:'14px 15px',
                                       borderBottom: i<ASPECTS.length-1 ? `1px solid ${C.divider}` : 'none' }}>
-              <span style={{ flex:1, fontSize:16, fontWeight:700, color:C.ink }}>
+              <span style={{ flex:1, fontSize:14, fontWeight:700, color:C.ink }}>
                 {a.label}
               </span>
               <div style={{ display:'flex', gap:3 }}>
@@ -11514,7 +11514,7 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
         </div>
 
         {/* Tags */}
-        <div style={{ fontSize:13, fontWeight:800, letterSpacing:0.5,
+        <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.5,
                       textTransform:'uppercase', color:C.subtle,
                       margin:'22px 4px 10px' }}>What stood out?</div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:9 }}>
@@ -11524,7 +11524,7 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
               <button key={t} onClick={() => setTags(s => ({ ...s, [t]: !s[t] }))} style={{
                 border: on ? 'none' : `1.5px solid ${C.border}`,
                 cursor:'pointer', height:38, padding:'0 16px', borderRadius:999,
-                fontSize:15, fontWeight:700,
+                fontSize:13, fontWeight:700,
                 fontFamily:"'Montserrat',-apple-system,sans-serif",
                 background: on ? C.primary : '#fff',
                 color: on ? '#fff' : C.muted,
@@ -11535,14 +11535,14 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
         </div>
 
         {/* Written review */}
-        <div style={{ fontSize:13, fontWeight:800, letterSpacing:0.5,
+        <div style={{ fontSize:11, fontWeight:800, letterSpacing:0.5,
                       textTransform:'uppercase', color:C.subtle,
                       margin:'22px 4px 10px' }}>Your review</div>
         <textarea value={review} onChange={e => setReview(e.target.value)}
           placeholder="What did you love? What could be better?"
           style={{ width:'100%', boxSizing:'border-box', minHeight:100,
                    border:`1.5px solid ${C.border}`, borderRadius:16,
-                   background:'#fff', padding:14, fontSize:15.5, fontWeight:500,
+                   background:'#fff', padding:14, fontSize:13.5, fontWeight:500,
                    lineHeight:1.55, color:C.body, outline:'none', resize:'none',
                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
 
@@ -11551,7 +11551,7 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
                       background:'#fff', borderRadius:16, padding:15,
                       boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:16, fontWeight:700, color:C.ink }}>
+            <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>
               Would you recommend this event?
             </div>
           </div>
@@ -11589,7 +11589,7 @@ function ReviewScreen({ ticketId, goBack, navigate, showToast }) {
           setSent(true);
         }} style={{
           width:'100%', height:52, marginTop:22, border:'none', borderRadius:16,
-          fontSize:18, fontWeight:800, cursor: canSubmit ? 'pointer' : 'not-allowed',
+          fontSize:16, fontWeight:800, cursor: canSubmit ? 'pointer' : 'not-allowed',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           background: canSubmit ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#E4E8EF',
           color: canSubmit ? '#fff' : '#A8B0BD',
@@ -11753,7 +11753,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:19, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:17, fontWeight:800,
                       letterSpacing:-0.3, color:C.ink }}>Manage Events</div>
         <button onClick={() => navigate('create-event')} style={{ width:40, height:40,
           border:'none', borderRadius:13,
@@ -11773,9 +11773,9 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
             <div key={s.label} style={{ background:'#fff', borderRadius:16,
                                          boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
                                          padding:'13px 8px', textAlign:'center' }}>
-              <div style={{ fontSize:19, fontWeight:800, color:C.ink,
+              <div style={{ fontSize:17, fontWeight:800, color:C.ink,
                             letterSpacing:-0.5 }}>{s.v}</div>
-              <div style={{ fontSize:12.5, fontWeight:600, color:C.subtle,
+              <div style={{ fontSize:10.5, fontWeight:600, color:C.subtle,
                             marginTop:2 }}>{s.label}</div>
             </div>
           ))}
@@ -11788,7 +11788,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
           <button key={t} onClick={() => setTab(t)} style={{
             flex:1, height:38, border:'none', borderRadius:11, cursor:'pointer',
             fontFamily:"'Montserrat',-apple-system,sans-serif",
-            fontSize:15, fontWeight:700, textTransform:'capitalize',
+            fontSize:13, fontWeight:700, textTransform:'capitalize',
             background: t===tab ? C.primary : '#fff',
             color: t===tab ? '#fff' : C.muted,
             boxShadow: t===tab ? '0 4px 12px rgba(2,162,240,0.3)' : '0 2px 8px rgba(16,24,40,0.04)',
@@ -11801,7 +11801,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                     display:'flex', flexDirection:'column', gap:14 }}>
 
         {loading && (
-          <div style={{ textAlign:'center', padding:'50px 30px', color:C.subtle, fontSize:15, fontWeight:600 }}>
+          <div style={{ textAlign:'center', padding:'50px 30px', color:C.subtle, fontSize:13, fontWeight:600 }}>
             Loading your events…
           </div>
         )}
@@ -11816,10 +11816,10 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                 <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#9AB4CC" strokeWidth="1.8" strokeLinecap="round"/>
               </svg>
             </div>
-            <div style={{ fontSize:18, fontWeight:800, color:C.ink, marginTop:18 }}>
+            <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginTop:18 }}>
               No {EMPTY_WORD[tab]} events
             </div>
-            <div style={{ fontSize:15, color:C.subtle, marginTop:6, maxWidth:230 }}>
+            <div style={{ fontSize:13, color:C.subtle, marginTop:6, maxWidth:230 }}>
               Create an event to start selling tickets and tracking attendance.
             </div>
           </div>
@@ -11849,23 +11849,23 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                               justifyContent:'center', color:'#fff' }}>
                   <div style={{ position:'absolute', inset:0, background:
                     'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
-                  <span style={{ position:'relative', fontSize:21, fontWeight:800, lineHeight:1 }}>
+                  <span style={{ position:'relative', fontSize:19, fontWeight:800, lineHeight:1 }}>
                     {day}
                   </span>
-                  <span style={{ position:'relative', fontSize:12, fontWeight:700,
+                  <span style={{ position:'relative', fontSize:10, fontWeight:700,
                                  letterSpacing:0.5, marginTop:2 }}>{mon}</span>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:7 }}>
                     <span style={{ display:'inline-flex', alignItems:'center', height:22,
-                                   padding:'0 10px', borderRadius:999, fontSize:13,
+                                   padding:'0 10px', borderRadius:999, fontSize:11,
                                    fontWeight:800, background:sm.bg, color:sm.color }}>
                       {sm.text}
                     </span>
                   </div>
-                  <div style={{ fontSize:16.5, fontWeight:800, color:C.ink,
+                  <div style={{ fontSize:14.5, fontWeight:800, color:C.ink,
                                 marginTop:5, lineHeight:1.2 }}>{e.title}</div>
-                  <div style={{ fontSize:14, color:C.subtle, marginTop:3 }}>{when}</div>
+                  <div style={{ fontSize:12, color:C.subtle, marginTop:3 }}>{when}</div>
                 </div>
               </div>
 
@@ -11874,10 +11874,10 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                 <div style={{ padding:'0 14px 10px' }}>
                   <div style={{ display:'flex', justifyContent:'space-between',
                                 marginBottom:5 }}>
-                    <span style={{ fontSize:13, fontWeight:700, color:C.subtle }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:C.subtle }}>
                       {e.sold}/{cap} tickets
                     </span>
-                    <span style={{ fontSize:13, fontWeight:700, color:C.primary }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:C.primary }}>
                       {pct}%
                     </span>
                   </div>
@@ -11896,8 +11896,8 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                   <div key={s.l} style={{ flex:1, textAlign:'center',
                                           borderRight: i<2 ? `1px solid ${C.divider}` : 'none',
                                           padding:'4px 0' }}>
-                    <div style={{ fontSize:15.5, fontWeight:800, color:C.ink }}>{s.v}</div>
-                    <div style={{ fontSize:12, fontWeight:600, color:C.subtle,
+                    <div style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>{s.v}</div>
+                    <div style={{ fontSize:10, fontWeight:600, color:C.subtle,
                                   marginTop:1 }}>{s.l}</div>
                   </div>
                 ))}
@@ -11909,7 +11909,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                   <button onClick={() => navigate('check-in', {eventId: e.id})} style={{
                     flex:1, height:40, border:'none', borderRadius:12,
                     background:'#E9F6FF', color:C.primary,
-                    fontSize:14.5, fontWeight:800, cursor:'pointer',
+                    fontSize:12.5, fontWeight:800, cursor:'pointer',
                     fontFamily:"'Montserrat',-apple-system,sans-serif",
                     display:'flex', alignItems:'center', justifyContent:'center', gap:6,
                   }}>
@@ -11923,7 +11923,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                 <button onClick={() => navigate('create-event', { eventId: e.id })} style={{
                   flex:1, height:40, border:'none', borderRadius:12,
                   background:'#F1F3F7', color:C.muted,
-                  fontSize:14.5, fontWeight:800, cursor:'pointer',
+                  fontSize:12.5, fontWeight:800, cursor:'pointer',
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
                   display:'flex', alignItems:'center', justifyContent:'center', gap:6,
                 }}>
@@ -11991,7 +11991,7 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <div style={{ flex:1, textAlign:'center', fontSize:18, fontWeight:800,
+        <div style={{ flex:1, textAlign:'center', fontSize:16, fontWeight:800,
                       color:C.ink }}>Your Weekly Digest</div>
         <button onClick={() => showToast('Link copied')} style={{ width:40, height:40,
           border:'none', borderRadius:13, background:C.chip,
@@ -12019,14 +12019,14 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
                         background:'rgba(255,255,255,0.1)', top:-60, right:-50 }}/>
           <div style={{ position:'relative', display:'flex', alignItems:'center', gap:9 }}>
             <RiplyMark size={26} white />
-            <span style={{ fontSize:14, fontWeight:800, letterSpacing:1,
+            <span style={{ fontSize:12, fontWeight:800, letterSpacing:1,
                            color:'rgba(255,255,255,0.9)' }}>RIPLY · WEEKLY</span>
           </div>
-          <div style={{ position:'relative', fontSize:25, fontWeight:800, letterSpacing:-0.5,
+          <div style={{ position:'relative', fontSize:23, fontWeight:800, letterSpacing:-0.5,
                         color:'#fff', marginTop:16, lineHeight:1.2 }}>
             Hey Jane — here's what's happening on campus this week 👋
           </div>
-          <div style={{ position:'relative', fontSize:15, color:'rgba(255,255,255,0.85)',
+          <div style={{ position:'relative', fontSize:13, color:'rgba(255,255,255,0.85)',
                         marginTop:8 }}>
             Jun 21 – Jun 27 · Personalized for you
           </div>
@@ -12036,7 +12036,7 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
         <div style={{ margin:'-16px 16px 0', background:'#fff', borderRadius:20,
                       padding:16, boxShadow:'0 6px 18px rgba(16,24,40,0.08)',
                       position:'relative' }}>
-          <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:12 }}>
+          <div style={{ fontSize:13, fontWeight:800, color:C.ink, marginBottom:12 }}>
             Your week at a glance
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
@@ -12048,9 +12048,9 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
               <div key={i} style={{ textAlign:'center',
                                     borderLeft: i>0 ? `1px solid ${C.divider}` : 'none',
                                     paddingLeft: i>0 ? 8 : 0 }}>
-                <div style={{ fontSize:24, fontWeight:800, color:s.color,
+                <div style={{ fontSize:22, fontWeight:800, color:s.color,
                               letterSpacing:-0.5 }}>{s.v}</div>
-                <div style={{ fontSize:12.5, fontWeight:600, color:C.subtle,
+                <div style={{ fontSize:10.5, fontWeight:600, color:C.subtle,
                               marginTop:2 }}>{s.label}</div>
               </div>
             ))}
@@ -12067,7 +12067,7 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
                       stroke="#7C5CFF" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </div>
-            <span style={{ fontSize:18, fontWeight:800, color:C.ink }}>Picked for you</span>
+            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Picked for you</span>
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {PICKS.map((p, i) => (
@@ -12081,13 +12081,13 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
                     'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <span style={{ display:'inline-block', fontSize:12, fontWeight:800,
+                  <span style={{ display:'inline-block', fontSize:10, fontWeight:800,
                                  letterSpacing:0.4, color:p.reasonColor,
                                  background:p.reasonBg, padding:'3px 8px',
                                  borderRadius:6 }}>{p.reason}</span>
-                  <div style={{ fontSize:16.5, fontWeight:800, color:C.ink, marginTop:5,
+                  <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, marginTop:5,
                                 lineHeight:1.2 }}>{p.title}</div>
-                  <div style={{ fontSize:14, fontWeight:600, color:C.primary,
+                  <div style={{ fontSize:12, fontWeight:600, color:C.primary,
                                 marginTop:4 }}>{p.when}</div>
                 </div>
               </div>
@@ -12105,7 +12105,7 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
                       fill="#FFB020" stroke="#F59E0B" strokeWidth="1.4" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span style={{ fontSize:18, fontWeight:800, color:C.ink }}>Trending this week</span>
+            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Trending this week</span>
           </div>
           <div style={{ background:'#fff', borderRadius:18, padding:'4px 16px',
                         boxShadow:'0 4px 14px rgba(16,24,40,0.05)' }}>
@@ -12114,14 +12114,14 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
                 style={{ display:'flex', alignItems:'center', gap:13, padding:'13px 0',
                          borderBottom: i<TRENDING.length-1 ? `1px solid ${C.divider}` : 'none',
                          cursor:'pointer' }}>
-                <span style={{ fontSize:19, fontWeight:800, color:'#D4D9E2', width:18 }}>
+                <span style={{ fontSize:17, fontWeight:800, color:'#D4D9E2', width:18 }}>
                   {i+1}
                 </span>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:16, fontWeight:700, color:C.ink,
+                  <div style={{ fontSize:14, fontWeight:700, color:C.ink,
                                 whiteSpace:'nowrap', overflow:'hidden',
                                 textOverflow:'ellipsis' }}>{t.title}</div>
-                  <div style={{ fontSize:13.5, color:C.subtle,
+                  <div style={{ fontSize:11.5, color:C.subtle,
                                 marginTop:1 }}>{t.rsvps} going</div>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -12140,11 +12140,11 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
             <div style={{ position:'absolute', inset:0, background:
               'repeating-linear-gradient(135deg,rgba(255,255,255,0.03) 0,rgba(255,255,255,0.03) 2px,transparent 2px,transparent 16px)'}}/>
             <div style={{ position:'relative' }}>
-              <div style={{ fontSize:13, fontWeight:800, letterSpacing:1,
+              <div style={{ fontSize:11, fontWeight:800, letterSpacing:1,
                             color:'#19BFFF' }}>GROUP SPOTLIGHT</div>
-              <div style={{ fontSize:20, fontWeight:800, color:'#fff',
+              <div style={{ fontSize:18, fontWeight:800, color:'#fff',
                             marginTop:8 }}>Photography Collective</div>
-              <div style={{ fontSize:14.5, lineHeight:1.5,
+              <div style={{ fontSize:12.5, lineHeight:1.5,
                             color:'rgba(255,255,255,0.7)', marginTop:6 }}>
                 320 students sharing campus shots, weekly photo walks, and gear swaps.
                 Spots are filling fast for the spring exhibition.
@@ -12152,7 +12152,7 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
               <button onClick={() => navigate('group-profile', {groupId: 4})} style={{
                 display:'inline-flex', alignItems:'center', gap:7, marginTop:14,
                 height:40, padding:'0 18px', border:'none', borderRadius:999,
-                background:'#19BFFF', color:'#fff', fontSize:15, fontWeight:800,
+                background:'#19BFFF', color:'#fff', fontSize:13, fontWeight:800,
                 cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
               }}>Join the club</button>
             </div>
@@ -12161,18 +12161,18 @@ function WeeklyDigestScreen({ goBack, navigate, showToast }) {
 
         {/* Footer */}
         <div style={{ textAlign:'center', padding:'26px 30px 0' }}>
-          <div style={{ fontSize:14.5, color:C.subtle, lineHeight:1.5 }}>
+          <div style={{ fontSize:12.5, color:C.subtle, lineHeight:1.5 }}>
             You're receiving this because you're part of campus life on Riply.
           </div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
                         gap:6, marginTop:8 }}>
             <span onClick={() => showToast('Digest settings')}
-              style={{ fontSize:14.5, fontWeight:700, color:C.primary, cursor:'pointer' }}>
+              style={{ fontSize:12.5, fontWeight:700, color:C.primary, cursor:'pointer' }}>
               Digest settings
             </span>
             <span style={{ color:C.divider }}>·</span>
             <span onClick={() => showToast('Unsubscribed from weekly digest')}
-              style={{ fontSize:14.5, fontWeight:700, color:C.subtle, cursor:'pointer' }}>
+              style={{ fontSize:12.5, fontWeight:700, color:C.subtle, cursor:'pointer' }}>
               Unsubscribe
             </span>
           </div>
@@ -12212,7 +12212,7 @@ function StripePaymentForm({ total, onSuccess, onError }) {
       <button type="submit" disabled={!stripe || paying} style={{
         width:'100%', height:52, marginTop:16, border:'none', borderRadius:16, cursor:'pointer',
         background: (!stripe||paying) ? '#C5CBD6' : 'linear-gradient(135deg,#19BFFF,#008FF0)',
-        color:'#fff', fontSize:16, fontWeight:800,
+        color:'#fff', fontSize:14, fontWeight:800,
         fontFamily:"'Montserrat',-apple-system,sans-serif",
         boxShadow: (!stripe||paying) ? 'none' : '0 8px 20px rgba(2,162,240,0.42)',
       }}>
@@ -12256,9 +12256,9 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
     <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
                   justifyContent:'center', gap:14, padding:24, textAlign:'center',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-      <div style={{ fontSize:17, fontWeight:800, color:C.ink }}>Event not found</div>
+      <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>Event not found</div>
       <button onClick={goBack} style={{ height:44, padding:'0 22px', border:'none', borderRadius:14,
-        background:C.grad, color:'#fff', fontSize:15.5, fontWeight:800, cursor:'pointer',
+        background:C.grad, color:'#fff', fontSize:13.5, fontWeight:800, cursor:'pointer',
         fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Go Back</button>
     </div>
   );
@@ -12375,8 +12375,8 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                     borderTopColor:C.primary,
                     animation:'riplySpin .9s linear infinite' }}/>
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:19, fontWeight:800, color:C.ink }}>Processing payment…</div>
-        <div style={{ fontSize:15, color:C.subtle, marginTop:6 }}>
+        <div style={{ fontSize:17, fontWeight:800, color:C.ink }}>Processing payment…</div>
+        <div style={{ fontSize:13, color:C.subtle, marginTop:6 }}>
           Please don't close this screen
         </div>
       </div>
@@ -12404,11 +12404,11 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
             </svg>
           </div>
         </div>
-        <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.5,
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5,
                       color:C.ink, marginTop:20 }}>
           {isFree ? 'Spot reserved!' : 'Payment confirmed!'}
         </div>
-        <div style={{ fontSize:15.5, lineHeight:1.55, color:'#7B8499',
+        <div style={{ fontSize:13.5, lineHeight:1.55, color:'#7B8499',
                       textAlign:'center', marginTop:8, maxWidth:280 }}>
           {isFree
             ? 'Your spot is reserved. Your ticket is ready in My Tickets.'
@@ -12428,11 +12428,11 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                   'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>{ev.title}</div>
-                <div style={{ fontSize:14, fontWeight:600, color:C.primary, marginTop:3 }}>
+                <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>{ev.title}</div>
+                <div style={{ fontSize:12, fontWeight:600, color:C.primary, marginTop:3 }}>
                   {fmtDate(ev.fullDate || ev.full_date || ev.date)}
                 </div>
-                <div style={{ fontSize:13.5, color:C.subtle, marginTop:1 }}>
+                <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>
                   {ev.venue} · {ev.room}
                 </div>
               </div>
@@ -12440,16 +12440,16 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
             <div style={{ marginTop:14, paddingTop:14, borderTop:`1px dashed ${C.divider}`,
                           display:'flex', justifyContent:'space-between' }}>
               <div>
-                <div style={{ fontSize:12.5, fontWeight:700, color:C.subtle,
+                <div style={{ fontSize:10.5, fontWeight:700, color:C.subtle,
                               textTransform:'uppercase', letterSpacing:0.3 }}>Ticket type</div>
-                <div style={{ fontSize:15, fontWeight:700, color:C.body, marginTop:3 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
                   {ticket === 'vip' ? 'VIP Experience' : 'General Admission'} × {qty}
                 </div>
               </div>
               <div style={{ textAlign:'right' }}>
-                <div style={{ fontSize:12.5, fontWeight:700, color:C.subtle,
+                <div style={{ fontSize:10.5, fontWeight:700, color:C.subtle,
                               textTransform:'uppercase', letterSpacing:0.3 }}>Total paid</div>
-                <div style={{ fontSize:17, fontWeight:800, color:C.ink, marginTop:3 }}>
+                <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginTop:3 }}>
                   {totalLabel}
                 </div>
               </div>
@@ -12461,7 +12461,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         <div style={{ width:'100%', display:'flex', gap:10, marginTop:18 }}>
           <button onClick={() => showToast('Added to your calendar')} style={{
             flex:1, height:46, border:`1.5px solid ${C.border}`, borderRadius:14,
-            background:'#fff', fontSize:15, fontWeight:700, color:C.body,
+            background:'#fff', fontSize:13, fontWeight:700, color:C.body,
             cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:6,
           }}>
@@ -12473,7 +12473,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
           </button>
           <button onClick={() => navigate('my-tickets')} style={{
             flex:1, height:46, border:'none', borderRadius:14,
-            background:C.grad, fontSize:15, fontWeight:800, color:'#fff',
+            background:C.grad, fontSize:13, fontWeight:800, color:'#fff',
             cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:6,
             boxShadow:'0 6px 16px rgba(2,162,240,0.32)',
@@ -12488,7 +12488,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         </div>
         <button onClick={goBack} style={{ border:'none', background:'none', cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
-          fontSize:15.5, fontWeight:700, color:C.primary, marginTop:16 }}>
+          fontSize:13.5, fontWeight:700, color:C.primary, marginTop:16 }}>
           Back to event
         </button>
         <style>{`@keyframes riplyPop{0%{transform:scale(0.6);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}`}</style>
@@ -12513,9 +12513,9 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
             </svg>
           </div>
         </div>
-        <div style={{ fontSize:24, fontWeight:800, letterSpacing:-0.5,
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5,
                       color:C.ink, marginTop:20 }}>Payment failed</div>
-        <div style={{ fontSize:15.5, lineHeight:1.55, color:'#7B8499',
+        <div style={{ fontSize:13.5, lineHeight:1.55, color:'#7B8499',
                       textAlign:'center', marginTop:8, maxWidth:280 }}>
           {stripeError || `We couldn't process your payment of `}
           {!stripeError && <><span style={{ fontWeight:700, color:C.ink }}>{money(total)}</span>. Please try again.</>}
@@ -12523,7 +12523,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         <div style={{ width:'100%', background:'#fff', borderRadius:16,
                       boxShadow:'0 4px 14px rgba(16,24,40,0.06)',
                       padding:16, marginTop:24 }}>
-          <div style={{ fontSize:15, fontWeight:800, color:C.ink, marginBottom:12 }}>
+          <div style={{ fontSize:13, fontWeight:800, color:C.ink, marginBottom:12 }}>
             This can happen because of:
           </div>
           {['Insufficient funds','Incorrect card details or expired card',
@@ -12532,7 +12532,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                                    marginBottom: i<2 ? 10 : 0 }}>
               <span style={{ width:6, height:6, borderRadius:'50%', background:'#9AA3B2',
                              flexShrink:0 }}/>
-              <span style={{ fontSize:15, color:'#5B6473' }}>{r}</span>
+              <span style={{ fontSize:13, color:'#5B6473' }}>{r}</span>
             </div>
           ))}
         </div>
@@ -12541,14 +12541,14 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                     display:'flex', flexDirection:'column', gap:11 }}>
         <button onClick={proceed} style={{
           width:'100%', height:52, border:'none', borderRadius:16,
-          background:C.grad, color:'#fff', fontSize:18, fontWeight:800,
+          background:C.grad, color:'#fff', fontSize:16, fontWeight:800,
           cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
           boxShadow:'0 8px 20px rgba(2,162,240,0.4)',
         }}>Try Again</button>
         <button onClick={() => showToast('Update your payment method in Settings')} style={{
           width:'100%', height:52, border:`1.5px solid ${C.primary}`,
           borderRadius:16, background:'#fff', color:C.primary,
-          fontSize:17, fontWeight:800, cursor:'pointer',
+          fontSize:15, fontWeight:800, cursor:'pointer',
           fontFamily:"'Montserrat',-apple-system,sans-serif",
         }}>Update Payment Method</button>
       </div>
@@ -12566,8 +12566,8 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
             <path d="M14 6l-6 6 6 6" stroke={C.body} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <span style={{ fontSize:21, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>Payment</span>
-        <span style={{ marginLeft:'auto', fontSize:18, fontWeight:800, color:C.primary }}>{money(total)}</span>
+        <span style={{ fontSize:19, fontWeight:800, letterSpacing:-0.4, color:C.ink }}>Payment</span>
+        <span style={{ marginLeft:'auto', fontSize:16, fontWeight:800, color:C.primary }}>{money(total)}</span>
       </div>
       <div style={{ flex:1, overflowY:'auto', padding:'0 16px 40px' }}>
         <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme:'stripe' } }}>
@@ -12615,7 +12615,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                   strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <span style={{ flex:1, textAlign:'center', fontSize:17,
+        <span style={{ flex:1, textAlign:'center', fontSize:15,
                        fontWeight:800, color:'#fff' }}>{ev.title}</span>
         <div style={{ width:38 }}/>
       </div>
@@ -12637,7 +12637,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
 
           {/* Header row */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <span style={{ fontSize:24, fontWeight:800, letterSpacing:-0.5,
+            <span style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5,
                            color:C.ink }}>Purchase Tickets</span>
             <button onClick={goBack} style={{ width:34, height:34, border:'none',
               borderRadius:'50%', background:'#E9ECF2', display:'flex',
@@ -12662,18 +12662,18 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                     'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 10px)'}}/>}
             </div>
             <div style={{ minWidth:0 }}>
-              <div style={{ fontSize:17, fontWeight:600, color:C.ink,
+              <div style={{ fontSize:15, fontWeight:600, color:C.ink,
                             letterSpacing:-0.2 }}>{ev.title}</div>
-              <div style={{ fontSize:14.5, fontWeight:600, color:C.primary,
+              <div style={{ fontSize:12.5, fontWeight:600, color:C.primary,
                             marginTop:4 }}>{fmtDate(ev.fullDate || ev.full_date || ev.date)}</div>
-              <div style={{ fontSize:14, color:C.subtle, marginTop:2 }}>
+              <div style={{ fontSize:12, color:C.subtle, marginTop:2 }}>
                 {ev.venue}
               </div>
             </div>
           </div>
 
           {/* Ticket types */}
-          <div style={{ fontSize:18, fontWeight:800, color:C.ink, marginTop:20 }}>
+          <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginTop:20 }}>
             Select Ticket Type
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:11, marginTop:12 }}>
@@ -12689,11 +12689,11 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                   boxShadow: on ? '0 4px 14px rgba(2,162,240,0.12)' : 'none',
                 }}>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:17.5, fontWeight:800, color:C.ink }}>{t.name}</div>
-                    <div style={{ fontSize:14.5, color:C.subtle, marginTop:3 }}>{t.desc}</div>
+                    <div style={{ fontSize:15.5, fontWeight:800, color:C.ink }}>{t.name}</div>
+                    <div style={{ fontSize:12.5, color:C.subtle, marginTop:3 }}>{t.desc}</div>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:11, flexShrink:0 }}>
-                    <span style={{ fontSize:17, fontWeight:800,
+                    <span style={{ fontSize:15, fontWeight:800,
                                    color: t.price === 0 ? C.primary : C.ink }}>
                       {t.price === 0 ? 'Free' : money(t.price)}
                     </span>
@@ -12717,7 +12717,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
           {/* Quantity */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                         marginTop:20 }}>
-            <span style={{ fontSize:18, fontWeight:800, color:C.ink }}>Quantity</span>
+            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Quantity</span>
             <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <button onClick={() => setQty(q => Math.max(1, q-1))} style={{
                 width:36, height:36, border:'none', borderRadius:'50%',
@@ -12728,7 +12728,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
                   <path d="M5 12h14" stroke="#39414F" strokeWidth="2.4" strokeLinecap="round"/>
                 </svg>
               </button>
-              <span style={{ fontSize:20, fontWeight:800, color:C.ink,
+              <span style={{ fontSize:18, fontWeight:800, color:C.ink,
                              minWidth:22, textAlign:'center' }}>{qty}</span>
               <button onClick={() => setQty(q => Math.min(8, q+1))} style={{
                 width:36, height:36, border:'none', borderRadius:'50%',
@@ -12754,10 +12754,10 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
             ].map(r => (
               <div key={r.label} style={{ display:'flex', alignItems:'center',
                                            justifyContent:'space-between' }}>
-                <span style={{ fontSize:15.5, fontWeight:500, color:'#7B8499' }}>
+                <span style={{ fontSize:13.5, fontWeight:500, color:'#7B8499' }}>
                   {r.label}
                 </span>
-                <span style={{ fontSize:15.5, fontWeight:700, color:'#1A2233' }}>
+                <span style={{ fontSize:13.5, fontWeight:700, color:'#1A2233' }}>
                   {r.val}
                 </span>
               </div>
@@ -12767,8 +12767,8 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
           {/* Total */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
                         marginTop:15, paddingTop:15, borderTop:`1px solid ${C.divider}` }}>
-            <span style={{ fontSize:20, fontWeight:800, color:C.ink }}>Total</span>
-            <span style={{ fontSize:22, fontWeight:800, color:C.primary }}>
+            <span style={{ fontSize:18, fontWeight:800, color:C.ink }}>Total</span>
+            <span style={{ fontSize:20, fontWeight:800, color:C.primary }}>
               {totalLabel}
             </span>
           </div>
@@ -12778,7 +12778,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
         <div style={{ flexShrink:0, padding:'14px 18px 26px', background:'#F4F6FA' }}>
           <button onClick={proceed} style={{
             width:'100%', height:54, border:'none', borderRadius:16,
-            background:C.grad, color:'#fff', fontSize:18, fontWeight:800,
+            background:C.grad, color:'#fff', fontSize:16, fontWeight:800,
             cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
             display:'flex', alignItems:'center', justifyContent:'center', gap:9,
             boxShadow:'0 8px 20px rgba(2,162,240,0.4)',

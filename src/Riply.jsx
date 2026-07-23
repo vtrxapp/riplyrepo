@@ -12978,21 +12978,31 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   const EDGE_SWIPE_WIDTH = 24;
   const edgeSwipeRef = useRef(null);
   const handleEdgeSwipeStart = (e) => {
-    const x = e.touches[0].clientX;
-    edgeSwipeRef.current = x <= EDGE_SWIPE_WIDTH ? { x, y: e.touches[0].clientY } : null;
+    // Track the specific finger that started the gesture (by identifier),
+    // not just "whichever touch happens to be first" -- touches[0] (start)
+    // and changedTouches[0] (end) can be different fingers in a two-finger
+    // sequence, which would compute dx/dy against the wrong start point.
+    const t = e.changedTouches[0];
+    edgeSwipeRef.current = t.clientX <= EDGE_SWIPE_WIDTH
+      ? { id: t.identifier, x: t.clientX, y: t.clientY }
+      : null;
   };
   const handleEdgeSwipeEnd = (e) => {
     if (!edgeSwipeRef.current) return;
-    const dx = e.changedTouches[0].clientX - edgeSwipeRef.current.x;
-    const dy = e.changedTouches[0].clientY - edgeSwipeRef.current.y;
+    const { id, x: startX, y: startY } = edgeSwipeRef.current;
     edgeSwipeRef.current = null;
+    const t = Array.from(e.changedTouches).find(ct => ct.identifier === id);
+    if (!t) return;
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
     if (dx > 70 && dx > Math.abs(dy) * 1.5) goBack();
   };
+  const handleEdgeSwipeCancel = () => { edgeSwipeRef.current = null; };
 
   return (
     <div style={{ width:'100%', height:'100dvh', position:'relative', background:C.pageBg,
                   fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden' }}>
-      <div style={{ height:'100%' }} onTouchStart={handleEdgeSwipeStart} onTouchEnd={handleEdgeSwipeEnd}>
+      <div style={{ height:'100%' }} onTouchStart={handleEdgeSwipeStart} onTouchEnd={handleEdgeSwipeEnd} onTouchCancel={handleEdgeSwipeCancel}>
         {renderScreen()}
       </div>
       {toast && <Toast msg={toast} />}

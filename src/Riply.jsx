@@ -9297,7 +9297,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                 with, so a draft stayed a draft forever. */}
             {eventStatus === 'draft' && (
               <button
-                onClick={() => submitEvent('pending')}
+                onClick={() => submitEvent('published')}
                 disabled={!canPublish || submitting}
                 style={{
                   height:50, border:'none', borderRadius:15,
@@ -9313,7 +9313,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                   <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"
                         stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
                 </svg>
-                {submittingStatus === 'pending' ? 'Submitting…' : 'Submit for Approval'}
+                {submittingStatus === 'published' ? 'Publishing…' : 'Publish Event'}
               </button>
             )}
           </div>

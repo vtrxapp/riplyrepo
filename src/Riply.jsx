@@ -443,7 +443,7 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
     <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(255,255,255,0.94)', backdropFilter:'blur(16px)', boxShadow:'0 -1px 0 rgba(16,24,40,0.07)', padding:'11px 6px 24px', display:'flex', justifyContent:'space-around', alignItems:'flex-end', zIndex:5 }}>
       {/* Home */}
       <button onClick={()=>setScreen('home')} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, border:'none', background:'none', cursor:'pointer', width:58 }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 11 12 4l8 7" stroke={navColor('home')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 9.8V19a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1V9.8" stroke={navColor('home')} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 11c0-.8.3-1.6.9-2.1l6-5.4a1.7 1.7 0 0 1 2.2 0l6 5.4c.6.5.9 1.3.9 2.1" stroke={navColor('home')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M6 10v8a2 2 0 0 0 2 2h2v-4a2 2 0 0 1 4 0v4h2a2 2 0 0 0 2-2v-8" stroke={navColor('home')} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         <span style={{ fontSize:8, fontWeight:navWeight('home'), color:navColor('home'), fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Home</span>
       </button>
       {/* Spaces */}
@@ -581,7 +581,10 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                       {isFree
                         ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(2,162,240,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Free entry</span>
                         : ev.price
-                          ? <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>Paid · ${priceAmount}</span>
+                          ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, height:24, padding:'0 10px', borderRadius:8, background:'rgba(16,185,129,0.88)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" strokeWidth="1.8"/><path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                              Paid · ${priceAmount}
+                            </span>
                           : <span/>}
                       {ev.badge && <span style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 10px', borderRadius:8, background:'rgba(14,23,38,0.55)', fontSize:9, fontWeight:700, color:'#fff', backdropFilter:'blur(6px)' }}>{ev.badge}</span>}
                     </div>
@@ -4274,7 +4277,8 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                     </svg>
                   ) : (
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="12" r="9" stroke="#F59E0B" strokeWidth="1.8"/>
+                      <path d="M12 7v1.2M12 15.8V17M15 9.8a2.6 2.6 0 0 0-2.7-2 2.3 2.3 0 0 0-2.3 2c0 3 5 1.5 5 4.4a2.3 2.3 0 0 1-2.3 2 2.6 2.6 0 0 1-2.7-2" stroke="#F59E0B" strokeWidth="1.6" strokeLinecap="round"/>
                     </svg>
                   )}
                 </div>
@@ -5671,7 +5675,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
       title:'Account',
       rows: [
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M5 19h3l9-9-3-3-9 9v3Z', iconPath2:'m14.5 6.5 3 3', title:'Edit Profile', hasChevron:true, onClick:()=>{ setDraftName(currentUser.name||''); setDraftEmail(currentUser.email||''); setDraftUniversity(currentUser.university||''); setDraftYear(currentUser.year||''); setDraftProgram(currentUser.program||''); setEditOpen(true); } },
-        { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
+        { icon:'#FFF6E9', iconStroke:'#F59E0B', iconPath:'M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6 1.8 1.8 0 0 0 0-3.4Z', iconPath2:'M14 7.5v9', iconPath2Dash:true, title:'My Tickets', hasChevron:true, onClick:()=>navigate('my-tickets') },
         { icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z', title:'Saved', hasChevron:true, onClick:()=>navigate('saved-events') },
         { icon:'#F1ECFF', iconStroke:'#7C5CFF', iconPath:'M3 11l1.5-7L18 9l-7 2.5L9 21', title:'Payment Methods', hasChevron:true, onClick:()=>setPayOpen(true) },
         ...(profileRole!=='student'?[{ icon:'#E9F6FF', iconStroke:C.primary, iconPath:'M3 5h18M3 10h18M3 15h10', title:'Manage Events', hasChevron:true, onClick:()=>navigate('event-manager') }]:[]),
@@ -5812,7 +5816,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
                     style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px',
                              cursor: r.hasChevron ? 'pointer' : 'default' }}>
                     <div style={{ width:38, height:38, borderRadius:11, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:r.icon }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d={r.iconPath} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>{r.iconPath2&&<path d={r.iconPath2} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>}</svg>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d={r.iconPath} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>{r.iconPath2&&<path d={r.iconPath2} stroke={r.iconStroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={r.iconPath2Dash?'0.5 3':undefined}/>}</svg>
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:12.5, fontWeight:700, color:textColor }}>{r.title}</div>
@@ -12288,6 +12292,7 @@ function TicketsScreen({ eventId, goBack, navigate, showToast }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.4A1.8 1.8 0 0 0 20 15.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6A1.8 1.8 0 0 0 4 8.5Z"
                     stroke="#fff" strokeWidth="1.8" strokeLinejoin="round"/>
+              <path d="M14 7.5v9" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="0.5 3"/>
             </svg>
             View Ticket
           </button>

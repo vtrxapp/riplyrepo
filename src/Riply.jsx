@@ -5375,7 +5375,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                         whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             {chat.name}
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:1 }}>
+          <div style={{ marginTop:1 }}>
             <span style={{ fontSize:11, fontWeight:600, color:statusColor }}>{onlineLabel}</span>
           </div>
         </div>

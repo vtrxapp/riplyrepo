@@ -951,40 +951,49 @@ declare
   v_url text;
   v_secret text;
 begin
-  select decrypted_secret into v_url from vault.decrypted_secrets where name = 'edge_function_base_url';
-  select decrypted_secret into v_secret from vault.decrypted_secrets where name = 'edge_function_secret';
+  -- Best-effort delivery: this fires after the notification row already
+  -- exists, so a Vault lookup or net.http_post failure (misconfiguration,
+  -- pg_net outage, bad URL) must never propagate and roll back the insert
+  -- that triggered it -- the in-app notification should still land even if
+  -- the push/email side-channel is temporarily broken.
+  begin
+    select decrypted_secret into v_url from vault.decrypted_secrets where name = 'edge_function_base_url';
+    select decrypted_secret into v_secret from vault.decrypted_secrets where name = 'edge_function_secret';
 
-  if v_url is null or v_secret is null then
-    return new;
-  end if;
+    if v_url is null or v_secret is null then
+      return new;
+    end if;
 
-  perform net.http_post(
-    url := v_url || '/send-push',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || v_secret
-    ),
-    body := jsonb_build_object(
-      'user_id', new.user_id,
-      'title', new.title,
-      'body', new.body
-    )
-  );
-
-  if new.type in ('event', 'group', 'receipt') then
     perform net.http_post(
-      url := v_url || '/send-email',
+      url := v_url || '/send-push',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'Authorization', 'Bearer ' || v_secret
       ),
       body := jsonb_build_object(
         'user_id', new.user_id,
-        'subject', new.title,
+        'title', new.title,
         'body', new.body
       )
     );
-  end if;
+
+    if new.type in ('event', 'group', 'receipt') then
+      perform net.http_post(
+        url := v_url || '/send-email',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || v_secret
+        ),
+        body := jsonb_build_object(
+          'user_id', new.user_id,
+          'subject', new.title,
+          'body', new.body
+        )
+      );
+    end if;
+  exception when others then
+    raise warning 'trigger_send_notification: push/email delivery failed for notification %: %', new.id, sqlerrm;
+  end;
 
   return new;
 end;

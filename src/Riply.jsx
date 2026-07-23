@@ -337,7 +337,17 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
       </div>
       {onFilter && (
         <button onClick={onFilter} style={{ flexShrink:0, width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 4.5h18l-7 8.5v6.5l-4-2V13L3 4.5Z" fill="rgba(255,255,255,0.25)" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <line x1="3" y1="6" x2="10.5" y2="6" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <line x1="15.5" y1="6" x2="21" y2="6" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <circle cx="13" cy="6" r="2.5" stroke="#fff" strokeWidth="1.9"/>
+            <line x1="3" y1="12" x2="7.5" y2="12" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <line x1="12.5" y1="12" x2="21" y2="12" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <circle cx="10" cy="12" r="2.5" stroke="#fff" strokeWidth="1.9"/>
+            <line x1="3" y1="18" x2="13.5" y2="18" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <line x1="18.5" y1="18" x2="21" y2="18" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+            <circle cx="16" cy="18" r="2.5" stroke="#fff" strokeWidth="1.9"/>
+          </svg>
         </button>
       )}
     </div>

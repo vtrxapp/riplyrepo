@@ -17,30 +17,27 @@ export function useGroupActivity() {
   const load = useCallback(async (userId) => {
     const { data: memberships } = await supabase
       .from('group_members')
-      .select('group_id, last_post_read_at')
+      .select('group_id')
       .eq('user_id', userId)
       .in('role', ['member', 'admin', 'owner'])
 
     const groupIds = (memberships || []).map(m => m.group_id)
     if (groupIds.length === 0) { setGroupActivity([]); setLoading(false); return }
-    const lastReadMap = Object.fromEntries((memberships || []).map(m => [m.group_id, m.last_post_read_at]))
 
-    const [{ data: groups }, { data: posts }] = await Promise.all([
+    // Latest post and missed-post count are both computed server-side via
+    // RPC (not by pulling every post in every group to the client) since
+    // Supabase/PostgREST caps rows per request (commonly 1000) -- a
+    // client-side scan would silently undercount missed posts for a user in
+    // long-running, active groups.
+    const [{ data: groups }, { data: latestPosts }, { data: unreadCounts }] = await Promise.all([
       supabase.from('groups').select('id, name, initial, logo_color, avatar_url').in('id', groupIds),
-      supabase.from('posts').select('group_id, author_name, content, text, created_at')
-        .in('group_id', groupIds).order('created_at', { ascending: false }),
+      supabase.rpc('get_latest_group_posts'),
+      supabase.rpc('get_group_unread_post_counts'),
     ])
 
     const groupMap = Object.fromEntries((groups || []).map(g => [g.id, g]))
-    const latestByGroup = {}
-    const missedCountByGroup = {}
-    ;(posts || []).forEach(p => {
-      if (!latestByGroup[p.group_id]) latestByGroup[p.group_id] = p
-      const lastRead = lastReadMap[p.group_id]
-      if (!lastRead || new Date(p.created_at) > new Date(lastRead)) {
-        missedCountByGroup[p.group_id] = (missedCountByGroup[p.group_id] || 0) + 1
-      }
-    })
+    const latestByGroup = Object.fromEntries((latestPosts || []).map(p => [p.group_id, p]))
+    const missedCountByGroup = Object.fromEntries((unreadCounts || []).map(r => [r.group_id, r.unread_count]))
 
     const activity = groupIds
       .filter(id => latestByGroup[id] && groupMap[id])

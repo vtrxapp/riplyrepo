@@ -37,24 +37,13 @@ export function useChats() {
     // Unread = messages sent by someone else since this user last opened the
     // chat. chat_participants.last_read_at is bumped by useChat.js whenever
     // the chat screen is opened (or a new message arrives while it's open).
-    const { data: myParticipations } = await supabase
-      .from('chat_participants')
-      .select('chat_id, last_read_at')
-      .eq('user_id', userId)
-      .in('chat_id', chatIds)
-    const lastReadMap = Object.fromEntries((myParticipations || []).map(p => [p.chat_id, p.last_read_at]))
-
-    const { data: unreadRows } = await supabase
-      .from('messages')
-      .select('chat_id, sender_id, created_at')
-      .in('chat_id', chatIds)
-      .neq('sender_id', userId)
+    // Counted server-side (not by pulling every message to the client) since
+    // Supabase/PostgREST caps rows per request (commonly 1000) -- a client-side
+    // scan would silently undercount for a user in long-running, active chats.
+    const { data: unreadCounts } = await supabase.rpc('get_unread_chat_counts')
     const unreadCountMap = {}
-    ;(unreadRows || []).forEach(m => {
-      const lastRead = lastReadMap[m.chat_id]
-      if (!lastRead || new Date(m.created_at) > new Date(lastRead)) {
-        unreadCountMap[m.chat_id] = (unreadCountMap[m.chat_id] || 0) + 1
-      }
+    ;(unreadCounts || []).forEach(row => {
+      unreadCountMap[row.chat_id] = row.unread_count
     })
 
     // A chat with no group_id is a plain 1:1 DM -- look up the other

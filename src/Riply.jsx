@@ -257,23 +257,25 @@ function SkeletonCards({ count = 3 }) {
 // Twitter/Instagram-style swipe-left-to-reveal-delete. Wraps a row (chat,
 // notification, etc.) so a horizontal drag reveals a red delete action
 // underneath, while a vertical drag falls through untouched so the
-// surrounding list still scrolls normally. Additive, not a replacement --
-// any delete button already inside `children` keeps working via mouse/tap
-// for desktop users who can't swipe.
+// surrounding list still scrolls normally. Uses Pointer Events (not Touch
+// Events) so the same drag-to-reveal works with a mouse too -- rows that rely
+// on this as their only delete affordance (e.g. chats) would otherwise be
+// undeletable on desktop, since there'd be no touch gesture available and no
+// separate button.
 function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWidth = 76 }) {
   const [dragX, setDragX] = useState(0);
   const startRef = useRef(null);
   const draggingRef = useRef(false);
   const axisRef = useRef(null);
 
-  const onTouchStart = (e) => {
-    startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, base: dragX };
+  const onPointerDown = (e) => {
+    startRef.current = { x: e.clientX, y: e.clientY, base: dragX };
     axisRef.current = null;
   };
-  const onTouchMove = (e) => {
+  const onPointerMove = (e) => {
     if (!startRef.current) return;
-    const dx = e.touches[0].clientX - startRef.current.x;
-    const dy = e.touches[0].clientY - startRef.current.y;
+    const dx = e.clientX - startRef.current.x;
+    const dy = e.clientY - startRef.current.y;
     if (axisRef.current === null) {
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       axisRef.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
@@ -282,7 +284,7 @@ function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWi
     draggingRef.current = true;
     setDragX(Math.min(0, Math.max(-revealWidth, startRef.current.base + dx)));
   };
-  const onTouchEnd = () => {
+  const onPointerUp = () => {
     if (draggingRef.current) {
       setDragX(prev => (prev < -revealWidth / 2 ? -revealWidth : 0));
     }
@@ -301,7 +303,7 @@ function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWi
         </button>
       </div>
       <div
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}
         onClickCapture={e => { if (dragX !== 0) { e.stopPropagation(); setDragX(0); } }}
         style={{ transform:`translateX(${dragX}px)`,
                  transition: draggingRef.current ? 'none' : 'transform .2s ease',
@@ -8721,6 +8723,11 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
     }
     if (error) { setSubmittingStatus(null); showToast(`Failed to ${isEditing ? 'save changes' : status === 'draft' ? 'save draft' : 'publish'}: ` + error.message); return; }
 
+    // A draft being published for the first time still needs the group
+    // announcement + event_count bump below -- only a plain edit-mode save
+    // (not a draft->published transition) should return early here.
+    const isPublishingDraft = isEditing && eventStatus === 'draft' && status === 'published';
+
     if (isEditing) {
       // Only notify ticket holders if the price actually changed -- not on
       // every unrelated edit (fixing a typo in the description shouldn't
@@ -8732,10 +8739,12 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         });
         if (notifErr) console.error('[submitEvent] price-change notify failed:', notifErr);
       }
-      setSubmittingStatus(null);
-      showToast('Changes saved');
-      navigate('event-details', { eventId });
-      return;
+      if (!isPublishingDraft) {
+        setSubmittingStatus(null);
+        showToast('Changes saved');
+        navigate('event-details', { eventId });
+        return;
+      }
     }
 
     // Drafts aren't visible to anyone else yet, so skip the group
@@ -8787,6 +8796,9 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
     if (status === 'draft') {
       showToast('Draft saved');
       navigate('event-manager');
+    } else if (isPublishingDraft) {
+      showToast('Event published');
+      navigate('event-details', { eventId });
     } else {
       navigate('creation-success', { kind: 'event', id: event.id, title: title.trim() });
     }
@@ -9253,7 +9265,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
                   color:'#fff', fontSize:16, fontWeight:800,
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
                   display:'flex', alignItems:'center', justifyContent:'center', gap:9,
-                  boxShadow: canPublish ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
+                  boxShadow: canPublish && !submitting ? '0 8px 20px rgba(2,162,240,0.4)' : 'none',
                   opacity: submitting ? 0.7 : 1,
                 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">

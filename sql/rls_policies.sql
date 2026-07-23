@@ -1002,17 +1002,34 @@ create trigger notifications_send_notification
 -- clobber the faster one and silently drop a token. array_append inside a
 -- single UPDATE is atomic at the row level, so concurrent calls compose
 -- correctly instead of one overwriting the other.
+-- Bounded: rejects unauthenticated callers and oversized/empty tokens
+-- outright, and caps stored tokens per user at 20 (dropping the oldest)
+-- so a buggy or malicious repeated-call loop can't grow this row forever.
+-- FCM tokens are ~150-200 chars in practice; 512 is a generous ceiling.
 create or replace function public.add_fcm_token(p_token text)
 returns void
-language sql
+language plpgsql
 security definer
 set search_path = public
 as $$
+begin
+  if current_user_id() is null then
+    raise exception 'must be signed in';
+  end if;
+  if p_token is null or char_length(p_token) = 0 or char_length(p_token) > 512 then
+    raise exception 'invalid token';
+  end if;
+
   update public.users
-  set fcm_tokens = array_append(coalesce(fcm_tokens, '{}'), p_token)
-  where id = current_user_id()
-    and not (p_token = any(coalesce(fcm_tokens, '{}')));
+  set fcm_tokens = (
+    array_remove(coalesce(fcm_tokens, '{}'), p_token) || array[p_token]
+  )[greatest(1, coalesce(array_length(array_remove(coalesce(fcm_tokens, '{}'), p_token), 1), 0) + 1 - 19):]
+  where id = current_user_id();
+end;
 $$;
+
+revoke all on function public.add_fcm_token(text) from public, anon;
+grant execute on function public.add_fcm_token(text) to authenticated;
 
 -- Symmetric atomic counterpart to add_fcm_token, used by the send-push Edge
 -- Function to prune tokens FCM reports as dead. Also a single-statement

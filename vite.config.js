@@ -12,13 +12,17 @@ import fs from 'node:fs'
 function firebaseMessagingSw(env) {
   const render = () => {
     const template = fs.readFileSync('src/firebase-messaging-sw.template.js', 'utf-8')
+    // JSON.stringify (not raw string substitution) so a value containing a
+    // quote, backslash, or newline can't produce invalid JS or change the
+    // meaning of the generated file -- the template embeds these
+    // placeholders unquoted so the stringified literal supplies its own quotes.
     return template
-      .replaceAll('__VITE_FIREBASE_API_KEY__', env.VITE_FIREBASE_API_KEY || '')
-      .replaceAll('__VITE_FIREBASE_AUTH_DOMAIN__', env.VITE_FIREBASE_AUTH_DOMAIN || '')
-      .replaceAll('__VITE_FIREBASE_PROJECT_ID__', env.VITE_FIREBASE_PROJECT_ID || '')
-      .replaceAll('__VITE_FIREBASE_STORAGE_BUCKET__', env.VITE_FIREBASE_STORAGE_BUCKET || '')
-      .replaceAll('__VITE_FIREBASE_MESSAGING_SENDER_ID__', env.VITE_FIREBASE_MESSAGING_SENDER_ID || '')
-      .replaceAll('__VITE_FIREBASE_APP_ID__', env.VITE_FIREBASE_APP_ID || '')
+      .replaceAll('__VITE_FIREBASE_API_KEY__', JSON.stringify(env.VITE_FIREBASE_API_KEY || ''))
+      .replaceAll('__VITE_FIREBASE_AUTH_DOMAIN__', JSON.stringify(env.VITE_FIREBASE_AUTH_DOMAIN || ''))
+      .replaceAll('__VITE_FIREBASE_PROJECT_ID__', JSON.stringify(env.VITE_FIREBASE_PROJECT_ID || ''))
+      .replaceAll('__VITE_FIREBASE_STORAGE_BUCKET__', JSON.stringify(env.VITE_FIREBASE_STORAGE_BUCKET || ''))
+      .replaceAll('__VITE_FIREBASE_MESSAGING_SENDER_ID__', JSON.stringify(env.VITE_FIREBASE_MESSAGING_SENDER_ID || ''))
+      .replaceAll('__VITE_FIREBASE_APP_ID__', JSON.stringify(env.VITE_FIREBASE_APP_ID || ''))
   }
 
   return {

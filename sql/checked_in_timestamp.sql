@@ -6,6 +6,11 @@
 
 alter table tickets add column if not exists checked_in_at timestamptz;
 
+-- The checked-in list queries by event_id ordered by checked_in_at desc --
+-- composite index keeps that query fast as an event's ticket count grows.
+create index if not exists tickets_event_id_checked_in_at_idx
+  on tickets (event_id, checked_in_at desc);
+
 create or replace function public.check_in_ticket(p_ticket_id uuid, p_event_id uuid)
 returns table(user_name text, access text)
 language plpgsql

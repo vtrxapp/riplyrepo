@@ -11333,26 +11333,33 @@ function CheckInScreen({ eventId, goBack, showToast, navigate }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHECKED-IN ATTENDEES
 // ─────────────────────────────────────────────────────────────
-function CheckedInListScreen({ eventId, goBack }) {
+function CheckedInListScreen({ eventId, goBack, showToast }) {
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!eventId) return;
-    const { data: rows } = await supabase
+    const { data: rows, error: ticketsErr } = await supabase
       .from('tickets')
       .select('id, user_id, access, checked_in_at')
       .eq('event_id', eventId)
       .eq('status', 'USED')
       .order('checked_in_at', { ascending: false, nullsFirst: false });
+    if (ticketsErr) {
+      console.error('[CheckedInListScreen] failed to load tickets:', ticketsErr);
+      showToast("Couldn't load the checked-in list. Try again.");
+      setLoading(false);
+      return;
+    }
 
     const userIds = [...new Set((rows || []).map(r => r.user_id).filter(Boolean))];
     const profileMap = new Map();
     if (userIds.length > 0) {
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesErr } = await supabase
         .from('users')
         .select('id, name, avatar_url, avatar_color')
         .in('id', userIds);
+      if (profilesErr) console.error('[CheckedInListScreen] failed to load profiles:', profilesErr);
       (profiles || []).forEach(u => profileMap.set(u.id, u));
     }
 
@@ -13066,7 +13073,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'legal':         return <LegalScreen goBack={goBack} showToast={showToast} />;
       case 'about':         return <AboutScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'check-in':      return <CheckInScreen eventId={navParams.eventId} goBack={goBack} showToast={showToast} navigate={navigate} />;
-      case 'checked-in-list': return <CheckedInListScreen eventId={navParams.eventId} goBack={goBack} />;
+      case 'checked-in-list': return <CheckedInListScreen eventId={navParams.eventId} goBack={goBack} showToast={showToast} />;
       case 'review':        return <ReviewScreen ticketId={navParams.ticketId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'tickets':       return <TicketsScreen eventId={navParams.eventId} goBack={goBack} navigate={navigate} showToast={showToast} />;
       case 'group-manage':  return <GroupManageScreen groupId={navParams.groupId} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;

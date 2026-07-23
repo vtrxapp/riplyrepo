@@ -556,9 +556,31 @@ function BottomNav({ screen, setScreen, unreadCount = 0 }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: HOME FEED
 // ─────────────────────────────────────────────────────────────
-function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, role, navigate }) {
+function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare, filters, setFilters, activeCat, setActiveCat, query, setQuery, role, navigate, currentUser }) {
+  // Events this user holds a ticket for -- RSVP'd, in the sense that matters
+  // for both free and paid events (a saved/liked event isn't a commitment to
+  // attend). "My Events" only shows up once we know there's at least one.
+  const [myEventIds, setMyEventIds] = useState(null);
+  useEffect(() => {
+    if (!currentUser?.userId) { setMyEventIds(new Set()); return; }
+    let cancelled = false;
+    supabase.from('tickets').select('event_id').eq('user_id', currentUser.userId).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) { console.error('[HomeScreen] failed to load ticket event ids:', error); setMyEventIds(new Set()); return; }
+      setMyEventIds(new Set((data || []).map(r => r.event_id)));
+    }).catch((err) => {
+      if (cancelled) return;
+      console.error('[HomeScreen] ticket event id fetch threw:', err);
+      setMyEventIds(new Set());
+    });
+    return () => { cancelled = true; };
+  }, [currentUser?.userId]);
+  const hasMyEvents = !!myEventIds && myEventIds.size > 0;
+
   const CATS = [
-    {id:'all',label:'All'},{id:'trending',label:'Trending This Week'},{id:'new',label:'New'},{id:'popular',label:'Popular'},
+    {id:'all',label:'All'},
+    ...(hasMyEvents ? [{id:'mine',label:'My Events'}] : []),
+    {id:'thisweek',label:'This Week'},{id:'new',label:'New'},
     {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
   ];
 
@@ -575,11 +597,16 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
     const next = dx < 0 ? Math.min(i + 1, ids.length - 1) : Math.max(i - 1, 0);
     setActiveCat(ids[next]);
   };
-  const { events: liveEvents, loading: eventsLoading, refetch: refetchEvents } = useEvents({ category: (activeCat === 'all' || activeCat === 'trending') ? null : activeCat, search: query, filters });
+  // "mine" filters the full unfiltered list client-side by ticket
+  // membership rather than being a server-side category -- it cuts across
+  // whatever category an event actually belongs to.
+  const { events: liveEvents, loading: eventsLoading, refetch: refetchEvents } = useEvents({ category: (activeCat === 'all' || activeCat === 'mine') ? null : activeCat, search: query, filters });
   const eventData = eventsLoading ? [] : liveEvents;
   let list = eventData.slice();
-  if (activeCat==='new') list = [...list].reverse();
-  else if (activeCat==='popular') list = [...list].sort((a,b)=>b.attendees-a.attendees);
+  if (activeCat==='mine') list = list.filter(ev => myEventIds?.has(ev.id));
+  else if (activeCat==='new') list.reverse();
+  // Default order (including "This Week") is already earliest date/time
+  // first, straight from useEvents' `order('date', ascending)`.
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -773,8 +800,32 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
 // ─────────────────────────────────────────────────────────────
 // SCREEN: SPACES (Campus Groups)
 // ─────────────────────────────────────────────────────────────
+// Extracts "8:00 PM" / "8PM" / "20:00" into minutes-since-midnight for
+// sorting -- same regex calcSpaceProgress already uses to parse sp.time,
+// pulled out standalone since progress calc needs a lot more (day, duration)
+// than a plain comparable sort key does.
+function timeToMinutes(timeStr) {
+  if (!timeStr) return null;
+  const m = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
+  if (!m) return null;
+  let h = parseInt(m[1]); const min = parseInt(m[2] || '0'); const ap = (m[3] || '').toUpperCase();
+  if (ap === 'PM' && h < 12) h += 12; if (ap === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
+
 function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spaceNotify, setSpaceNotify, progress, navigate, showToast, currentUser }) {
-  const TABS = [{id:'all',label:'All'},{id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'}];
+  // spaceJoined has an entry for every space_participants row this user has
+  // (joined or created), so it's already "spaces I'm involved in" -- only
+  // show the tab once there's at least one.
+  // A left space's entry is set to false rather than deleted, so a key-count
+  // check would keep this tab visible (with an empty list) after leaving
+  // the user's only space -- check for a truthy entry instead.
+  const hasMySpaces = Object.values(spaceJoined || {}).some(Boolean);
+  const TABS = [
+    {id:'all',label:'All'},
+    ...(hasMySpaces ? [{id:'mine',label:'My Spaces'}] : []),
+    {id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'},
+  ];
   const [spaceQuery, setSpaceQuery] = useState('');
   const spacesSwipeRef = useRef(null);
   const handleSpacesSwipeStart = (e) => { spacesSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
@@ -793,7 +844,11 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
   const { spaces: liveSpaces, loading: spacesLoading, refetch: refetchSpaces } = useSpaces();
   const spaceData = spacesLoading ? [] : liveSpaces;
   let list = spaceData.slice();
-  if(spaceTab==='today'||spaceTab==='tomorrow') list=list.filter(s=>s.day===spaceTab);
+  if(spaceTab==='mine') list=list.filter(s=>!!spaceJoined[s.id]);
+  else if(spaceTab==='today'||spaceTab==='tomorrow') {
+    list=list.filter(s=>s.day===spaceTab)
+      .sort((a,b)=>(timeToMinutes(a.time) ?? Infinity)-(timeToMinutes(b.time) ?? Infinity));
+  }
   else if(spaceTab!=='all') list=list.filter(s=>(s.cat||s.category)===spaceTab);
   if(spaceQuery.trim()) {
     const q = spaceQuery.toLowerCase();
@@ -938,7 +993,18 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
 // ─────────────────────────────────────────────────────────────
 function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoined, navigate, showToast }) {
   const { user } = useUser();
-  const TABS = [{id:'all',label:'All'},{id:'popular',label:'Popular'},{id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'}];
+  // groupJoined has an entry for every group_members row this user has
+  // (joined or created -- creating a group enrolls the creator as owner),
+  // regardless of approval status, so it's already exactly "groups I'm
+  // involved in". Only show the tab once there's at least one.
+  // Same reasoning as SpacesScreen's hasMySpaces: leaving a group sets its
+  // entry to false rather than deleting it, so this needs a truthy check.
+  const hasMyGroups = Object.values(groupJoined || {}).some(Boolean);
+  const TABS = [
+    {id:'all',label:'All'},
+    ...(hasMyGroups ? [{id:'mine',label:'My Groups'}] : []),
+    {id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'},
+  ];
   const [discoverQuery, setDiscoverQuery] = useState('');
   // groupJoined only tracks "has a group_members row" — it can't by itself
   // distinguish an approved membership from a pending request, so track
@@ -953,7 +1019,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   const { groups: liveGroups, loading: groupsLoading, refetch: refetchGroups } = useGroups();
   const groupData = groupsLoading ? [] : liveGroups;
   let list = groupData.slice();
-  if(discoverTab==='popular') list=[...list].sort((a,b)=>(b.member_count||0)-(a.member_count||0));
+  if(discoverTab==='mine') list=list.filter(g=>!!groupJoined[g.id]);
   else if(discoverTab!=='all') list=list.filter(g=>((g.cat || g.category || [])||g.category||[]).includes(discoverTab));
   if(discoverQuery.trim()) {
     const q = discoverQuery.toLowerCase();
@@ -4546,11 +4612,9 @@ function calcSpaceProgress(timeStr, dayStr, duration) {
   const base = (dayStr === 'today' || dayStr === 'tomorrow') ? new Date() : new Date(dayStr + 'T00:00:00');
   if (isNaN(base)) return null;
   if (dayStr === 'tomorrow') base.setDate(base.getDate() + 1);
-  const mx = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
-  if (!mx) return null;
-  let h = parseInt(mx[1]); const min = parseInt(mx[2] || '0'); const ap = (mx[3] || '').toUpperCase();
-  if (ap === 'PM' && h < 12) h += 12; if (ap === 'AM' && h === 12) h = 0;
-  const startMs = new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, min).getTime();
+  const mins = timeToMinutes(timeStr);
+  if (mins == null) return null;
+  const startMs = new Date(base.getFullYear(), base.getMonth(), base.getDate(), Math.floor(mins / 60), mins % 60).getTime();
   const endMs = startMs + (parseInt(duration) || 60) * 60000;
   const nowMs = Date.now();
   if (nowMs < startMs) return null;
@@ -13165,13 +13229,32 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
 
   const ROOT_SCREENS = ['home','spaces','discover','messages','profile'];
   const showBottomNav = ROOT_SCREENS.includes(screen);
+  const onRootTab = navStack.length === 1 && ROOT_SCREENS.includes(screen);
+
+  // The 5 main tabs are each mounted once (below, in the keep-alive
+  // container) and never unmounted for the rest of the session -- tapping
+  // between them was previously destroying and recreating the whole screen
+  // (and re-running every useEvents/useSpaces/useGroups fetch from scratch)
+  // on every single switch. Kept as a separate function from the cases
+  // below so this JSX is shared between the keep-alive container and the
+  // plain-switch fallback used before the user is actually signed in.
+  const renderRootTab = (id) => {
+    switch (id) {
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} currentUser={currentUser} />;
+      case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
+      case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} chatsData={chatsData} groupActivityData={groupActivityData} />;
+      case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
+      default: return null;
+    }
+  };
 
   const renderScreen = () => {
     switch(screen) {
       case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} currentUser={currentUser} />;
-      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} />;
+      case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} currentUser={currentUser} />;
       case 'spaces':    return <SpacesScreen spaceTab={spaceTab} setSpaceTab={setSpaceTab} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} spaceNotify={spaceNotify} setSpaceNotify={setSpaceNotify} progress={progress} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'discover':  return <DiscoverScreen discoverTab={discoverTab} setDiscoverTab={setDiscoverTab} groupJoined={groupJoined} setGroupJoined={setGroupJoined} navigate={navigate} showToast={showToast} />;
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} chatsData={chatsData} groupActivityData={groupActivityData} />;
@@ -13204,7 +13287,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
-      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} />;
+      default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} currentUser={currentUser} />;
     }
   };
 
@@ -13246,7 +13329,20 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     <div style={{ width:'100%', height:'100dvh', position:'relative', background:C.pageBg,
                   fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden' }}>
       <div style={{ height:'100%' }} onTouchStart={handleEdgeSwipeStart} onTouchEnd={handleEdgeSwipeEnd} onTouchCancel={handleEdgeSwipeCancel}>
-        {renderScreen()}
+        {currentUser.isAuthenticated && currentUser.profile ? (
+          <div style={{ position:'relative', height:'100%' }}>
+            {ROOT_SCREENS.map(id => (
+              <div key={id} style={{ display: (onRootTab && screen === id) ? 'block' : 'none', position:'absolute', inset:0, height:'100%' }}>
+                {renderRootTab(id)}
+              </div>
+            ))}
+            {!onRootTab && (
+              <div style={{ position:'absolute', inset:0, height:'100%', background:C.pageBg }}>
+                {renderScreen()}
+              </div>
+            )}
+          </div>
+        ) : renderScreen()}
       </div>
       {toast && <Toast msg={toast} />}
       {showBottomNav && <BottomNav screen={screen} setScreen={setScreen} unreadCount={chatsData.unreadChatCount} />}

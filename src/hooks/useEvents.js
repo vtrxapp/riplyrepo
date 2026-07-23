@@ -79,10 +79,17 @@ export function useEvents({ category, search, filters } = {}) {
         .order('date', { ascending: true })
 
       // Category filter
-      if (category && !['trending', 'popular', 'new'].includes(category)) {
+      if (category && !['thisweek', 'new', 'mine'].includes(category)) {
         q = q.eq('category', category)
       }
-      if (category === 'trending') q = q.eq('trending', true)
+      // "This Week" is a real date-range filter (today through the end of
+      // the next 7 days), not the old manually-flagged `trending` boolean --
+      // replaces the fake "Trending This Week" tab with an actually-week-
+      // scoped one.
+      if (category === 'thisweek') {
+        const range = dateRangeFor('This Week')
+        q = q.gte('date', range[0]).lte('date', range[1])
+      }
 
       // Server-side search via ilike
       if (search && search.trim()) {

@@ -3849,10 +3849,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {(() => {
           const sl = g.social_links || {};
           const links = [
-            { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#39414F" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#39414F" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#39414F"/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
-            { key:'tiktok',    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke="#39414F" strokeWidth="1.6" strokeLinejoin="round"/></svg>, getUrl: v => `https://tiktok.com/@${v.replace(/^@/,'')}` },
-            { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#39414F" strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#39414F" strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
-            { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="#39414F" strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke="#39414F" strokeWidth="1.7" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
+            { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#E1306C" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#E1306C" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#E1306C"/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
+            { key:'tiktok',    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke={C.ink} strokeWidth="1.6" strokeLinejoin="round"/></svg>, getUrl: v => `https://tiktok.com/@${v.replace(/^@/,'')}` },
+            { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke={C.primary} strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
+            { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M7 7.5C8.5 6.7 10 6.5 12 6.5s3.5.2 5 1c1.8 2.5 2.5 5.5 2.3 9-1.3 1-2.7 1.7-4 2l-.8-1.4M7 7.5c-1.8 2.5-2.5 5.5-2.3 9 1.3 1 2.7 1.7 4 2l.8-1.4M9 14c2 1 4 1 6 0" stroke="#5865F2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
+            { key:'mail',      icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke={C.ink} strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke={C.ink} strokeWidth="1.7" strokeLinejoin="round"/></svg>, getUrl: v => `mailto:${v}` },
+            { key:'reddit',    icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13.5" r="7.5" stroke="#FF4500" strokeWidth="1.7"/><circle cx="8.7" cy="13.5" r="1.2" fill="#FF4500"/><circle cx="15.3" cy="13.5" r="1.2" fill="#FF4500"/><path d="M8.5 16.5c1 .8 2.2 1.2 3.5 1.2s2.5-.4 3.5-1.2" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 6v2M12 6a1.5 1.5 0 1 1 3 0" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round"/><circle cx="17.5" cy="9" r="1.2" stroke="#FF4500" strokeWidth="1.3"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://reddit.com/r/${v.replace(/^\/?r\//,'')}` },
           ].filter(l => sl[l.key]);
           if (links.length === 0) return null;
           return (
@@ -10648,7 +10650,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
   const [perms,      setPerms]      = useState({ membersPost:true, requireApproval:false, allowInvites:true });
   const [rules,      setRules]      = useState(staticG.rules?.length ? [...staticG.rules] : ['Be respectful and constructive','Original work only — credit sources','No spam or self-promotion','Keep feedback kind and specific']);
   const [ruleDraft,  setRuleDraft]  = useState('');
-  const [social,     setSocial]     = useState({ instagram:'', tiktok:'', website:'', discord:'' });
+  const [social,     setSocial]     = useState({ instagram:'', tiktok:'', website:'', discord:'', mail:'', reddit:'' });
   const [saving,     setSaving]     = useState(false);
   // Populate from DB once loaded
   useEffect(() => {
@@ -10659,7 +10661,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
     setVisibility(dbGroup.privacy || 'public');
     if (dbGroup.permissions) setPerms(p => ({ ...p, ...dbGroup.permissions }));
     if (dbGroup.rules?.length) setRules([...dbGroup.rules]);
-    if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', ...dbGroup.social_links });
+    if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', mail:'', reddit:'', ...dbGroup.social_links });
   }, [dbGroup]);
 
   const CATS = ['Academic','Social','Arts','Sports','Career','Culture'];
@@ -10683,6 +10685,10 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.9"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke={C.primary} strokeWidth="1.9"/></svg> },
     { key:'discord',   label:'Discord',   ph:'Invite link',
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 7.5C8.5 6.7 10 6.5 12 6.5s3.5.2 5 1c1.8 2.5 2.5 5.5 2.3 9-1.3 1-2.7 1.7-4 2l-.8-1.4M7 7.5c-1.8 2.5-2.5 5.5-2.3 9 1.3 1 2.7 1.7 4 2l.8-1.4M9 14c2 1 4 1 6 0" stroke="#5865F2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    { key:'mail',      label:'Mail',      ph:'group@example.com',
+      icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke={C.ink} strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke={C.ink} strokeWidth="1.7" strokeLinejoin="round"/></svg> },
+    { key:'reddit',    label:'Reddit',    ph:'Subreddit or r/name',
+      icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13.5" r="7.5" stroke="#FF4500" strokeWidth="1.8"/><circle cx="8.7" cy="13.5" r="1.3" fill="#FF4500"/><circle cx="15.3" cy="13.5" r="1.3" fill="#FF4500"/><path d="M8.5 16.5c1 .8 2.2 1.2 3.5 1.2s2.5-.4 3.5-1.2" stroke="#FF4500" strokeWidth="1.6" strokeLinecap="round"/><path d="M12 6v2M12 6a1.5 1.5 0 1 1 3 0" stroke="#FF4500" strokeWidth="1.6" strokeLinecap="round"/><circle cx="17.5" cy="9" r="1.3" stroke="#FF4500" strokeWidth="1.4"/></svg> },
   ];
 
   const Toggle = ({ on, onToggle }) => (

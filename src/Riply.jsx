@@ -861,7 +861,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     </svg>
                     <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : C.ink }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/></svg>
                     <span style={{ fontSize:11, fontWeight:700, color:C.ink }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.ink, fontWeight:500 }}>going</span></span>
                   </div>
@@ -3055,11 +3055,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
+          <span style={{ fontSize:13, fontWeight:700, color:'rgba(14,23,38,0.55)' }}>{comments.length} Reactions</span>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
                   stroke={cOpen?C.primary:C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize:13, fontWeight:700, color:C.ink }}>{comments.length} Reactions</span>
         </button>
       </div>
 

@@ -2743,7 +2743,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
   const isMe = !p.author_is_group && !!(currentUser?.userId && p.user_id === currentUser.userId);
 
   return (
-    <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:15 }}>
+    <div style={{ background:'#fff', borderRadius:18, padding:15 }}>
       {/* Author */}
       <div style={{ display:'flex', alignItems:'center', gap:11 }}>
         {(() => {
@@ -3617,7 +3617,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             {/* Explore — group analytics */}
             <button onClick={() => navigate('group-analytics', { groupId: g.id })} style={{
               flex:'0 1 170px', height:46, borderRadius:999, border:'none',
-              background:C.ink, color:'#fff', boxShadow:'0 8px 20px rgba(14,23,38,0.28)',
+              background:C.ink, color:'#fff',
               fontSize:15, fontWeight:800, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
@@ -3631,7 +3631,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             {/* Edit — group manage */}
             <button onClick={() => navigate('group-manage', { groupId: g.id })} style={{
               flex:'0 1 170px', height:46, borderRadius:999, border:'none',
-              background:C.ink, color:'#fff', boxShadow:'0 8px 20px rgba(14,23,38,0.28)',
+              background:C.ink, color:'#fff',
               fontSize:15, fontWeight:800, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
@@ -3649,7 +3649,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               position:'relative', width:46, height:46, border:'none',
               borderRadius:'50%', flexShrink:0, background:'#fff', cursor:'pointer',
               display:'flex', alignItems:'center', justifyContent:'center',
-              boxShadow:'0 4px 12px rgba(16,24,40,0.08)',
             }}>
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
                 <path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z"
@@ -3745,7 +3744,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           return (
             <div onClick={() => navigate('event-details', { eventId: pinnedEvent.id })}
               style={{ margin:'16px 16px 0', display:'flex', alignItems:'center', gap:13,
-                       background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
+                       background:'#fff', borderRadius:18,
                        padding:13, cursor:'pointer' }}>
               <div style={{ width:64, height:64, borderRadius:'50%', flexShrink:0, position:'relative',
                             overflow:'hidden', display:'flex', flexDirection:'column',
@@ -3857,10 +3856,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             <div style={{ display:'flex', justifyContent:'center', gap:20, padding:'16px 0 4px' }}>
               {links.map(l => (
                 <a key={l.key} href={l.getUrl(sl[l.key])} target="_blank" rel="noopener noreferrer"
-                  style={{ width:38, height:38, borderRadius:11, background:'#fff',
+                  style={{ width:38, height:38,
                            display:'flex', alignItems:'center', justifyContent:'center',
-                           textDecoration:'none',
-                           boxShadow:'0 3px 8px rgba(16,24,40,0.06)' }}>
+                           textDecoration:'none' }}>
                   {l.icon}
                 </a>
               ))}

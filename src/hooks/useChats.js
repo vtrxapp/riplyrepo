@@ -31,7 +31,7 @@ export function useChats() {
 
     const { data: chatRows } = await supabase
       .from('chats')
-      .select('id, name, initial, color, last_message, last_message_at, group_id')
+      .select('id, name, initial, color, last_message, last_message_at, last_message_sender_id, group_id')
       .in('id', chatIds)
       .order('last_message_at', { ascending: false, nullsFirst: false })
 
@@ -102,6 +102,7 @@ export function useChats() {
             time: formatTime(c.last_message_at),
             unread: !!unreadCountMap.get(c.id),
             unreadCount: unreadCountMap.get(c.id) || 0,
+            lastMessageIsMine: !!c.last_message_sender_id && c.last_message_sender_id === userId,
           }
         })
         setChats(enriched)
@@ -116,6 +117,7 @@ export function useChats() {
       time:    formatTime(c.last_message_at),
       unread:  !!unreadCountMap.get(c.id),
       unreadCount: unreadCountMap.get(c.id) || 0,
+      lastMessageIsMine: !!c.last_message_sender_id && c.last_message_sender_id === userId,
     })))
     setLoading(false)
   }, [])

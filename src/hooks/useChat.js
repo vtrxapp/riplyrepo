@@ -182,6 +182,7 @@ export function useChat(chatId) {
       await supabase.from('chats').update({
         last_message: content || '📎 Attachment',
         last_message_at: data.created_at,
+        last_message_sender_id: user.id,
       }).eq('id', cid)
     } else if (error) {
       // Remove optimistic on failure

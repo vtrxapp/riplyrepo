@@ -1318,7 +1318,18 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                       <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
                     </div>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
-                      <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
+                      <span style={{ display:'flex', alignItems:'center', gap:4, minWidth:0 }}>
+                        {/* Double-check -- shown only when the last message in this
+                            preview was sent by me, so the list distinguishes "I sent
+                            the last message" from "they did" without opening the chat. */}
+                        {c.lastMessageIsMine && (
+                          <svg width="14" height="10" viewBox="0 0 16 11" fill="none" style={{ flexShrink:0 }}>
+                            <path d="M1 5.5 4.5 9 11 1.5" stroke="#8A93A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M5.5 5.5 9 9 15.5 1.5" stroke="#8A93A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                        <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
+                      </span>
                       {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
                     </div>
                   </div>

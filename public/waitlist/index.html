@@ -310,6 +310,30 @@ button, input { font-family: inherit; }
   display: flex; align-items: center; justify-content: center;
 }
 
+/* ---------- Problem ---------- */
+.problem { padding: 70px 0; text-align: center; }
+.problem-eyebrow {
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--coral);
+}
+.problem h2 {
+  font-family: var(--font-display); font-weight: 800; font-size: clamp(30px, 4vw, 42px);
+  color: var(--ink); max-width: 680px; margin: 12px auto 0; letter-spacing: -0.02em; text-wrap: balance;
+}
+.problem-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+  max-width: 780px; margin: 40px auto 0; text-align: left;
+}
+.problem-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: #fff; border-radius: 18px; padding: 20px 22px; box-shadow: var(--shadow-card);
+}
+.problem-card .ic {
+  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+  background: #FFF1EF; display: flex; align-items: center; justify-content: center;
+}
+.problem-card p { font-size: 14.5px; font-weight: 600; color: var(--body); line-height: 1.45; margin: 0; }
+
 /* ---------- Mission ---------- */
 .mission { padding: 70px 0; text-align: center; }
 .mission h2 {
@@ -370,6 +394,7 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
 }
 @media (max-width: 520px) {
   .pillars { grid-template-columns: repeat(2, 1fr); }
+  .problem-grid { grid-template-columns: 1fr; }
   .waitlist-form { flex-direction: column; }
   .waitlist-form .btn { width: 100%; }
   .nav .btn-primary span.long { display: none; }
@@ -458,6 +483,29 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
     <div class="ticker" id="ticker"></div>
   </div>
 </div>
+
+<section class="wrap problem reveal">
+  <span class="problem-eyebrow">THE PROBLEM</span>
+  <h2>Campus life runs on flyers, group chats and guesswork.</h2>
+  <div class="problem-grid">
+    <div class="problem-card">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="2.5" stroke="#FF6B6B" stroke-width="1.8"/><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7" stroke="#FF6B6B" stroke-width="1.8"/><circle cx="12" cy="13.5" r="3" stroke="#FF6B6B" stroke-width="1.8"/></svg></span>
+      <p>The club fair flyer you photographed and never opened again.</p>
+    </div>
+    <div class="problem-card">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 5.5h16v10H9l-4 3.5v-3.5H4v-10Z" stroke="#FF6B6B" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8.5" cy="10.5" r="0.9" fill="#FF6B6B"/><circle cx="12" cy="10.5" r="0.9" fill="#FF6B6B"/><circle cx="15.5" cy="10.5" r="0.9" fill="#FF6B6B"/></svg></span>
+      <p>A 400-message group chat where the one useful reply is buried on page 12.</p>
+    </div>
+    <div class="problem-card">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#FF6B6B" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="#FF6B6B" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <p>Finding out the pickup game already happened an hour ago.</p>
+    </div>
+    <div class="problem-card">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3.5c3 1.5 5 2 8 2v6c0 5-3.5 7.7-8 9-4.5-1.3-8-4-8-9v-6c3 0 5-.5 8-2Z" stroke="#FF6B6B" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 8.5v4M12 15.5v.1" stroke="#FF6B6B" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <p>E-transferring a stranger for tickets and hoping it's not a scam.</p>
+    </div>
+  </div>
+</section>
 
 <section class="wrap pillars">
   <div class="pillar reveal">
@@ -609,7 +657,7 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
 
 <section class="wrap mission reveal">
   <h2>Built for campus, not for scale.</h2>
-  <p>Right now, campus life is scattered across group chats, printed flyers and apps that were never built for students. Riply puts your groups, your events and what's happening on campus right now in one place, so finding your people doesn't take five apps.</p>
+  <p>We're students building this for students, not chasing growth metrics. Just trying to make campus feel like campus again: one app for your groups, your events and everything actually happening around you.</p>
 </section>
 
 <section class="wrap" id="waitlist">

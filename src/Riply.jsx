@@ -3221,7 +3221,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
-function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser, markGroupRead, unreadChatCount }) {
+function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser, markGroupRead, unreadChatCount, unreadPostCount }) {
   // Opening a group's feed counts as seeing its posts, so the group
   // activity row in Notifications stops counting them as missed.
   useEffect(() => { markGroupRead?.(groupId); }, [groupId, markGroupRead]);
@@ -3720,12 +3720,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                       strokeWidth="1.9" strokeLinecap="round"/>
                 {!notifyOn && <path d="M4 5 20 19" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>}
               </svg>
-              {isJoined && notifyOn && (
+              {isJoined && notifyOn && unreadPostCount > 0 && (
                 <span style={{ position:'absolute', top:-2, right:-2, minWidth:18, height:18,
                                padding:'0 4px', borderRadius:999, background:C.primary,
                                color:'#fff', fontSize:10, fontWeight:800,
                                display:'flex', alignItems:'center', justifyContent:'center',
-                               border:'2px solid #F4F6FA' }}>5</span>
+                               border:'2px solid #F4F6FA' }}>{unreadPostCount > 99 ? '99+' : unreadPostCount}</span>
               )}
             </button>
           )}
@@ -13284,7 +13284,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
-      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} />;
+      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

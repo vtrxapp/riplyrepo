@@ -30,6 +30,7 @@ export function usePosts(groupId) {
     aColor:  p.author_color || 'linear-gradient(135deg,#7C5CFF,#B06BFF)',
     text:    p.content,
     likes:   p.likes_count || 0,
+    shares:  p.shares_count || 0,
   })
 
   // Pinned posts first, otherwise newest first.
@@ -108,6 +109,7 @@ export function usePosts(groupId) {
       image_url:      imageUrl || null,
       likes_count:    0,
       comment_count:  0,
+      shares_count:   0,
       author_name:    authorName,
       author_initial: authorName[0]?.toUpperCase() || 'M',
       author_color:   currentUser?.avatarColor || deriveAvatarColor(user.id),

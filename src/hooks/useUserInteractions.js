@@ -9,6 +9,7 @@ export function useUserInteractions() {
   const [spaceSaved,  setSpaceSavedState] = useState({})
   const [shared,      setSharedState]     = useState({})
   const [postLiked,   setPostLikedState]  = useState({})
+  const [postShared,  setPostSharedState] = useState({})
 
   useEffect(() => {
     if (!user?.id) return
@@ -19,12 +20,14 @@ export function useUserInteractions() {
       supabase.from('space_saves').select('space_id').eq('user_id', uid),
       supabase.from('event_shares').select('event_id').eq('user_id', uid),
       supabase.from('post_likes').select('post_id').eq('user_id', uid),
-    ]).then(([likes, saves, ssaves, shares, plikes]) => {
+      supabase.from('post_shares').select('post_id').eq('user_id', uid),
+    ]).then(([likes, saves, ssaves, shares, plikes, pshares]) => {
       if (likes.data)  setLikedState(Object.fromEntries(likes.data.map(r => [r.event_id, true])))
       if (saves.data)  setSavedState(Object.fromEntries(saves.data.map(r => [r.event_id, true])))
       if (ssaves.data) setSpaceSavedState(Object.fromEntries(ssaves.data.map(r => [r.space_id, true])))
       if (shares.data) setSharedState(Object.fromEntries(shares.data.map(r => [r.event_id, true])))
       if (plikes.data) setPostLikedState(Object.fromEntries(plikes.data.map(r => [r.post_id, true])))
+      if (pshares.data) setPostSharedState(Object.fromEntries(pshares.data.map(r => [r.post_id, true])))
     })
   }, [user?.id])
 
@@ -79,5 +82,12 @@ export function useUserInteractions() {
     }
   }, [user?.id, postLiked])
 
-  return { liked, saved, spaceSaved, shared, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike }
+  // One-way, same as recordShare for events -- once shared it stays recorded.
+  const recordPostShare = useCallback(async (postId) => {
+    if (!user?.id || postShared[postId]) return
+    setPostSharedState(p => ({ ...p, [postId]: true }))
+    await supabase.from('post_shares').upsert({ user_id: user.id, post_id: postId }, { onConflict: 'user_id,post_id' })
+  }, [user?.id, postShared])
+
+  return { liked, saved, spaceSaved, shared, postLiked, postShared, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike, recordPostShare }
 }

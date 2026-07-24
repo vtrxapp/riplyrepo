@@ -2988,9 +2988,9 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             ))}
           </div>
         )
-      ) : p.image_url && (
+      ) : (p.image_url || p.images?.[0]) && (
         <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:420 }}>
-          <img src={p.image_url} alt="" style={{ width:'100%', height:'auto', maxHeight:420, display:'block', objectFit:'cover' }} />
+          <img src={p.image_url || p.images[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:420, display:'block', objectFit:'contain' }} />
         </div>
       )}
 

@@ -3552,7 +3552,14 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         top: avatarLerp(58, 30),
         left:0, right:0,
         display:'flex', justifyContent:'center',
-        zIndex:30, pointerEvents: avatarProgress > 0.5 ? 'none' : 'auto',
+        // This wrapper spans the full width (left:0/right:0) at zIndex 30 --
+        // above the back/menu buttons (zIndex 21) -- so leaving it
+        // pointer-events:auto meant it caught taps on the back button
+        // underneath it anywhere outside the small centered avatar, even
+        // though nothing was visibly there. The avatar itself re-enables
+        // pointer-events:auto for just its own box below, so the wrapper
+        // can stay pass-through unconditionally.
+        zIndex:30, pointerEvents:'none',
         opacity: 1 - avatarProgress,
         transform: `scale(${avatarLerp(1, 0.7)})`,
       }}>

@@ -122,17 +122,40 @@ function fmtRange(r) {
   return r.split(' – ').map(fmt12).join(' – ');
 }
 
+const MEETING_HOSTS = [
+  [['zoom.us', 'zoom.com'],                   'Zoom'],
+  [['teams.microsoft.com', 'teams.live.com'], 'Microsoft Teams'],
+  [['meet.google.com'],                       'Google Meet'],
+  [['webex.com'],                             'Webex'],
+  [['discord.gg', 'discord.com'],             'Discord'],
+];
+
+// Parses a meeting link and returns the URL object only for genuine http(s)
+// links -- rejects anything unparsable or on another scheme (javascript:,
+// data:, mailto:, etc.) so callers can trust the result as a safe href
+// without re-validating it themselves.
+function parseMeetingUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return parsed;
+  } catch { return null; }
+}
+
 // Detects the video-call provider from a meeting URL so cards/detail screens
 // can show "Zoom"/"Microsoft Teams"/etc. without re-parsing the link
 // themselves -- resolved once at save time and stored as meeting_platform.
+// Matches on the parsed hostname (not a substring of the whole URL), so a
+// link like "https://evil.example/zoom.us" can't be mislabeled as Zoom.
 function detectMeetingPlatform(url) {
-  if (!url) return null;
-  const u = url.toLowerCase();
-  if (u.includes('zoom.us') || u.includes('zoom.com')) return 'Zoom';
-  if (u.includes('teams.microsoft.com') || u.includes('teams.live.com')) return 'Microsoft Teams';
-  if (u.includes('meet.google.com')) return 'Google Meet';
-  if (u.includes('webex.com')) return 'Webex';
-  if (u.includes('discord.gg') || u.includes('discord.com')) return 'Discord';
+  const parsed = parseMeetingUrl(url);
+  if (!parsed) return null;
+  const host = parsed.hostname.toLowerCase();
+  for (const [hosts, label] of MEETING_HOSTS) {
+    if (hosts.some(h => host === h || host.endsWith(`.${h}`))) return label;
+  }
   return 'Online';
 }
 
@@ -4445,8 +4468,13 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                 <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
                   {ev.meeting_platform || 'Online'} Meeting
                 </div>
-                <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link shared upon RSVP</div>
-                {ev.meeting_link && (
+                {/* Re-validated at render time (not just at save time) so a
+                    legacy row saved before link validation existed can't
+                    produce an unsafe href here. */}
+                {!parseMeetingUrl(ev.meeting_link) && (
+                  <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link not available yet</div>
+                )}
+                {parseMeetingUrl(ev.meeting_link) && (
                   <a href={ev.meeting_link} target="_blank" rel="noopener noreferrer" style={{
                     marginTop:10, display:'flex', alignItems:'center', justifyContent:'center',
                     height:40, borderRadius:10, background:C.primary, color:'#fff',
@@ -5214,8 +5242,16 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                 <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
                   {sp.meeting_platform || 'Online'} Meeting
                 </div>
-                <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link shared upon joining</div>
-                {sp.meeting_link && (
+                {/* The join link is only ever shown to members who've
+                    actually joined -- an unjoined visitor sees this note
+                    instead, rather than a live link to a space they haven't
+                    committed to. Also re-validated at render time so a
+                    legacy row saved before link validation existed can't
+                    produce an unsafe href here. */}
+                {!(joined && parseMeetingUrl(sp.meeting_link)) && (
+                  <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link shared upon joining</div>
+                )}
+                {joined && parseMeetingUrl(sp.meeting_link) && (
                   <a href={sp.meeting_link} target="_blank" rel="noopener noreferrer" style={{
                     marginTop:10, display:'flex', alignItems:'center', justifyContent:'center',
                     height:40, borderRadius:10, background:C.primary, color:'#fff',
@@ -8727,11 +8763,16 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
         <button onClick={async () => {
           if (!canCreate) { showToast('Add a space name first'); return; }
           if (!currentUser.userId) { showToast('You must be logged in to create a space'); return; }
+          const meetingUrl = isOnline ? parseMeetingUrl(meetingLink) : null;
+          if (isOnline && meetingLink.trim() && !meetingUrl) {
+            showToast('Enter a valid http(s) meeting link');
+            return;
+          }
           setSubmitting(true);
           const activeCatObj = CATS.find(c => c.id === cat) || CATS[0];
-          const meetingPlatform = isOnline ? detectMeetingPlatform(meetingLink) : null;
+          const meetingPlatform = meetingUrl ? detectMeetingPlatform(meetingLink) : null;
           const location = isOnline
-            ? (meetingPlatform ? `Online (${meetingPlatform})` : 'Online')
+            ? (meetingPlatform && meetingPlatform !== 'Online' ? `Online (${meetingPlatform})` : 'Online')
             : [venue, area].filter(Boolean).join(' · ');
           // Compute ends_at from date + start time + duration (in hours)
           let endsAt = null;
@@ -8748,7 +8789,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             category: cat,
             location: location || null,
             is_online: isOnline,
-            meeting_link: isOnline ? (meetingLink.trim() || null) : null,
+            meeting_link: meetingUrl ? meetingUrl.toString() : null,
             meeting_platform: meetingPlatform,
             time: startTime || null,
             duration: duration || null,
@@ -8996,14 +9037,21 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       showToast('Enter a valid ticket price');
       return;
     }
+    const meetingUrl = isOnline ? parseMeetingUrl(meetingLink) : null;
+    if (isOnline && meetingLink.trim() && !meetingUrl) {
+      showToast('Enter a valid http(s) meeting link');
+      return;
+    }
     setSubmittingStatus(status);
-    const meetingPlatform = isOnline ? detectMeetingPlatform(meetingLink) : null;
+    const meetingPlatform = meetingUrl ? detectMeetingPlatform(meetingLink) : null;
     // `location`/`venue`/`room` stay populated (as "Online (Zoom)") even for
     // online events so every older read site that only knows about those
     // text fields (saved lists, tickets' ICS export, etc.) still shows
-    // something sensible instead of a blank location.
+    // something sensible instead of a blank location. Only known platforms
+    // (not the generic 'Online' fallback) get the parenthetical, so an
+    // unrecognized provider reads "Online" instead of "Online (Online)".
     const location = isOnline
-      ? (meetingPlatform ? `Online (${meetingPlatform})` : 'Online')
+      ? (meetingPlatform && meetingPlatform !== 'Online' ? `Online (${meetingPlatform})` : 'Online')
       : [venue, room].filter(Boolean).join(' · ');
     const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
     const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
@@ -9015,10 +9063,13 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       category: cat,
       tags: [cat],
       location: location || null,
-      venue: isOnline ? null : (venue.trim() || null),
+      // Kept populated (not nulled) for online events too -- ticket/legacy
+      // screens read venue/room directly rather than location, so nulling
+      // them would show a blank spot there for an otherwise-valid event.
+      venue: isOnline ? location : (venue.trim() || null),
       room: isOnline ? null : (room.trim() || null),
       is_online: isOnline,
-      meeting_link: isOnline ? (meetingLink.trim() || null) : null,
+      meeting_link: meetingUrl ? meetingUrl.toString() : null,
       meeting_platform: meetingPlatform,
       date: date || null,
       full_date: date || null,

@@ -156,11 +156,12 @@ export function useEvents({ category, search, filters } = {}) {
           q = q.or(values.join(','))
         }
 
-        // Interests → tags / category
-        const interestOpts = keys.filter(k => k.startsWith('interests:')).map(k => k.split(':')[1].toLowerCase())
+        // Interests → category id. FiltersScreen sends canonical ids (e.g.
+        // 'personal-development'), matching what CreateEventScreen persists,
+        // so an exact match is used instead of ilike substring matching.
+        const interestOpts = keys.filter(k => k.startsWith('interests:')).map(k => k.split(':')[1])
         if (interestOpts.length > 0) {
-          const values = interestOpts.map(o => `category.ilike.%${o}%`)
-          q = q.or(values.join(','))
+          q = q.in('category', interestOpts)
         }
 
         // Price

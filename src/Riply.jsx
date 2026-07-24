@@ -3971,7 +3971,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                             <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25, flex:1, minWidth:0,
                                           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
-                            {ev.is_pinned && (
+                            {/* Admins already see pinned state on the toggle button to the
+                                right (highlighted background) -- showing this badge too for
+                                them read as two separate pins on the same row. Members with
+                                no toggle button still need this as their only indicator. */}
+                            {ev.is_pinned && !isGroupAdmin && (
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
                                 <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
                                 <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3985,12 +3989,18 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                             <div style={{ fontSize:11.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
                                           overflow:'hidden', textOverflow:'ellipsis' }}>{ev.venue || ev.location}</div>
                           )}
-                          <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                              <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
-                              <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
-                            </svg>
-                            <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{ev.attendees_count || ev.going || 0} going</span>
+                          <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:7 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill="#FF3B6B" stroke="#FF3B6B" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                              <span style={{ fontSize:11.5, fontWeight:700, color:C.ink }}>{fmt(ev.likes || 0)}</span>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
+                                <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
+                              </svg>
+                              <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{fmt(ev.attendee_count || 0)} going</span>
+                            </div>
                           </div>
                         </div>
                         {isGroupAdmin && (

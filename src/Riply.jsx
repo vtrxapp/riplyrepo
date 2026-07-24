@@ -1,11 +1,12 @@
 // Riply v1.0
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useClerkAuth } from "./hooks/useClerkAuth";
 import { useCurrentUser, deriveAvatarColor } from "./hooks/useCurrentUser";
 import { useNotifications } from "./hooks/useNotifications";
 import { useChat, blockUser, invalidateProfileCache } from "./hooks/useChat";
 import { useChats } from "./hooks/useChats";
+import { formatDateSeparator } from "./lib/formatTime";
 import { useGroupActivity } from "./hooks/useGroupActivity";
 import { useEvents, useEvent } from "./hooks/useEvents";
 import { parseEventPrice } from "./lib/eventPrice";
@@ -5335,6 +5336,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
       side:       isOut ? 'out' : 'in',
       text:       msg.content,
       time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'numeric', minute:'2-digit', hour12:true }),
+      createdAt:  msg.created_at,
       hasText:    !!msg.content,
       hasImage:   !!(msg.attachment_url && /\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
       hasFile:    !!(msg.attachment_url && !/\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
@@ -5517,21 +5519,28 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
       {/* ── Message list ───────────────────────────────────── */}
       <div ref={scrollRef} style={{ flex:1, overflowY:'auto', padding:'14px 13px 12px',
                                      display:'flex', flexDirection:'column', gap:3 }}>
-        {/* Date pill */}
-        <div style={{ alignSelf:'center', margin:'4px 0 10px', padding:'4px 12px',
-                      borderRadius:999, background:'rgba(16,24,40,0.06)',
-                      fontSize:10, fontWeight:700, color:'#7B8499' }}>
-          Today
-        </div>
-
         {messages.map((m, i) => {
           const isOut = m.side === 'out';
           const prev  = messages[i - 1];
           const firstOfGroup = !prev || prev.side !== m.side ||
             (!isOut && isGroupChat && prev.sender !== m.sender);
+          // A new date pill whenever this message's calendar day differs from
+          // the previous message's -- replaces the old pill that always
+          // hardcoded "Today" regardless of when the messages were actually sent.
+          const prevDay = prev ? new Date(prev.createdAt).toDateString() : null;
+          const thisDay = new Date(m.createdAt).toDateString();
+          const showDateSeparator = thisDay !== prevDay;
 
           return (
-            <div key={m.id} style={{ display:'flex', gap:7, marginTop: firstOfGroup ? 10 : 2,
+            <Fragment key={m.id}>
+              {showDateSeparator && (
+                <div style={{ alignSelf:'center', margin:'4px 0 10px', padding:'4px 12px',
+                              borderRadius:999, background:'rgba(16,24,40,0.06)',
+                              fontSize:10, fontWeight:700, color:'#7B8499' }}>
+                  {formatDateSeparator(m.createdAt)}
+                </div>
+              )}
+            <div style={{ display:'flex', gap:7, marginTop: firstOfGroup ? 10 : 2,
                                       flexDirection: isOut ? 'row-reverse' : 'row' }}>
               {/* Avatar — only first of incoming group */}
               {!isOut && firstOfGroup && (
@@ -5620,6 +5629,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                 </span>
               </div>
             </div>
+            </Fragment>
           );
         })}
       </div>

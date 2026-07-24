@@ -15,6 +15,22 @@ export function formatChatTimestamp(iso) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
+// Chat date-separator pill: "Today" / "Yesterday" / weekday within a week /
+// else full date -- unlike formatChatTimestamp (which returns a time for
+// today's messages), this always returns a day label.
+export function formatDateSeparator(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const diffDays = Math.round((startOfToday - startOfDay) / 86400000)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays > 1 && diffDays < 7) return d.toLocaleDateString([], { weekday: 'long' })
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
+}
+
 // Notification-feed style: "Just now" / "5m" / "3h" / "2d", else month/day.
 export function formatRelativeTime(iso) {
   if (!iso) return ''

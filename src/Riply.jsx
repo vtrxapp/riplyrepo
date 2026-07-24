@@ -2515,11 +2515,13 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
     },
     {
       id: 'interests', title: 'Interests',
-      // Labels shown to the user; INTEREST_IDS below maps each back to the
-      // canonical category id actually stored on events, since labels like
-      // "Sports & Fitness" and "Personal Development" don't match their ids
-      // (sports, personal-development) by simple lowercasing.
-      opts: ['Academic','Sports & Fitness','Cultural','Entrepreneurship','Personal Development','Community','Volunteering','Innovation','Social','Career'],
+      // Labels shown to the user, sourced from the same APP_CATEGORIES list
+      // every creation screen uses; INTEREST_IDS/INTEREST_LABELS below map
+      // each back and forth to the canonical category id actually stored on
+      // events, since labels like "Sports & Fitness" and "Personal
+      // Development" don't match their ids (sports, personal-development) by
+      // simple lowercasing.
+      opts: APP_CATEGORIES.map(c => c.label),
     },
     {
       id: 'price', title: 'Price',
@@ -2527,13 +2529,13 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
     },
   ];
 
-  const INTEREST_IDS = {
-    'Academic':'academic', 'Sports & Fitness':'sports', 'Cultural':'culture',
-    'Entrepreneurship':'entrepreneurship', 'Personal Development':'personal-development',
-    'Community':'community', 'Volunteering':'volunteering', 'Innovation':'innovation',
-    'Social':'social', 'Career':'career',
+  const INTEREST_IDS    = Object.fromEntries(APP_CATEGORIES.map(c => [c.label, c.id]));
+  const INTEREST_LABELS = Object.fromEntries(APP_CATEGORIES.map(c => [c.id, c.label]));
+  const keyFor   = (secId, opt) => secId === 'interests' ? `interests:${INTEREST_IDS[opt] || opt}` : `${secId}:${opt}`;
+  const labelFor = key => {
+    const [secId, val] = key.split(':');
+    return secId === 'interests' ? (INTEREST_LABELS[val] || val) : val;
   };
-  const keyFor = (secId, opt) => secId === 'interests' ? `interests:${INTEREST_IDS[opt] || opt}` : `${secId}:${opt}`;
 
   const [open,     setOpen]     = useState({ date:true, location:true, faculty:true, interests:true, price:true });
   const [selected, setSelected] = useState(initialFilters || {});   // `${secId}:${opt}` → true
@@ -2652,14 +2654,13 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
         {count > 0 && (
           <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
             {Object.keys(selected).map(key => {
-              const [, opt] = key.split(':');
               return (
                 <span key={key} onClick={() => toggleChip(key)} style={{
                   display:'inline-flex', alignItems:'center', gap:5, height:28,
                   padding:'0 10px', borderRadius:999, background:C.primary,
                   color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer',
                 }}>
-                  {opt}
+                  {labelFor(key)}
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
                     <path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2.6" strokeLinecap="round"/>
                   </svg>
@@ -7788,22 +7789,7 @@ function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
 // SCREEN: CREATE CAMPUS GROUP
 // ─────────────────────────────────────────────────────────────
 function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
-  const CATS = APP_CATEGORIES.map(c => ({ id:c.id, label:c.label }));
-  const GRADS = {
-    academic:'linear-gradient(135deg,#2F6BFF,#6C4DF2)',
-    sports:  'linear-gradient(135deg,#10B981,#06B6D4)',
-    arts:    'linear-gradient(135deg,#FF5A8A,#FF8A3D)',
-    social:  'linear-gradient(135deg,#FF6B6B,#FFB347)',
-    career:  'linear-gradient(135deg,#0EA5E9,#0E84E0)',
-    culture: 'linear-gradient(135deg,#7C5CFF,#B06BFF)',
-    faith:   'linear-gradient(135deg,#0E9F6E,#06B6D4)',
-    wellness:'linear-gradient(135deg,#F59E0B,#EF4444)',
-    entrepreneurship:     'linear-gradient(135deg,#2F6BFF,#00C2FF)',
-    'personal-development': 'linear-gradient(135deg,#FFB347,#FF8A3D)',
-    community:            'linear-gradient(135deg,#06B6D4,#7C5CFF)',
-    volunteering:         'linear-gradient(135deg,#10B981,#FFB347)',
-    innovation:           'linear-gradient(135deg,#7C5CFF,#19BFFF)',
-  };
+  const CATS = APP_CATEGORIES;
   const DEF_RULES = [
     'Be respectful and constructive',
     'Original work only — credit sources',
@@ -7824,7 +7810,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
   const [rules,    setRules]    = useState([...DEF_RULES]);
   const [draft,    setDraft]    = useState('');
 
-  const coverGrad = GRADS[cat] || GRADS.culture;
+  const coverGrad = APP_CATEGORIES.find(c => c.id === cat)?.grad || APP_CATEGORIES.find(c => c.id === 'culture').grad;
   const initial   = (name.trim() ? name.trim()[0] : 'G').toUpperCase();
   const isPublic  = privacy === 'public';
   const canCreate = name.trim().length > 0;

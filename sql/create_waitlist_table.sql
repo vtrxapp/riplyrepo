@@ -2,6 +2,7 @@ create table if not exists public.waitlist (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   university text,
+  role text not null default 'student' check (role in ('student', 'admin')),
   source text default 'landing',
   created_at timestamptz not null default now()
 );

@@ -165,8 +165,21 @@ button, input { font-family: inherit; }
   font-size: 17.5px; line-height: 1.55; color: var(--muted);
   max-width: 480px; margin-top: 20px;
 }
+.role-toggle {
+  display: inline-flex; background: var(--chip); border-radius: 999px; padding: 4px; gap: 4px;
+  margin-top: 26px;
+}
+.role-btn {
+  border: none; background: transparent; padding: 8px 18px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer;
+  font-family: var(--font-body); transition: background 0.15s ease, color 0.15s ease;
+}
+.role-btn.active { background: #fff; color: var(--ink); box-shadow: var(--shadow-card); }
+.cta-band .role-toggle { background: rgba(255,255,255,0.18); }
+.cta-band .role-btn { color: rgba(255,255,255,0.85); }
+.cta-band .role-btn.active { background: #fff; color: var(--primary); }
 .waitlist-form {
-  display: flex; gap: 10px; margin-top: 30px; max-width: 460px;
+  display: flex; gap: 10px; margin-top: 14px; max-width: 460px;
 }
 .email-field { position: relative; flex: 1; min-width: 0; }
 .email-field svg { position: absolute; left: 19px; top: 50%; transform: translateY(-50%); pointer-events: none; }
@@ -444,6 +457,10 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
       <span class="eyebrow"><span class="dot"></span>PRE-LAUNCH · JOIN THE WAITLIST</span>
       <h1>Where campus<br/>actually <em>happens.</em></h1>
       <p class="sub">Groups, events and live spaces for your university, all in one app. No more group chats, flyers and five different apps just to find out what's going on tonight.</p>
+      <div class="role-toggle" role="group" aria-label="I am a">
+        <button type="button" class="role-btn active" data-role="student">Student</button>
+        <button type="button" class="role-btn" data-role="admin">Group Admin</button>
+      </div>
       <form class="waitlist-form" id="waitlist-form-hero">
         <div class="email-field">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="#9AA3B2" stroke-width="1.7"/><path d="m4 7 8 6 8-6" stroke="#9AA3B2" stroke-width="1.7" stroke-linejoin="round"/></svg>
@@ -722,6 +739,10 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
   <div class="cta-band reveal">
     <h2>Be first on campus.</h2>
     <p>Join the waitlist. We'll email you the moment Riply lands at your school.</p>
+    <div class="role-toggle" role="group" aria-label="I am a">
+      <button type="button" class="role-btn active" data-role="student">Student</button>
+      <button type="button" class="role-btn" data-role="admin">Group Admin</button>
+    </div>
     <form class="waitlist-form" id="waitlist-form-cta">
       <div class="email-field">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="#9AA3B2" stroke-width="1.7"/><path d="m4 7 8 6 8-6" stroke="#9AA3B2" stroke-width="1.7" stroke-linejoin="round"/></svg>
@@ -783,6 +804,19 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
     el.textContent = msg;
   }
 
+  // Each waitlist form has its own "I am a: Student / Group Admin" toggle
+  // as the immediately preceding sibling in the DOM (not nested inside the
+  // form itself, since it sits above the input row) -- clicking a button
+  // just flips which one has .active within that same toggle group.
+  document.querySelectorAll('.role-toggle').forEach(function (toggle) {
+    toggle.addEventListener('click', function (e) {
+      var btn = e.target.closest('.role-btn');
+      if (!btn) return;
+      toggle.querySelectorAll('.role-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+
   function wireForm(formId, statusId) {
     var form = document.getElementById(formId);
     var status = document.getElementById(statusId);
@@ -792,6 +826,9 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
       var input = form.querySelector('input[type="email"]');
       var email = input.value.trim();
       if (!email) return;
+      var toggle = form.previousElementSibling;
+      var activeBtn = toggle && toggle.classList.contains('role-toggle') ? toggle.querySelector('.role-btn.active') : null;
+      var role = activeBtn ? activeBtn.dataset.role : 'student';
       var btn = form.querySelector('button');
       var originalLabel = btn.textContent;
       btn.disabled = true;
@@ -805,7 +842,7 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
           'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
           'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({ email: email, source: 'landing' })
+        body: JSON.stringify({ email: email, role: role, source: 'landing' })
       }).then(function (res) {
         btn.disabled = false;
         btn.textContent = originalLabel;

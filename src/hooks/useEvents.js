@@ -13,10 +13,16 @@ async function attachUserProfiles(rows) {
   // as a fallback, rather than falling through with no organizer at all.
   const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))]
   const groupIds = [...new Set(rows.map(r => r.group_id).filter(Boolean))]
-  const [{ data: users }, { data: groups }] = await Promise.all([
+  const [{ data: users, error: usersErr }, { data: groups, error: groupsErr }] = await Promise.all([
     userIds.length ? supabase.from('users').select('id,name,avatar_url,avatar_color').in('id', userIds) : Promise.resolve({ data: [] }),
     groupIds.length ? supabase.from('groups').select('id,name,avatar_url,logo_color').in('id', groupIds) : Promise.resolve({ data: [] }),
   ])
+  // A failed lookup just means this pass falls back to whatever fields the
+  // row already had (or the other lookup's result) rather than blocking the
+  // whole event list -- but it's still worth logging so a silently-empty
+  // organizer badge on cards has a paper trail.
+  if (usersErr) console.error('[useEvents] users lookup failed:', usersErr)
+  if (groupsErr) console.error('[useEvents] groups lookup failed:', groupsErr)
   const userMap  = Object.fromEntries((users || []).map(u => [u.id, u]))
   const groupMap = Object.fromEntries((groups || []).map(g => [g.id, g]))
   return rows.map(r => {

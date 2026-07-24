@@ -3563,7 +3563,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         opacity: 1 - avatarProgress,
         transform: `scale(${avatarLerp(1, 0.7)})`,
       }}>
-        <div style={{ position:'relative', display:'inline-block', pointerEvents:'auto' }}>
+        <div style={{ position:'relative', display:'inline-block',
+                      // Once fully collapsed the avatar is invisible (opacity 0
+                      // above) -- without this it would still swallow taps in
+                      // this circle even though nothing is shown there anymore.
+                      pointerEvents: avatarProgress < 1 ? 'auto' : 'none' }}>
           <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
                         background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                         justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,

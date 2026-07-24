@@ -5327,12 +5327,17 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
       : (profile?.name || (isGroupChat ? 'Member' : chatName) || '?')
     const senderAvatar = isOut ? (currentUser?.avatarUrl || profile?.avatar_url || null) : (profile?.avatar_url || null)
     const senderColor  = (isOut ? currentUser?.avatarColor : null) || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)'
+    const createdDate  = new Date(msg.created_at)
     return {
       id:         msg.id,
       side:       isOut ? 'out' : 'in',
       text:       msg.content,
-      time:       new Date(msg.created_at).toLocaleTimeString([], { hour:'numeric', minute:'2-digit', hour12:true }),
+      time:       createdDate.toLocaleTimeString([], { hour:'numeric', minute:'2-digit', hour12:true }),
       createdAt:  msg.created_at,
+      // Precomputed once here (rather than re-parsed per render in the
+      // message-list loop below) so day-boundary comparisons for date
+      // separators are just a string check.
+      dayKey:     createdDate.toDateString(),
       hasText:    !!msg.content,
       hasImage:   !!(msg.attachment_url && /\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
       hasFile:    !!(msg.attachment_url && !/\.(png|jpe?g|gif|webp|heic)$/i.test(msg.attachment_url)),
@@ -5518,14 +5523,15 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
         {messages.map((m, i) => {
           const isOut = m.side === 'out';
           const prev  = messages[i - 1];
-          const firstOfGroup = !prev || prev.side !== m.side ||
-            (!isOut && isGroupChat && prev.sender !== m.sender);
           // A new date pill whenever this message's calendar day differs from
           // the previous message's -- replaces the old pill that always
           // hardcoded "Today" regardless of when the messages were actually sent.
-          const prevDay = prev ? new Date(prev.createdAt).toDateString() : null;
-          const thisDay = new Date(m.createdAt).toDateString();
-          const showDateSeparator = thisDay !== prevDay;
+          const showDateSeparator = !prev || prev.dayKey !== m.dayKey;
+          // A day change always starts a new group too -- otherwise the same
+          // sender's first message of a new day would render as a silent
+          // continuation (no avatar/name) right under a fresh date pill.
+          const firstOfGroup = showDateSeparator || !prev || prev.side !== m.side ||
+            (!isOut && isGroupChat && prev.sender !== m.sender);
 
           return (
             <Fragment key={m.id}>

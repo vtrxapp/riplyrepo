@@ -2993,14 +2993,6 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
           </svg>
           <span style={{ fontSize:13, fontWeight:700, color:liked?'#FF3B6B':C.ink }}>{(p.likes||0)+(liked?1:0)}</span>
         </button>
-        <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
-          style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
-                  stroke={cOpen?C.primary:C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span style={{ fontSize:13, fontWeight:700, color:C.ink }}>{comments.length}</span>
-        </button>
         <button onClick={async () => {
             const shareText = p.text || 'Check this post on Riply';
             if (navigator.share) {
@@ -3015,6 +3007,14 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             <circle cx="18" cy="19" r="2.6" stroke={C.ink} strokeWidth="1.9"/>
             <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
+        </button>
+        <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
+          style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
+                  stroke={cOpen?C.primary:C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span style={{ fontSize:13, fontWeight:700, color:C.ink }}>{comments.length} Reactions</span>
         </button>
       </div>
 
@@ -5681,7 +5681,8 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
                   )}
                   {/* Text */}
                   {m.hasText && (
-                    <span style={{ fontSize:13, lineHeight:1.47,
+                    <span style={{ fontSize:13, lineHeight:1.47, wordBreak:'break-word',
+                                   overflowWrap:'anywhere',
                                    color: isOut ? '#fff' : '#1A2233' }}>
                       {m.text}
                     </span>

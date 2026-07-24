@@ -8,7 +8,10 @@ import { supabase } from '../lib/supabase'
 // Only a personal (non-group) event falls back to the creator's own profile.
 async function attachUserProfiles(rows) {
   if (!rows?.length) return rows || []
-  const userIds = [...new Set(rows.filter(r => !r.group_id).map(r => r.user_id).filter(Boolean))]
+  // Fetched for every row, not just non-group ones -- a group-linked event
+  // whose group_id points at a since-deleted group still needs the creator
+  // as a fallback, rather than falling through with no organizer at all.
+  const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))]
   const groupIds = [...new Set(rows.map(r => r.group_id).filter(Boolean))]
   const [{ data: users }, { data: groups }] = await Promise.all([
     userIds.length ? supabase.from('users').select('id,name,avatar_url,avatar_color').in('id', userIds) : Promise.resolve({ data: [] }),

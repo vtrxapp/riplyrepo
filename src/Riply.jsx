@@ -898,9 +898,17 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                 <div style={{ flex:1, minWidth:0 }}>
                   <div onClick={()=>navigate('space-details',{spaceId:sp.id})} style={{ fontSize:16, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{sp.title}</div>
                   <div style={{ fontSize:11, color:'#7B8499', marginTop:3, lineHeight:1.4 }}>{sp.desc || sp.description || ""}</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
-                    <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:7 }}>
+                    {spaceDayLabel(sp.day) && (
+                      <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M4 4.5h16a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/><path d="M3 9h18M8 2.5v4M16 2.5v4" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>
+                        <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6', whiteSpace:'nowrap' }}>{spaceDayLabel(sp.day)}</span>
+                      </div>
+                    )}
+                    <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
+                      <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sp.location}</span>
+                    </div>
                   </div>
                 </div>
                 <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)', overflow:'hidden' }}>
@@ -4652,6 +4660,23 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   );
 }
 
+// Compute a display label from a space's `day` field (could be 'today',
+// 'tomorrow', or a date string like '2026-06-27') -- shared by the Spaces
+// list cards and SpaceDetailsScreen so both read the date the same way.
+function spaceDayLabel(raw) {
+  if (!raw) return null;
+  if (raw === 'today') return 'Today';
+  if (raw === 'tomorrow') return 'Tomorrow';
+  const spDate = new Date(raw + 'T00:00:00');
+  if (isNaN(spDate)) return raw;
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+  if (raw === todayStr) return 'Today';
+  if (raw === tomorrowStr) return 'Tomorrow';
+  return fmtDate(spDate);
+}
+
 function calcSpaceProgress(timeStr, dayStr, duration) {
   if (!timeStr || !dayStr) return null;
   const base = (dayStr === 'today' || dayStr === 'tomorrow') ? new Date() : new Date(dayStr + 'T00:00:00');
@@ -4765,21 +4790,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   const fmtDur = v => v ? (/^\d+$/.test(String(v)) ? `${v} min` : String(v)) : '';
   const hostName = (sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i, '');
 
-  // Compute date label from sp.day (could be 'today','tomorrow', or a date string like '2026-06-27')
-  const spDayLabel = (() => {
-    const raw = sp.day;
-    if (!raw) return null;
-    if (raw === 'today') return 'Today';
-    if (raw === 'tomorrow') return 'Tomorrow';
-    const spDate = new Date(raw + 'T00:00:00');
-    if (isNaN(spDate)) return raw;
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
-    if (raw === todayStr) return 'Today';
-    if (raw === tomorrowStr) return 'Tomorrow';
-    return fmtDate(spDate);
-  })();
+  const spDayLabel = spaceDayLabel(sp.day);
 
 
   const HeaderBtn = ({ onClick, children }) => (

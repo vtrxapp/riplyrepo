@@ -4711,7 +4711,12 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                 Manage Event
               </button>
             );
-            if (!withinDayOfEvent) return manageBtn;
+            // `manageBtn` uses flex:1, which only stretches to full width when
+            // it's actually inside a flex row (the two-button case below) --
+            // rendered alone it would otherwise shrink to content size and
+            // sit small/left-aligned, so it's wrapped in its own full-width
+            // flex row here too.
+            if (!withinDayOfEvent) return <div style={{ display:'flex' }}>{manageBtn}</div>;
             return (
               <div style={{ display:'flex', gap:10 }}>
                 {manageBtn}

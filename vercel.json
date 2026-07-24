@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "joinriply.com" }],
+      "destination": "/waitlist/index.html"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "www.joinriply.com" }],
+      "destination": "/waitlist/index.html"
+    }
+  ]
+}

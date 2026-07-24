@@ -425,10 +425,20 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
 }
 
 function Tabs({ tabs, active, onSelect }) {
+  const btnRefs = useRef({});
+  // Keeps the pill bar itself in sync with the active tab -- previously only
+  // clicking a pill scrolled it into view; swiping the page content (which
+  // calls onSelect/setActiveCat directly, bypassing this bar) changed which
+  // tab was active without ever scrolling the bar, so a swipe could land on
+  // a tab that was still scrolled off-screen until the user manually
+  // dragged the pill row too.
+  useEffect(() => {
+    btnRefs.current[active]?.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+  }, [active]);
   return (
     <div style={{ display:'flex', gap:8, overflowX:'auto', padding:'2px 16px', scrollbarWidth:'none' }}>
       {tabs.map(t => (
-        <button key={t.id} onClick={() => onSelect(t.id)} style={{ flexShrink:0, border:'none', cursor:'pointer', height:38, padding:'0 16px', borderRadius:999, fontSize:11.5, fontWeight:700, whiteSpace:'nowrap', fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'all .15s', background: t.id===active ? C.primary : C.chip, color: t.id===active ? '#fff' : C.muted, boxShadow: t.id===active ? '0 4px 12px rgba(2,162,240,0.34)' : 'none' }}>
+        <button key={t.id} ref={el => { btnRefs.current[t.id] = el; }} onClick={() => onSelect(t.id)} style={{ flexShrink:0, border:'none', cursor:'pointer', height:38, padding:'0 16px', borderRadius:999, fontSize:11.5, fontWeight:700, whiteSpace:'nowrap', fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'all .15s', background: t.id===active ? C.primary : C.chip, color: t.id===active ? '#fff' : C.muted, boxShadow: t.id===active ? '0 4px 12px rgba(2,162,240,0.34)' : 'none' }}>
           {t.label}
         </button>
       ))}
@@ -889,9 +899,17 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                 <div style={{ flex:1, minWidth:0 }}>
                   <div onClick={()=>navigate('space-details',{spaceId:sp.id})} style={{ fontSize:16, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{sp.title}</div>
                   <div style={{ fontSize:11, color:'#7B8499', marginTop:3, lineHeight:1.4 }}>{sp.desc || sp.description || ""}</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
-                    <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6' }}>{sp.location}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:7 }}>
+                    {spaceDayLabel(sp.day) && (
+                      <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M4 4.5h16a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/><path d="M3 9h18M8 2.5v4M16 2.5v4" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/></svg>
+                        <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6', whiteSpace:'nowrap' }}>{spaceDayLabel(sp.day)}</span>
+                      </div>
+                    )}
+                    <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
+                      <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sp.location}</span>
+                    </div>
                   </div>
                 </div>
                 <div style={{ width:50, height:50, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:15, fontWeight:800, background:sp.avatarColor || sp.avatar_color || "linear-gradient(135deg,#19BFFF,#0098F0)", boxShadow:'0 4px 10px rgba(16,24,40,0.12)', overflow:'hidden' }}>
@@ -1297,7 +1315,18 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                       <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
                     </div>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
-                      <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
+                      <span style={{ display:'flex', alignItems:'center', gap:4, minWidth:0 }}>
+                        {/* Double-check -- shown only when the last message in this
+                            preview was sent by me, so the list distinguishes "I sent
+                            the last message" from "they did" without opening the chat. */}
+                        {c.lastMessageIsMine && (
+                          <svg width="14" height="10" viewBox="0 0 16 11" fill="none" style={{ flexShrink:0 }}>
+                            <path d="M1 5.5 4.5 9 11 1.5" stroke="#8A93A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M5.5 5.5 9 9 15.5 1.5" stroke="#8A93A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                        <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
+                      </span>
                       {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
                     </div>
                   </div>
@@ -4574,19 +4603,54 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
       {/* ── Floating buy button ───────────────────────────── */}
       <div style={{ position:'absolute', bottom:24, left:24, right:24, zIndex:6 }}>
         {role !== 'student' ? (
-          <button onClick={() => navigate('check-in', {eventId: ev.id})} style={{
-            width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
-            background:'linear-gradient(135deg,#0E1726,#1A2538)', color:'#fff',
-            fontSize:14, fontWeight:800,
-            fontFamily:"'Montserrat',-apple-system,sans-serif",
-            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-            boxShadow:'0 10px 28px rgba(14,23,38,0.35)',
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Check In
-          </button>
+          // Check-in only makes sense once attendees might plausibly be
+          // arriving -- showing it from the moment an event is created
+          // (days or weeks out) let an organizer tap straight into the
+          // scanner for an event that hasn't happened yet. Gated to the
+          // last 24h before start; earlier than that, "Manage Event" is
+          // the only organizer action offered here.
+          (() => {
+            const eventDateObj = ev.date ? new Date(ev.date) : null;
+            const withinDayOfEvent = eventDateObj && !isNaN(eventDateObj)
+              ? (eventDateObj.getTime() - Date.now()) <= 24 * 60 * 60 * 1000
+              : true;
+            const manageBtn = (
+              <button onClick={() => navigate('event-manager')} style={{
+                flex:1, height:54, border:'none', borderRadius:18, cursor:'pointer',
+                background: withinDayOfEvent ? C.chip : 'linear-gradient(135deg,#0E1726,#1A2538)',
+                color: withinDayOfEvent ? C.ink : '#fff',
+                fontSize:14, fontWeight:800,
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                boxShadow: withinDayOfEvent ? 'none' : '0 10px 28px rgba(14,23,38,0.35)',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 4.5h16a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z" stroke={withinDayOfEvent ? C.ink : '#fff'} strokeWidth="1.8" strokeLinejoin="round"/>
+                  <path d="M3 9h18M8 2.5v4M16 2.5v4" stroke={withinDayOfEvent ? C.ink : '#fff'} strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+                Manage Event
+              </button>
+            );
+            if (!withinDayOfEvent) return manageBtn;
+            return (
+              <div style={{ display:'flex', gap:10 }}>
+                {manageBtn}
+                <button onClick={() => navigate('check-in', {eventId: ev.id})} style={{
+                  flex:1, height:54, border:'none', borderRadius:18, cursor:'pointer',
+                  background:'linear-gradient(135deg,#0E1726,#1A2538)', color:'#fff',
+                  fontSize:14, fontWeight:800,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                  boxShadow:'0 10px 28px rgba(14,23,38,0.35)',
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  Check In
+                </button>
+              </div>
+            );
+          })()
         ) : (
           <button onClick={() => navigate('tickets', {eventId: ev.id})} style={{
             width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
@@ -4602,6 +4666,23 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
       </div>
     </div>
   );
+}
+
+// Compute a display label from a space's `day` field (could be 'today',
+// 'tomorrow', or a date string like '2026-06-27') -- shared by the Spaces
+// list cards and SpaceDetailsScreen so both read the date the same way.
+function spaceDayLabel(raw) {
+  if (!raw) return null;
+  if (raw === 'today') return 'Today';
+  if (raw === 'tomorrow') return 'Tomorrow';
+  const spDate = new Date(raw + 'T00:00:00');
+  if (isNaN(spDate)) return raw;
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+  if (raw === todayStr) return 'Today';
+  if (raw === tomorrowStr) return 'Tomorrow';
+  return fmtDate(spDate);
 }
 
 function calcSpaceProgress(timeStr, dayStr, duration) {
@@ -4717,21 +4798,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   const fmtDur = v => v ? (/^\d+$/.test(String(v)) ? `${v} min` : String(v)) : '';
   const hostName = (sp.hostText || sp.host_text || '').replace(/^(Created by |Organized by )/i, '');
 
-  // Compute date label from sp.day (could be 'today','tomorrow', or a date string like '2026-06-27')
-  const spDayLabel = (() => {
-    const raw = sp.day;
-    if (!raw) return null;
-    if (raw === 'today') return 'Today';
-    if (raw === 'tomorrow') return 'Tomorrow';
-    const spDate = new Date(raw + 'T00:00:00');
-    if (isNaN(spDate)) return raw;
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const tomorrowStr = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
-    if (raw === todayStr) return 'Today';
-    if (raw === tomorrowStr) return 'Tomorrow';
-    return fmtDate(spDate);
-  })();
+  const spDayLabel = spaceDayLabel(sp.day);
 
 
   const HeaderBtn = ({ onClick, children }) => (
@@ -5192,77 +5259,6 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 }
 
 // ─────────────────────────────────────────────────────────────
-// SHEET: GIF PICKER (Giphy)
-// ─────────────────────────────────────────────────────────────
-function GifPickerSheet({ onClose, onSelect }) {
-  const apiKey = import.meta.env.VITE_GIPHY_API_KEY;
-  const [query,   setQuery]   = useState('');
-  const [gifs,    setGifs]    = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(false);
-
-  useEffect(() => {
-    if (!apiKey) { setLoading(false); setError(true); return; }
-    let cancelled = false;
-    const q = query.trim();
-    setLoading(true);
-    const endpoint = q
-      ? `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(q)}&limit=24&rating=pg-13`
-      : `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=24&rating=pg-13`;
-    // Debounce search-as-you-type; trending loads immediately.
-    const timer = setTimeout(() => {
-      fetch(endpoint)
-        .then(res => {
-          if (!res.ok) throw new Error(`Giphy request failed: ${res.status}`);
-          return res.json();
-        })
-        .then(json => { if (!cancelled) { setGifs(json.data || []); setError(false); } })
-        .catch(() => { if (!cancelled) setError(true); })
-        .finally(() => { if (!cancelled) setLoading(false); });
-    }, q ? 350 : 0);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [query, apiKey]);
-
-  return (
-    <Sheet onClose={onClose} title="Choose a GIF">
-      <input
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        placeholder="Search GIFs…"
-        aria-label="Search GIFs"
-        autoFocus
-        style={{ width:'100%', height:42, border:'none', borderRadius:12, background:C.chip,
-                 padding:'0 14px', fontSize:13, fontFamily:"'Montserrat',-apple-system,sans-serif",
-                 color:C.body, outline:'none', marginBottom:14, boxSizing:'border-box' }}
-      />
-      {!apiKey ? (
-        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>
-          GIF search isn't configured yet.
-        </div>
-      ) : loading ? (
-        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>Loading…</div>
-      ) : error ? (
-        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>Couldn't load GIFs -- try again.</div>
-      ) : gifs.length === 0 ? (
-        <div style={{ textAlign:'center', color:C.subtle, fontSize:13, padding:'30px 10px' }}>No GIFs found.</div>
-      ) : (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, maxHeight:340, overflowY:'auto' }}>
-          {gifs.map(g => (
-            <button key={g.id} onClick={() => onSelect(g.images.fixed_height.url)}
-              aria-label={`Select GIF: ${g.title || g.id}`}
-              style={{ border:'none', borderRadius:10, overflow:'hidden', padding:0, cursor:'pointer',
-                       background:C.chip, aspectRatio:'1', display:'block' }}>
-              <img src={g.images.fixed_height_small?.url || g.images.preview_gif?.url || g.images.fixed_height.url}
-                alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
-            </button>
-          ))}
-        </div>
-      )}
-    </Sheet>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
 function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, isGroup, goBack, showToast, currentUser, deleteChat }) {
@@ -5279,10 +5275,9 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   const { messages: rawMessages, sendMessage, sendAttachment, currentUserId, notFound, resolveError, messagesError, muted, toggleMute, otherParticipantIds } = useChat(chatId)
   const [draft,       setDraft]       = useState('');
   const [menuOpen,    setMenuOpen]    = useState(false);
-  // { kind: 'file', file: File } | { kind: 'gif', url: string } | null
+  // { kind: 'file', file: File } | null
   const [pendingAttachment, setPendingAttachment] = useState(null);
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState(null);
-  const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [sending,     setSending]     = useState(false);
   const sendingRef = useRef(false);
   const scrollRef  = useRef(null);
@@ -5371,9 +5366,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
     setDraft('');
     setPendingAttachment(null);
     try {
-      const err = !attachment ? await sendMessage(t)
-        : attachment.kind === 'file' ? await sendAttachment(attachment.file, t)
-        : await sendMessage(t, attachment.url);
+      const err = attachment ? await sendAttachment(attachment.file, t) : await sendMessage(t);
       if (err) throw err;
     } catch {
       setDraft(current => (current && current !== t) ? `${t} ${current}`.trim() : t);
@@ -5646,9 +5639,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:9 }}>
             <div style={{ width:44, height:44, borderRadius:10, overflow:'hidden', flexShrink:0,
                           background:C.chip, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              {pendingAttachment.kind === 'gif' ? (
-                <img src={pendingAttachment.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-              ) : pendingPreviewUrl ? (
+              {pendingPreviewUrl ? (
                 <img src={pendingPreviewUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
               ) : (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -5659,13 +5650,11 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:12, fontWeight:700, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                {pendingAttachment.kind === 'gif' ? 'GIF' : pendingAttachment.file.name}
+                {pendingAttachment.file.name}
               </div>
-              {pendingAttachment.kind === 'file' && (
-                <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>
-                  {(pendingAttachment.file.size / 1024).toFixed(0)} KB
-                </div>
-              )}
+              <div style={{ fontSize:10.5, color:C.subtle, marginTop:1 }}>
+                {(pendingAttachment.file.size / 1024).toFixed(0)} KB
+              </div>
             </div>
             <button onClick={() => setPendingAttachment(null)} style={{ width:26, height:26, border:'none',
               borderRadius:'50%', background:C.chip, display:'flex', alignItems:'center',
@@ -5696,13 +5685,6 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
               <path d="M20 11.5 12.5 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 0 1 4.3 4.3l-7.6 7.6a1.5 1.5 0 0 1-2.2-2.2l6.9-6.9"
                     stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </button>
-
-          {/* GIF */}
-          <button onClick={() => setGifPickerOpen(true)} style={{ height:32, padding:'0 9px',
-            border:'none', borderRadius:9, background:C.chip, display:'flex', alignItems:'center',
-            justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-            <span style={{ fontSize:11, fontWeight:800, color:'#7B8499', letterSpacing:0.2 }}>GIF</span>
           </button>
 
           {/* Input pill */}
@@ -5736,12 +5718,6 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
         </div>
       </div>
 
-      {gifPickerOpen && (
-        <GifPickerSheet
-          onClose={() => setGifPickerOpen(false)}
-          onSelect={(url) => { setPendingAttachment({ kind:'gif', url }); setGifPickerOpen(false); }}
-        />
-      )}
     </div>
   );
 }

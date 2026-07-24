@@ -1,14 +1,42 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
+// A group-linked event's card should read as coming from the group itself
+// (name + group photo), never from whichever member happened to create it --
+// same reasoning as the "New Event Alert" announcement post in
+// CreateEventScreen (author_is_group), just applied to the event card too.
+// Only a personal (non-group) event falls back to the creator's own profile.
 async function attachUserProfiles(rows) {
   if (!rows?.length) return rows || []
-  const ids = [...new Set(rows.map(r => r.user_id).filter(Boolean))]
-  if (!ids.length) return rows
-  const { data: users } = await supabase.from('users').select('id,name,avatar_url,avatar_color').in('id', ids)
-  const map = Object.fromEntries((users || []).map(u => [u.id, u]))
+  // Fetched for every row, not just non-group ones -- a group-linked event
+  // whose group_id points at a since-deleted group still needs the creator
+  // as a fallback, rather than falling through with no organizer at all.
+  const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))]
+  const groupIds = [...new Set(rows.map(r => r.group_id).filter(Boolean))]
+  const [{ data: users, error: usersErr }, { data: groups, error: groupsErr }] = await Promise.all([
+    userIds.length ? supabase.from('users').select('id,name,avatar_url,avatar_color').in('id', userIds) : Promise.resolve({ data: [] }),
+    groupIds.length ? supabase.from('groups').select('id,name,avatar_url,logo_color').in('id', groupIds) : Promise.resolve({ data: [] }),
+  ])
+  // A failed lookup just means this pass falls back to whatever fields the
+  // row already had (or the other lookup's result) rather than blocking the
+  // whole event list -- but it's still worth logging so a silently-empty
+  // organizer badge on cards has a paper trail.
+  if (usersErr) console.error('[useEvents] users lookup failed:', usersErr)
+  if (groupsErr) console.error('[useEvents] groups lookup failed:', groupsErr)
+  const userMap  = Object.fromEntries((users || []).map(u => [u.id, u]))
+  const groupMap = Object.fromEntries((groups || []).map(g => [g.id, g]))
   return rows.map(r => {
-    const u = map[r.user_id]
+    const g = r.group_id ? groupMap[r.group_id] : null
+    if (g) {
+      return {
+        ...r,
+        org:          g.name || r.org,
+        orgInitial:   (g.name || r.org || 'G')[0].toUpperCase(),
+        org_avatar:   g.avatar_url || null,
+        org_color:    g.logo_color || null,
+      }
+    }
+    const u = userMap[r.user_id]
     if (!u) return r
     return {
       ...r,
@@ -40,7 +68,12 @@ function dateRangeFor(label) {
     return [start.toISOString(), end.toISOString()]
   }
   if (label === 'This Week') {
-    const weekEnd = new Date(end); weekEnd.setDate(weekEnd.getDate() + 7)
+    // The end of *this* calendar week (through Saturday), not a rolling
+    // 7-day window -- a rolling window starting mid-week (e.g. Thursday)
+    // would run into next Thursday, showing next week's events under a
+    // "This Week" label.
+    const daysUntilSaturday = 6 - now.getDay()
+    const weekEnd = new Date(end); weekEnd.setDate(weekEnd.getDate() + daysUntilSaturday)
     return [start.toISOString(), weekEnd.toISOString()]
   }
   if (label === 'This Month') {

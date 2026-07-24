@@ -468,9 +468,9 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
       <span class="eyebrow"><span class="dot"></span>PRE-LAUNCH · JOIN THE WAITLIST</span>
       <h1>Where campus<br/>actually <em>happens.</em></h1>
       <p class="sub">Groups, events and live spaces for your university, all in one app. No more group chats, flyers and five different apps just to find out what's going on tonight.</p>
-      <div class="role-toggle" role="group" aria-label="I am a">
-        <button type="button" class="role-btn active" data-role="student">Student</button>
-        <button type="button" class="role-btn" data-role="admin">Group Admin</button>
+      <div class="role-toggle" id="role-toggle-hero" role="group" aria-label="I am a">
+        <button type="button" class="role-btn active" data-role="student" aria-pressed="true">Student</button>
+        <button type="button" class="role-btn" data-role="admin" aria-pressed="false">Group Admin</button>
       </div>
       <form class="waitlist-form" id="waitlist-form-hero">
         <div class="email-field">
@@ -483,7 +483,7 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke="#9AA3B2" stroke-width="2"/><circle cx="12" cy="10" r="2.4" stroke="#9AA3B2" stroke-width="2"/></svg>
         Free for students. No spam, just a heads-up on launch day.
       </div>
-      <div class="form-status" id="status-hero"></div>
+      <div class="form-status" id="status-hero" role="status" aria-live="polite" aria-atomic="true"></div>
     </div>
     <div class="phone-stage">
       <div class="floating-chip chip-a">
@@ -750,9 +750,9 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
   <div class="cta-band reveal">
     <h2>Be first on campus.</h2>
     <p>Join the waitlist. We'll email you the moment Riply lands at your school.</p>
-    <div class="role-toggle" role="group" aria-label="I am a">
-      <button type="button" class="role-btn active" data-role="student">Student</button>
-      <button type="button" class="role-btn" data-role="admin">Group Admin</button>
+    <div class="role-toggle" id="role-toggle-cta" role="group" aria-label="I am a">
+      <button type="button" class="role-btn active" data-role="student" aria-pressed="true">Student</button>
+      <button type="button" class="role-btn" data-role="admin" aria-pressed="false">Group Admin</button>
     </div>
     <form class="waitlist-form" id="waitlist-form-cta">
       <div class="email-field">
@@ -762,7 +762,7 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
       <button type="submit" class="btn btn-white">Join waitlist</button>
     </form>
     <div class="form-note">Free for students. No spam, just a heads-up on launch day.</div>
-    <div class="form-status" id="status-cta"></div>
+    <div class="form-status" id="status-cta" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 </section>
 
@@ -832,38 +832,46 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
     el.textContent = msg;
   }
 
-  // Each waitlist form has its own "I am a: Student / Group Admin" toggle
-  // as the immediately preceding sibling in the DOM (not nested inside the
-  // form itself, since it sits above the input row) -- clicking a button
-  // just flips which one has .active within that same toggle group.
+  // Each waitlist form has its own "I am a: Student / Group Admin" toggle,
+  // referenced by id (not DOM adjacency) so this keeps working regardless of
+  // where the toggle sits relative to its form.
   document.querySelectorAll('.role-toggle').forEach(function (toggle) {
     toggle.addEventListener('click', function (e) {
       var btn = e.target.closest('.role-btn');
       if (!btn) return;
-      toggle.querySelectorAll('.role-btn').forEach(function (b) { b.classList.remove('active'); });
-      btn.classList.add('active');
+      toggle.querySelectorAll('.role-btn').forEach(function (b) {
+        var isActive = b === btn;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-pressed', String(isActive));
+      });
     });
   });
 
-  function wireForm(formId, statusId) {
+  function wireForm(formId, statusId, toggleId) {
     var form = document.getElementById(formId);
     var status = document.getElementById(statusId);
+    var toggle = document.getElementById(toggleId);
     if (!form) return;
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var input = form.querySelector('input[type="email"]');
       var email = input.value.trim();
       if (!email) return;
-      var toggle = form.previousElementSibling;
-      var activeBtn = toggle && toggle.classList.contains('role-toggle') ? toggle.querySelector('.role-btn.active') : null;
+      var activeBtn = toggle ? toggle.querySelector('.role-btn.active') : null;
       var role = activeBtn ? activeBtn.dataset.role : 'student';
       var btn = form.querySelector('button');
       var originalLabel = btn.textContent;
       btn.disabled = true;
       btn.textContent = 'Joining…';
 
+      // Aborts a stalled request after 10s so the button can't stay stuck on
+      // "Joining…" forever if the network hangs instead of erroring outright.
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function () { controller.abort(); }, 10000);
+
       fetch(SUPABASE_URL + '/rest/v1/waitlist', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY,
@@ -872,6 +880,7 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
         },
         body: JSON.stringify({ email: email, role: role, source: 'landing' })
       }).then(function (res) {
+        clearTimeout(timeoutId);
         btn.disabled = false;
         btn.textContent = originalLabel;
         if (res.ok) {
@@ -883,6 +892,7 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
           setStatus(status, 'err', "Something went wrong. Please try again.");
         }
       }).catch(function () {
+        clearTimeout(timeoutId);
         btn.disabled = false;
         btn.textContent = originalLabel;
         setStatus(status, 'err', "Couldn't reach the server. Please try again.");
@@ -890,8 +900,8 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
     });
   }
 
-  wireForm('waitlist-form-hero', 'status-hero');
-  wireForm('waitlist-form-cta', 'status-cta');
+  wireForm('waitlist-form-hero', 'status-hero', 'role-toggle-hero');
+  wireForm('waitlist-form-cta', 'status-cta', 'role-toggle-cta');
 })();
 </script>
 </body>

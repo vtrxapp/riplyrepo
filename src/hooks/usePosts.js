@@ -30,7 +30,6 @@ export function usePosts(groupId) {
     aColor:  p.author_color || 'linear-gradient(135deg,#7C5CFF,#B06BFF)',
     text:    p.content,
     likes:   p.likes_count || 0,
-    reactions: p.comment_count || 0,
   })
 
   // Pinned posts first, otherwise newest first.

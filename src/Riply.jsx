@@ -136,7 +136,40 @@ const THEME = {
   sports:   { grad:'linear-gradient(135deg,#10B981,#06B6D4)', label:'Sports',   org:'#10B981' },
   academic: { grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)', label:'Academic', org:'#7C5CFF' },
   festival: { grad:'linear-gradient(135deg,#FF6B6B,#FFB347)', label:'Festival', org:'#FF6B6B' },
+  culture:             { grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)', label:'Cultural',             org:'#7C5CFF' },
+  arts:                { grad:'linear-gradient(135deg,#FF6B6B,#FFB347)', label:'Arts',                 org:'#FF6B6B' },
+  faith:               { grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)', label:'Faith',                org:'#7C5CFF' },
+  wellness:            { grad:'linear-gradient(135deg,#10B981,#06B6D4)', label:'Wellness',             org:'#10B981' },
+  entrepreneurship:    { grad:'linear-gradient(135deg,#2F6BFF,#00C2FF)', label:'Entrepreneurship',     org:'#2F6BFF' },
+  'personal-development': { grad:'linear-gradient(135deg,#FFB347,#FF8A3D)', label:'Personal Development', org:'#FFB347' },
+  community:           { grad:'linear-gradient(135deg,#06B6D4,#7C5CFF)', label:'Community',            org:'#06B6D4' },
+  volunteering:        { grad:'linear-gradient(135deg,#10B981,#FFB347)', label:'Volunteering',         org:'#10B981' },
+  innovation:           { grad:'linear-gradient(135deg,#7C5CFF,#19BFFF)', label:'Innovation',           org:'#7C5CFF' },
 };
+
+// Single source of truth for every category/interest picker and filter chip
+// in the app (Home quick-filters, Create Group/Event/Space, Group Edit, the
+// Filters screen's Interests section). `id` is what actually gets stored as
+// an event/group's category and is never renamed once shipped, since
+// existing rows already have these values -- 'culture' (not 'cultural')
+// predates this list and stays as-is for that reason, even though the
+// display label reads "Cultural". Add new interests here once, not per-screen.
+const APP_CATEGORIES = [
+  { id:'academic',             label:'Academic',              grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)' },
+  { id:'social',                label:'Social',                grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
+  { id:'sports',                label:'Sports & Fitness',      grad:'linear-gradient(135deg,#10B981,#06B6D4)' },
+  { id:'career',                label:'Career',                grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)' },
+  { id:'culture',               label:'Cultural',              grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)' },
+  { id:'arts',                  label:'Arts',                  grad:'linear-gradient(135deg,#FF6B6B,#FFB347)' },
+  { id:'festival',              label:'Festival',              grad:'linear-gradient(135deg,#FF6B6B,#FFB347)' },
+  { id:'faith',                 label:'Faith',                 grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)' },
+  { id:'wellness',              label:'Wellness',              grad:'linear-gradient(135deg,#10B981,#06B6D4)' },
+  { id:'entrepreneurship',      label:'Entrepreneurship',      grad:'linear-gradient(135deg,#2F6BFF,#00C2FF)' },
+  { id:'personal-development',  label:'Personal Development',  grad:'linear-gradient(135deg,#FFB347,#FF8A3D)' },
+  { id:'community',             label:'Community',             grad:'linear-gradient(135deg,#06B6D4,#7C5CFF)' },
+  { id:'volunteering',          label:'Volunteering',          grad:'linear-gradient(135deg,#10B981,#FFB347)' },
+  { id:'innovation',            label:'Innovation',            grad:'linear-gradient(135deg,#7C5CFF,#19BFFF)' },
+];
 
 
 // ─────────────────────────────────────────────────────────────
@@ -592,7 +625,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
     {id:'all',label:'All'},
     ...(hasMyEvents ? [{id:'mine',label:'My Events'}] : []),
     {id:'thisweek',label:'This Week'},{id:'new',label:'New'},
-    {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
+    ...APP_CATEGORIES.map(c => ({ id:c.id, label:c.label })),
   ];
 
   const homeSwipeRef = useRef(null);
@@ -2482,13 +2515,27 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
     },
     {
       id: 'interests', title: 'Interests',
-      opts: ['Academic','Sports & Fitness','Cultural','Entrepreneurship','Personal Development','Community','Volunteering','Innovation','Social','Career'],
+      // Labels shown to the user, sourced from the same APP_CATEGORIES list
+      // every creation screen uses; INTEREST_IDS/INTEREST_LABELS below map
+      // each back and forth to the canonical category id actually stored on
+      // events, since labels like "Sports & Fitness" and "Personal
+      // Development" don't match their ids (sports, personal-development) by
+      // simple lowercasing.
+      opts: APP_CATEGORIES.map(c => c.label),
     },
     {
       id: 'price', title: 'Price',
       opts: ['Free','$10–$20','$20–$30','$30–$40','$40–$50','$50+'],
     },
   ];
+
+  const INTEREST_IDS    = Object.fromEntries(APP_CATEGORIES.map(c => [c.label, c.id]));
+  const INTEREST_LABELS = Object.fromEntries(APP_CATEGORIES.map(c => [c.id, c.label]));
+  const keyFor   = (secId, opt) => secId === 'interests' ? `interests:${INTEREST_IDS[opt] || opt}` : `${secId}:${opt}`;
+  const labelFor = key => {
+    const [secId, val] = key.split(':');
+    return secId === 'interests' ? (INTEREST_LABELS[val] || val) : val;
+  };
 
   const [open,     setOpen]     = useState({ date:true, location:true, faculty:true, interests:true, price:true });
   const [selected, setSelected] = useState(initialFilters || {});   // `${secId}:${opt}` → true
@@ -2550,13 +2597,13 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
                     {sec.title}
                   </span>
                   {/* Active count badge for this section */}
-                  {sec.opts.filter(o => selected[`${sec.id}:${o}`]).length > 0 && (
+                  {sec.opts.filter(o => selected[keyFor(sec.id, o)]).length > 0 && (
                     <span style={{ display:'inline-flex', alignItems:'center',
                                    justifyContent:'center', minWidth:20, height:20,
                                    padding:'0 6px', borderRadius:999,
                                    background:C.primary, color:'#fff',
                                    fontSize:10, fontWeight:800 }}>
-                      {sec.opts.filter(o => selected[`${sec.id}:${o}`]).length}
+                      {sec.opts.filter(o => selected[keyFor(sec.id, o)]).length}
                     </span>
                   )}
                 </div>
@@ -2571,7 +2618,7 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
               {isOpen && (
                 <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginTop:13 }}>
                   {sec.opts.map(opt => {
-                    const key = `${sec.id}:${opt}`;
+                    const key = keyFor(sec.id, opt);
                     const on  = !!selected[key];
                     return (
                       <button key={opt} onClick={() => toggleChip(key)} style={{
@@ -2607,14 +2654,13 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
         {count > 0 && (
           <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
             {Object.keys(selected).map(key => {
-              const [, opt] = key.split(':');
               return (
                 <span key={key} onClick={() => toggleChip(key)} style={{
                   display:'inline-flex', alignItems:'center', gap:5, height:28,
                   padding:'0 10px', borderRadius:999, background:C.primary,
                   color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer',
                 }}>
-                  {opt}
+                  {labelFor(key)}
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
                     <path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2.6" strokeLinecap="round"/>
                   </svg>
@@ -7743,26 +7789,7 @@ function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
 // SCREEN: CREATE CAMPUS GROUP
 // ─────────────────────────────────────────────────────────────
 function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
-  const CATS = [
-    { id:'academic', label:'Academic' },
-    { id:'sports',   label:'Sports'   },
-    { id:'arts',     label:'Arts'     },
-    { id:'social',   label:'Social'   },
-    { id:'career',   label:'Career'   },
-    { id:'culture',  label:'Culture'  },
-    { id:'faith',    label:'Faith'    },
-    { id:'wellness', label:'Wellness' },
-  ];
-  const GRADS = {
-    academic:'linear-gradient(135deg,#2F6BFF,#6C4DF2)',
-    sports:  'linear-gradient(135deg,#10B981,#06B6D4)',
-    arts:    'linear-gradient(135deg,#FF5A8A,#FF8A3D)',
-    social:  'linear-gradient(135deg,#FF6B6B,#FFB347)',
-    career:  'linear-gradient(135deg,#0EA5E9,#0E84E0)',
-    culture: 'linear-gradient(135deg,#7C5CFF,#B06BFF)',
-    faith:   'linear-gradient(135deg,#0E9F6E,#06B6D4)',
-    wellness:'linear-gradient(135deg,#F59E0B,#EF4444)',
-  };
+  const CATS = APP_CATEGORIES;
   const DEF_RULES = [
     'Be respectful and constructive',
     'Original work only — credit sources',
@@ -7783,7 +7810,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
   const [rules,    setRules]    = useState([...DEF_RULES]);
   const [draft,    setDraft]    = useState('');
 
-  const coverGrad = GRADS[cat] || GRADS.culture;
+  const coverGrad = APP_CATEGORIES.find(c => c.id === cat)?.grad || APP_CATEGORIES.find(c => c.id === 'culture').grad;
   const initial   = (name.trim() ? name.trim()[0] : 'G').toUpperCase();
   const isPublic  = privacy === 'public';
   const canCreate = name.trim().length > 0;
@@ -8189,14 +8216,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 // SCREEN: CREATE STUDENT SPACE
 // ─────────────────────────────────────────────────────────────
 function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
-  const CATS = [
-    { id:'academic', label:'Academic', grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)' },
-    { id:'social',   label:'Social',   grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
-    { id:'sports',   label:'Sports',   grad:'linear-gradient(135deg,#10B981,#06B6D4)' },
-    { id:'arts',     label:'Arts',     grad:'linear-gradient(135deg,#FF6B6B,#FFB347)' },
-    { id:'career',   label:'Career',   grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)' },
-    { id:'culture',  label:'Culture',  grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)' },
-  ];
+  const CATS = APP_CATEGORIES;
 
   const [cat,         setCat]        = useState('academic');
   const [title,       setTitle]      = useState('');
@@ -8731,13 +8751,7 @@ function EventCounterBtn({ onClick, minus }) {
 // ─────────────────────────────────────────────────────────────
 function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: sourceGroupId, eventId }) {
   const isEditing = !!eventId;
-  const CATS = [
-    { id:'social',   label:'Social',   grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)' },
-    { id:'career',   label:'Career',   grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)' },
-    { id:'academic', label:'Academic', grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)' },
-    { id:'sports',   label:'Sports',   grad:'linear-gradient(135deg,#10B981,#06B6D4)' },
-    { id:'festival', label:'Festival', grad:'linear-gradient(135deg,#FF6B6B,#FFB347)' },
-  ];
+  const CATS = APP_CATEGORIES;
   const PRESET_RULES = [
     'Have fun',
     'Be respectful of others',
@@ -10684,7 +10698,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
     if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', mail:'', reddit:'', ...dbGroup.social_links });
   }, [dbGroup]);
 
-  const CATS = ['Academic','Social','Arts','Sports','Career','Culture'];
+  const CATS = APP_CATEGORIES;
   const VIS  = [
     { id:'public',  label:'Public',  sub:'Anyone can find and join',
       icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="C" strokeWidth="2"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="C" strokeWidth="2"/></svg> },
@@ -10898,9 +10912,9 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
             <Field label="Category">
               <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                 {CATS.map(c => {
-                  const on = category === c.toLowerCase();
+                  const on = category === c.id;
                   return (
-                    <button key={c} onClick={() => setCategory(c.toLowerCase())} style={{
+                    <button key={c.id} onClick={() => setCategory(c.id)} style={{
                       flexShrink:0, height:36, padding:'0 15px', borderRadius:999,
                       cursor:'pointer', border: on ? 'none' : `1.5px solid ${C.border}`,
                       fontSize:13, fontWeight:700,
@@ -10908,7 +10922,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
                       background: on ? C.primary : '#fff',
                       color: on ? '#fff' : C.muted,
                       boxShadow: on ? '0 4px 12px rgba(2,162,240,0.3)' : 'none',
-                    }}>{c}</button>
+                    }}>{c.label}</button>
                   );
                 })}
               </div>

@@ -13,3 +13,15 @@ html, body {
   height: 100dvh;
   overflow: hidden;
 }
+
+/* iOS Safari auto-zooms the whole page on focus for any text input/textarea
+   with a computed font-size under 16px -- this app's inputs are mostly
+   13-14px for visual consistency, which is what was actually causing the
+   "page zooms in when I start typing" behavior. Forcing 16px only while
+   focused keeps the zoom from triggering without changing how inputs look
+   the rest of the time. */
+@media (max-width: 640px) {
+  input:focus, textarea:focus, select:focus {
+    font-size: 16px !important;
+  }
+}

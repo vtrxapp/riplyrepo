@@ -50,12 +50,17 @@ async function resolveChat(chatId, currentUserId) {
   return { chatId: data ? chatId : null, error: null }
 }
 
-function markRead(chatId, userId) {
-  return supabase
+// A failure here previously vanished silently (callers never awaited or
+// checked it), which could leave last_read_at stuck stale forever -- the
+// chats list would then keep reporting a chat as unread indefinitely, since
+// get_unread_chat_counts has no other way to learn the user read it.
+async function markRead(chatId, userId) {
+  const { error } = await supabase
     .from('chat_participants')
     .update({ last_read_at: new Date().toISOString() })
     .eq('chat_id', chatId)
     .eq('user_id', userId)
+  if (error) console.error('[useChat] markRead failed:', { chatId, userId, error })
 }
 
 // One-directional and global -- see sql/chat_mute_and_block.sql for how this

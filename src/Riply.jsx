@@ -424,10 +424,20 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
 }
 
 function Tabs({ tabs, active, onSelect }) {
+  const btnRefs = useRef({});
+  // Keeps the pill bar itself in sync with the active tab -- previously only
+  // clicking a pill scrolled it into view; swiping the page content (which
+  // calls onSelect/setActiveCat directly, bypassing this bar) changed which
+  // tab was active without ever scrolling the bar, so a swipe could land on
+  // a tab that was still scrolled off-screen until the user manually
+  // dragged the pill row too.
+  useEffect(() => {
+    btnRefs.current[active]?.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+  }, [active]);
   return (
     <div style={{ display:'flex', gap:8, overflowX:'auto', padding:'2px 16px', scrollbarWidth:'none' }}>
       {tabs.map(t => (
-        <button key={t.id} onClick={() => onSelect(t.id)} style={{ flexShrink:0, border:'none', cursor:'pointer', height:38, padding:'0 16px', borderRadius:999, fontSize:11.5, fontWeight:700, whiteSpace:'nowrap', fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'all .15s', background: t.id===active ? C.primary : C.chip, color: t.id===active ? '#fff' : C.muted, boxShadow: t.id===active ? '0 4px 12px rgba(2,162,240,0.34)' : 'none' }}>
+        <button key={t.id} ref={el => { btnRefs.current[t.id] = el; }} onClick={() => onSelect(t.id)} style={{ flexShrink:0, border:'none', cursor:'pointer', height:38, padding:'0 16px', borderRadius:999, fontSize:11.5, fontWeight:700, whiteSpace:'nowrap', fontFamily:"'Montserrat',-apple-system,sans-serif", transition:'all .15s', background: t.id===active ? C.primary : C.chip, color: t.id===active ? '#fff' : C.muted, boxShadow: t.id===active ? '0 4px 12px rgba(2,162,240,0.34)' : 'none' }}>
           {t.label}
         </button>
       ))}

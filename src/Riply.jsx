@@ -592,7 +592,9 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
     {id:'all',label:'All'},
     ...(hasMyEvents ? [{id:'mine',label:'My Events'}] : []),
     {id:'thisweek',label:'This Week'},{id:'new',label:'New'},
-    {id:'career',label:'Career'},{id:'sports',label:'Sports'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
+    {id:'career',label:'Career'},{id:'sports',label:'Sports & Fitness'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},
+    {id:'cultural',label:'Cultural'},{id:'entrepreneurship',label:'Entrepreneurship'},{id:'personal-development',label:'Personal Development'},
+    {id:'community',label:'Community'},{id:'volunteering',label:'Volunteering'},{id:'innovation',label:'Innovation'},
   ];
 
   const homeSwipeRef = useRef(null);
@@ -7752,6 +7754,11 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
     { id:'culture',  label:'Culture'  },
     { id:'faith',    label:'Faith'    },
     { id:'wellness', label:'Wellness' },
+    { id:'entrepreneurship',      label:'Entrepreneurship'      },
+    { id:'personal-development',  label:'Personal Development'  },
+    { id:'community',             label:'Community'             },
+    { id:'volunteering',          label:'Volunteering'          },
+    { id:'innovation',            label:'Innovation'            },
   ];
   const GRADS = {
     academic:'linear-gradient(135deg,#2F6BFF,#6C4DF2)',
@@ -8196,6 +8203,11 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
     { id:'arts',     label:'Arts',     grad:'linear-gradient(135deg,#FF6B6B,#FFB347)' },
     { id:'career',   label:'Career',   grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)' },
     { id:'culture',  label:'Culture',  grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)' },
+    { id:'entrepreneurship',     label:'Entrepreneurship',     grad:'linear-gradient(135deg,#2F6BFF,#00C2FF)' },
+    { id:'personal-development', label:'Personal Development', grad:'linear-gradient(135deg,#FFB347,#FF8A3D)' },
+    { id:'community',            label:'Community',            grad:'linear-gradient(135deg,#06B6D4,#7C5CFF)' },
+    { id:'volunteering',         label:'Volunteering',         grad:'linear-gradient(135deg,#10B981,#FFB347)' },
+    { id:'innovation',           label:'Innovation',           grad:'linear-gradient(135deg,#7C5CFF,#19BFFF)' },
   ];
 
   const [cat,         setCat]        = useState('academic');
@@ -8737,6 +8749,12 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
     { id:'academic', label:'Academic', grad:'linear-gradient(135deg,#7C5CFF,#B06BFF)' },
     { id:'sports',   label:'Sports',   grad:'linear-gradient(135deg,#10B981,#06B6D4)' },
     { id:'festival', label:'Festival', grad:'linear-gradient(135deg,#FF6B6B,#FFB347)' },
+    { id:'cultural',              label:'Cultural',             grad:'linear-gradient(135deg,#7C5CFF,#02B6FE)' },
+    { id:'entrepreneurship',      label:'Entrepreneurship',     grad:'linear-gradient(135deg,#2F6BFF,#00C2FF)' },
+    { id:'personal-development',  label:'Personal Development', grad:'linear-gradient(135deg,#FFB347,#FF8A3D)' },
+    { id:'community',             label:'Community',            grad:'linear-gradient(135deg,#06B6D4,#7C5CFF)' },
+    { id:'volunteering',          label:'Volunteering',         grad:'linear-gradient(135deg,#10B981,#FFB347)' },
+    { id:'innovation',            label:'Innovation',           grad:'linear-gradient(135deg,#7C5CFF,#19BFFF)' },
   ];
   const PRESET_RULES = [
     'Have fun',
@@ -10684,7 +10702,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
     if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', mail:'', reddit:'', ...dbGroup.social_links });
   }, [dbGroup]);
 
-  const CATS = ['Academic','Social','Arts','Sports','Career','Culture'];
+  const CATS = ['Academic','Social','Arts','Sports','Career','Culture','Entrepreneurship','Personal Development','Community','Volunteering','Innovation'];
   const VIS  = [
     { id:'public',  label:'Public',  sub:'Anyone can find and join',
       icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="C" strokeWidth="2"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="C" strokeWidth="2"/></svg> },

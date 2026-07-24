@@ -1,18 +1,35 @@
-// Chat-list style: exact time today, "Yesterday", weekday within a week, else month/day.
-// Compares calendar-day boundaries (midnight to midnight), not raw elapsed
+// Calendar-day difference (today minus the given date), not raw elapsed
 // hours — a message from 11pm yesterday must read "Yesterday" even if it's
 // only 2 hours old when viewed at 1am today.
+function daysSince(d, now) {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  return Math.round((startOfToday - startOfDay) / 86400000)
+}
+
+// Chat-list style: exact time today, "Yesterday", weekday within a week, else month/day.
 export function formatChatTimestamp(iso) {
   if (!iso) return ''
   const d = new Date(iso)
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  const diffDays = Math.round((startOfToday - startOfDay) / 86400000)
+  const diffDays = daysSince(d, new Date())
   if (diffDays === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   if (diffDays === 1) return 'Yesterday'
   if (diffDays < 7)  return d.toLocaleDateString([], { weekday: 'short' })
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
+
+// Chat date-separator pill: "Today" / "Yesterday" / weekday within a week /
+// else full date -- unlike formatChatTimestamp (which returns a time for
+// today's messages), this always returns a day label.
+export function formatDateSeparator(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const now = new Date()
+  const diffDays = daysSince(d, now)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays > 1 && diffDays < 7) return d.toLocaleDateString([], { weekday: 'long' })
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
 }
 
 // Notification-feed style: "Just now" / "5m" / "3h" / "2d", else month/day.

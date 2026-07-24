@@ -1290,10 +1290,6 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                       : <><span>{c.initial || (c.name?.[0]?.toUpperCase() || '?')}</span>
                           <div style={{ position:'absolute', inset:0, background:'repeating-linear-gradient(135deg,rgba(255,255,255,0.10) 0,rgba(255,255,255,0.10) 2px,transparent 2px,transparent 12px)' }} /></>
                     }
-                    {c.unread && (
-                      <span style={{ position:'absolute', top:2, right:2, width:12, height:12, borderRadius:'50%',
-                                     background:C.primary, border:'2px solid #fff' }}/>
-                    )}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>

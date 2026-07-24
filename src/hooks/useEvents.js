@@ -142,10 +142,12 @@ export function useEvents({ category, search, filters } = {}) {
           if (range) q = q.gte('date', range[0]).lte('date', range[1])
         }
 
-        // Location
+        // Location. 'Online' targets the real is_online boolean rather than
+        // substring-matching the location text, since that text now reads
+        // things like "Online (Zoom)" or "Online (Microsoft Teams)".
         const locationOpts = keys.filter(k => k.startsWith('location:')).map(k => k.split(':')[1])
         if (locationOpts.length > 0) {
-          const values = locationOpts.map(o => `location.ilike.%${o}%`)
+          const values = locationOpts.map(o => o === 'Online' ? 'is_online.eq.true' : `location.ilike.%${o}%`)
           q = q.or(values.join(','))
         }
 

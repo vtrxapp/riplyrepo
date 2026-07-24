@@ -4587,19 +4587,54 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
       {/* ── Floating buy button ───────────────────────────── */}
       <div style={{ position:'absolute', bottom:24, left:24, right:24, zIndex:6 }}>
         {role !== 'student' ? (
-          <button onClick={() => navigate('check-in', {eventId: ev.id})} style={{
-            width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',
-            background:'linear-gradient(135deg,#0E1726,#1A2538)', color:'#fff',
-            fontSize:14, fontWeight:800,
-            fontFamily:"'Montserrat',-apple-system,sans-serif",
-            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-            boxShadow:'0 10px 28px rgba(14,23,38,0.35)',
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Check In
-          </button>
+          // Check-in only makes sense once attendees might plausibly be
+          // arriving -- showing it from the moment an event is created
+          // (days or weeks out) let an organizer tap straight into the
+          // scanner for an event that hasn't happened yet. Gated to the
+          // last 24h before start; earlier than that, "Manage Event" is
+          // the only organizer action offered here.
+          (() => {
+            const eventDateObj = ev.date ? new Date(ev.date) : null;
+            const withinDayOfEvent = eventDateObj && !isNaN(eventDateObj)
+              ? (eventDateObj.getTime() - Date.now()) <= 24 * 60 * 60 * 1000
+              : true;
+            const manageBtn = (
+              <button onClick={() => navigate('event-manager')} style={{
+                flex:1, height:54, border:'none', borderRadius:18, cursor:'pointer',
+                background: withinDayOfEvent ? C.chip : 'linear-gradient(135deg,#0E1726,#1A2538)',
+                color: withinDayOfEvent ? C.ink : '#fff',
+                fontSize:14, fontWeight:800,
+                fontFamily:"'Montserrat',-apple-system,sans-serif",
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                boxShadow: withinDayOfEvent ? 'none' : '0 10px 28px rgba(14,23,38,0.35)',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 4.5h16a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z" stroke={withinDayOfEvent ? C.ink : '#fff'} strokeWidth="1.8" strokeLinejoin="round"/>
+                  <path d="M3 9h18M8 2.5v4M16 2.5v4" stroke={withinDayOfEvent ? C.ink : '#fff'} strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+                Manage Event
+              </button>
+            );
+            if (!withinDayOfEvent) return manageBtn;
+            return (
+              <div style={{ display:'flex', gap:10 }}>
+                {manageBtn}
+                <button onClick={() => navigate('check-in', {eventId: ev.id})} style={{
+                  flex:1, height:54, border:'none', borderRadius:18, cursor:'pointer',
+                  background:'linear-gradient(135deg,#0E1726,#1A2538)', color:'#fff',
+                  fontSize:14, fontWeight:800,
+                  fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                  boxShadow:'0 10px 28px rgba(14,23,38,0.35)',
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  Check In
+                </button>
+              </div>
+            );
+          })()
         ) : (
           <button onClick={() => navigate('tickets', {eventId: ev.id})} style={{
             width:'100%', height:54, border:'none', borderRadius:18, cursor:'pointer',

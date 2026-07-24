@@ -122,6 +122,43 @@ function fmtRange(r) {
   return r.split(' – ').map(fmt12).join(' – ');
 }
 
+const MEETING_HOSTS = [
+  [['zoom.us', 'zoom.com'],                   'Zoom'],
+  [['teams.microsoft.com', 'teams.live.com'], 'Microsoft Teams'],
+  [['meet.google.com'],                       'Google Meet'],
+  [['webex.com'],                             'Webex'],
+  [['discord.gg', 'discord.com'],             'Discord'],
+];
+
+// Parses a meeting link and returns the URL object only for genuine http(s)
+// links -- rejects anything unparsable or on another scheme (javascript:,
+// data:, mailto:, etc.) so callers can trust the result as a safe href
+// without re-validating it themselves.
+function parseMeetingUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return parsed;
+  } catch { return null; }
+}
+
+// Detects the video-call provider from a meeting URL so cards/detail screens
+// can show "Zoom"/"Microsoft Teams"/etc. without re-parsing the link
+// themselves -- resolved once at save time and stored as meeting_platform.
+// Matches on the parsed hostname (not a substring of the whole URL), so a
+// link like "https://evil.example/zoom.us" can't be mislabeled as Zoom.
+function detectMeetingPlatform(url) {
+  const parsed = parseMeetingUrl(url);
+  if (!parsed) return null;
+  const host = parsed.hostname.toLowerCase();
+  for (const [hosts, label] of MEETING_HOSTS) {
+    if (hosts.some(h => host === h || host.endsWith(`.${h}`))) return label;
+  }
+  return 'Online';
+}
+
 const C = {
   primary: '#0098F0', bright: '#19BFFF',
   grad: 'linear-gradient(135deg,#19BFFF,#0098F0)',
@@ -747,8 +784,12 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 <div onClick={()=>navigate('event-details',{eventId:ev.id})} style={{ fontSize:17, fontWeight:800, letterSpacing:-0.4, color:C.ink, lineHeight:1.2, cursor:'pointer' }}>{ev.title}</div>
                 <div style={{ display:'flex', alignItems:'center', gap:14, marginTop:9, flexWrap:'wrap' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke="#7B8499" strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke="#7B8499" strokeWidth="1.9"/></svg>
-                    <span style={{ fontSize:11, fontWeight:500, color:C.muted }}>{ev.location}</span>
+                    {ev.is_online
+                      ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="14" height="11" rx="2.5" stroke="#7B8499" strokeWidth="1.9"/><path d="m16.5 10 4.3-2.8a1 1 0 0 1 1.55.84v8l-1.55.84a1 1 0 0 1-1.55-.84V10Z" stroke="#7B8499" strokeWidth="1.9" strokeLinejoin="round"/></svg>
+                      : <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke="#7B8499" strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke="#7B8499" strokeWidth="1.9"/></svg>}
+                    <span style={{ fontSize:11, fontWeight:500, color:C.muted }}>
+                      {ev.is_online ? `${ev.meeting_platform || 'Online'} Meeting` : ev.location}
+                    </span>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
@@ -940,8 +981,12 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
                       </div>
                     )}
                     <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>
-                      <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sp.location}</span>
+                      {sp.is_online
+                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><rect x="2.5" y="5.5" width="14" height="11" rx="2.5" stroke={C.subtle} strokeWidth="1.9"/><path d="m16.5 10 4.3-2.8a1 1 0 0 1 1.55.84v8l-1.55.84a1 1 0 0 1-1.55-.84V10Z" stroke={C.subtle} strokeWidth="1.9" strokeLinejoin="round"/></svg>
+                        : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.subtle} strokeWidth="1.9"/><circle cx="12" cy="10" r="2.4" stroke={C.subtle} strokeWidth="1.9"/></svg>}
+                      <span style={{ fontSize:10.5, fontWeight:600, color:'#8A93A6', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                        {sp.is_online ? `${sp.meeting_platform || 'Online'} Meeting` : sp.location}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -4409,11 +4454,38 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                         borderBottom:`1px solid ${C.divider}` }}>
             <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:'#E9F6FF',
                           display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.primary} strokeWidth="1.9"/>
-                <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
-              </svg>
+              {ev.is_online
+                ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="14" height="11" rx="2.5" stroke={C.primary} strokeWidth="1.9"/><path d="m16.5 10 4.3-2.8a1 1 0 0 1 1.55.84v8l-1.55.84a1 1 0 0 1-1.55-.84V10Z" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/></svg>
+                : <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.primary} strokeWidth="1.9"/>
+                    <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
+                  </svg>}
             </div>
+            {ev.is_online ? (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
+                              textTransform:'uppercase', color:C.subtle }}>Location</div>
+                <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
+                  {ev.meeting_platform || 'Online'} Meeting
+                </div>
+                {/* Re-validated at render time (not just at save time) so a
+                    legacy row saved before link validation existed can't
+                    produce an unsafe href here. */}
+                {!parseMeetingUrl(ev.meeting_link) && (
+                  <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link not available yet</div>
+                )}
+                {parseMeetingUrl(ev.meeting_link) && (
+                  <a href={ev.meeting_link} target="_blank" rel="noopener noreferrer" style={{
+                    marginTop:10, display:'flex', alignItems:'center', justifyContent:'center',
+                    height:40, borderRadius:10, background:C.primary, color:'#fff',
+                    fontSize:13, fontWeight:700, textDecoration:'none',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  }}>
+                    Join via {ev.meeting_platform || 'link'} ↗
+                  </a>
+                )}
+              </div>
+            ) : (
             <div style={{ flex:1 }}>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Location</div>
@@ -4480,6 +4552,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                 );
               })()}
             </div>
+            )}
           </div>
 
           {/* Price */}
@@ -5155,11 +5228,41 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                         borderBottom:`1px solid ${C.divider}` }}>
             <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:'#E9F6FF',
                           display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.primary} strokeWidth="1.9"/>
-                <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
-              </svg>
+              {sp.is_online
+                ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="14" height="11" rx="2.5" stroke={C.primary} strokeWidth="1.9"/><path d="m16.5 10 4.3-2.8a1 1 0 0 1 1.55.84v8l-1.55.84a1 1 0 0 1-1.55-.84V10Z" stroke={C.primary} strokeWidth="1.9" strokeLinejoin="round"/></svg>
+                : <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.primary} strokeWidth="1.9"/>
+                    <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
+                  </svg>}
             </div>
+            {sp.is_online ? (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
+                              textTransform:'uppercase', color:C.subtle }}>Location</div>
+                <div style={{ fontSize:13, fontWeight:700, color:C.body, marginTop:3 }}>
+                  {sp.meeting_platform || 'Online'} Meeting
+                </div>
+                {/* The join link is only ever shown to members who've
+                    actually joined -- an unjoined visitor sees this note
+                    instead, rather than a live link to a space they haven't
+                    committed to. Also re-validated at render time so a
+                    legacy row saved before link validation existed can't
+                    produce an unsafe href here. */}
+                {!(joined && parseMeetingUrl(sp.meeting_link)) && (
+                  <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link shared upon joining</div>
+                )}
+                {joined && parseMeetingUrl(sp.meeting_link) && (
+                  <a href={sp.meeting_link} target="_blank" rel="noopener noreferrer" style={{
+                    marginTop:10, display:'flex', alignItems:'center', justifyContent:'center',
+                    height:40, borderRadius:10, background:C.primary, color:'#fff',
+                    fontSize:13, fontWeight:700, textDecoration:'none',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  }}>
+                    Join via {sp.meeting_platform || 'link'} ↗
+                  </a>
+                )}
+              </div>
+            ) : (
             <div style={{ flex:1 }}>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
                             textTransform:'uppercase', color:C.subtle }}>Location</div>
@@ -5208,6 +5311,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                 );
               })()}
             </div>
+            )}
           </div>
 
           {/* Price */}
@@ -8227,6 +8331,8 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
   const [repeatWeeks, setRepeatWeeks]= useState('');
   const [venue,       setVenue]      = useState('');
   const [area,        setArea]       = useState('');
+  const [isOnline,    setIsOnline]   = useState(false);
+  const [meetingLink, setMeetingLink]= useState('');
   const [maxSpots,    setMaxSpots]   = useState(10);
   const [notifySpot,  setNotifySpot] = useState(false);
   const [pricing,     setPricing]    = useState('free');
@@ -8473,36 +8579,71 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
                         textTransform:'uppercase', color:C.subtle, marginBottom:7 }}>
             Location
           </div>
-          {/* Venue */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
-                        border:`1.5px solid ${C.border}`, borderRadius:13,
-                        padding:'0 14px', height:46, marginBottom:9 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-              <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"
-                    stroke={C.primary} strokeWidth="1.9"/>
-              <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
+          <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:9 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <rect x="2.5" y="5.5" width="14" height="11" rx="2.5" stroke={C.muted} strokeWidth="1.9"/>
+              <path d="m16.5 10 4.3-2.8a1 1 0 0 1 1.55.84v8l-1.55.84a1 1 0 0 1-1.55-.84V10Z" stroke={C.muted} strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
-            <input value={venue} onChange={e => setVenue(e.target.value)}
-              placeholder="Venue (e.g. Active Living Centre)"
-              style={{ flex:1, border:'none', background:'none', outline:'none',
-                       fontSize:12, fontWeight:600, color:C.body,
-                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+            <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>This is an online space</span>
+            <button onClick={() => setIsOnline(v => !v)} style={{
+              width:44, height:26, border:'none', borderRadius:999, padding:0,
+              background: isOnline ? C.primary : '#D1D5DB', cursor:'pointer',
+              position:'relative', transition:'background .2s', flexShrink:0,
+            }}>
+              <span style={{ position:'absolute', top:3, left: isOnline ? 21 : 3, width:20, height:20,
+                             borderRadius:'50%', background:'#fff', display:'block',
+                             boxShadow:'0 1px 3px rgba(0,0,0,0.2)', transition:'left .2s' }}/>
+            </button>
           </div>
-          {/* Court / Area */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
-                        border:`1.5px solid ${C.border}`, borderRadius:13,
-                        padding:'0 14px', height:46 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-              <rect x="3" y="3" width="18" height="18" rx="3"
-                    stroke={C.muted} strokeWidth="1.9"/>
-              <path d="M3 9h18M9 21V9" stroke={C.muted} strokeWidth="1.9" strokeLinecap="round"/>
-            </svg>
-            <input value={area} onChange={e => setArea(e.target.value)}
-              placeholder="Court / Area (e.g. Main Court · Fort Garry)"
-              style={{ flex:1, border:'none', background:'none', outline:'none',
-                       fontSize:12, fontWeight:600, color:C.body,
-                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
-          </div>
+          {isOnline ? (
+            <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                          border:`1.5px solid ${C.border}`, borderRadius:13,
+                          padding:'0 14px', height:46 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"
+                      stroke={C.primary} strokeWidth="1.9"/>
+                <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
+              </svg>
+              <input value={meetingLink} onChange={e => setMeetingLink(e.target.value)}
+                placeholder="Paste Zoom / Teams / Google Meet link"
+                style={{ flex:1, border:'none', background:'none', outline:'none',
+                         fontSize:12, fontWeight:600, color:C.body,
+                         fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+            </div>
+          ) : (
+            <>
+              {/* Venue */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                            border:`1.5px solid ${C.border}`, borderRadius:13,
+                            padding:'0 14px', height:46, marginBottom:9 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                  <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"
+                        stroke={C.primary} strokeWidth="1.9"/>
+                  <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
+                </svg>
+                <input value={venue} onChange={e => setVenue(e.target.value)}
+                  placeholder="Venue (e.g. Active Living Centre)"
+                  style={{ flex:1, border:'none', background:'none', outline:'none',
+                           fontSize:12, fontWeight:600, color:C.body,
+                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+              </div>
+              {/* Court / Area */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                            border:`1.5px solid ${C.border}`, borderRadius:13,
+                            padding:'0 14px', height:46 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                  <rect x="3" y="3" width="18" height="18" rx="3"
+                        stroke={C.muted} strokeWidth="1.9"/>
+                  <path d="M3 9h18M9 21V9" stroke={C.muted} strokeWidth="1.9" strokeLinecap="round"/>
+                </svg>
+                <input value={area} onChange={e => setArea(e.target.value)}
+                  placeholder="Court / Area (e.g. Main Court · Fort Garry)"
+                  style={{ flex:1, border:'none', background:'none', outline:'none',
+                           fontSize:12, fontWeight:600, color:C.body,
+                           fontFamily:"'Montserrat',-apple-system,sans-serif" }}/>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Spots */}
@@ -8622,9 +8763,17 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
         <button onClick={async () => {
           if (!canCreate) { showToast('Add a space name first'); return; }
           if (!currentUser.userId) { showToast('You must be logged in to create a space'); return; }
+          const meetingUrl = isOnline ? parseMeetingUrl(meetingLink) : null;
+          if (isOnline && meetingLink.trim() && !meetingUrl) {
+            showToast('Enter a valid http(s) meeting link');
+            return;
+          }
           setSubmitting(true);
           const activeCatObj = CATS.find(c => c.id === cat) || CATS[0];
-          const location = [venue, area].filter(Boolean).join(' · ');
+          const meetingPlatform = meetingUrl ? detectMeetingPlatform(meetingLink) : null;
+          const location = isOnline
+            ? (meetingPlatform && meetingPlatform !== 'Online' ? `Online (${meetingPlatform})` : 'Online')
+            : [venue, area].filter(Boolean).join(' · ');
           // Compute ends_at from date + start time + duration (in hours)
           let endsAt = null;
           if (firstDate && startTime) {
@@ -8639,6 +8788,9 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
             host_text: currentUser.name || 'Host',
             category: cat,
             location: location || null,
+            is_online: isOnline,
+            meeting_link: meetingUrl ? meetingUrl.toString() : null,
+            meeting_platform: meetingPlatform,
             time: startTime || null,
             duration: duration || null,
             repeat_weeks: repeat && repeatWeeks ? parseInt(repeatWeeks, 10) : null,
@@ -8771,6 +8923,8 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
   const [coverUrl,  setCoverUrl]  = useState(null);
   const [uploading, setUploading] = useState(false);
   const [room,      setRoom]      = useState('');
+  const [isOnline,     setIsOnline]     = useState(false);
+  const [meetingLink,  setMeetingLink]  = useState('');
   const [pricing,   setPricing]   = useState('free');
   const [price,     setPrice]     = useState('');
   const [capacity,  setCapacity]  = useState(50);
@@ -8844,6 +8998,8 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       setRepeatWeeks(ev.repeat_weeks ? String(ev.repeat_weeks) : '');
       setVenue(ev.venue || '');
       setRoom(ev.room || '');
+      setIsOnline(!!ev.is_online);
+      setMeetingLink(ev.meeting_link || '');
       setCoverUrl(ev.image_url || null);
       const parsedPrice = parseEventPrice(ev.price);
       setPricing(parsedPrice.isFree ? 'free' : 'paid');
@@ -8881,8 +9037,22 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       showToast('Enter a valid ticket price');
       return;
     }
+    const meetingUrl = isOnline ? parseMeetingUrl(meetingLink) : null;
+    if (isOnline && meetingLink.trim() && !meetingUrl) {
+      showToast('Enter a valid http(s) meeting link');
+      return;
+    }
     setSubmittingStatus(status);
-    const location = [venue, room].filter(Boolean).join(' · ');
+    const meetingPlatform = meetingUrl ? detectMeetingPlatform(meetingLink) : null;
+    // `location`/`venue`/`room` stay populated (as "Online (Zoom)") even for
+    // online events so every older read site that only knows about those
+    // text fields (saved lists, tickets' ICS export, etc.) still shows
+    // something sensible instead of a blank location. Only known platforms
+    // (not the generic 'Online' fallback) get the parenthetical, so an
+    // unrecognized provider reads "Online" instead of "Online (Online)".
+    const location = isOnline
+      ? (meetingPlatform && meetingPlatform !== 'Online' ? `Online (${meetingPlatform})` : 'Online')
+      : [venue, room].filter(Boolean).join(' · ');
     const timeRange = [startTime, endTime].filter(Boolean).map(fmt12).join(' – ');
     const selectedRules = Object.entries(rules).filter(([,v])=>v).map(([k])=>k);
     const newPrice = isPaid ? parseEventPrice(price).amount : 0;
@@ -8893,8 +9063,14 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       category: cat,
       tags: [cat],
       location: location || null,
-      venue: venue.trim() || null,
-      room: room.trim() || null,
+      // Kept populated (not nulled) for online events too -- ticket/legacy
+      // screens read venue/room directly rather than location, so nulling
+      // them would show a blank spot there for an otherwise-valid event.
+      venue: isOnline ? location : (venue.trim() || null),
+      room: isOnline ? null : (room.trim() || null),
+      is_online: isOnline,
+      meeting_link: meetingUrl ? meetingUrl.toString() : null,
+      meeting_platform: meetingPlatform,
       date: date || null,
       full_date: date || null,
       start_time: startTime ? fmt12(startTime) : null,
@@ -9223,30 +9399,63 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         {/* Location */}
         <div style={{ marginTop:20 }}>
           <EventLabel>Location</EventLabel>
-          <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
-                        border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46, marginBottom:9 }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-              <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.primary} strokeWidth="1.9"/>
-              <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
+          <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:9 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <rect x="2.5" y="5.5" width="14" height="11" rx="2.5" stroke={C.muted} strokeWidth="1.9"/>
+              <path d="m16.5 10 4.3-2.8a1 1 0 0 1 1.55.84v8l-1.55.84a1 1 0 0 1-1.55-.84V10Z" stroke={C.muted} strokeWidth="1.9" strokeLinejoin="round"/>
             </svg>
-            <input value={venue} onChange={e => setVenue(e.target.value)}
-              placeholder="Venue name (e.g. UMSU University Centre)"
-              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12,
-                       fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
-            />
+            <span style={{ flex:1, fontSize:12, fontWeight:600, color:C.muted }}>This is an online event</span>
+            <button onClick={() => setIsOnline(v => !v)} style={{
+              width:44, height:26, border:'none', borderRadius:999, padding:0,
+              background: isOnline ? C.primary : '#D1D5DB', cursor:'pointer',
+              position:'relative', transition:'background .2s', flexShrink:0,
+            }}>
+              <span style={{ position:'absolute', top:3, left: isOnline ? 21 : 3, width:20, height:20,
+                             borderRadius:'50%', background:'#fff', display:'block',
+                             boxShadow:'0 1px 3px rgba(0,0,0,0.2)', transition:'left .2s' }}/>
+            </button>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
-                        border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-              <rect x="3" y="3" width="18" height="18" rx="3" stroke={C.muted} strokeWidth="1.9"/>
-              <path d="M3 9h18M9 21V9" stroke={C.muted} strokeWidth="1.9" strokeLinecap="round"/>
-            </svg>
-            <input value={room} onChange={e => setRoom(e.target.value)}
-              placeholder="Floor / Room (e.g. 3rd Floor · Multipurpose Room)"
-              style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12,
-                       fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
-            />
-          </div>
+          {isOnline ? (
+            <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                          border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.primary} strokeWidth="1.9"/>
+                <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
+              </svg>
+              <input value={meetingLink} onChange={e => setMeetingLink(e.target.value)}
+                placeholder="Paste Zoom / Teams / Google Meet link"
+                style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12,
+                         fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+              />
+            </div>
+          ) : (
+            <>
+              <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                            border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46, marginBottom:9 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                  <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" stroke={C.primary} strokeWidth="1.9"/>
+                  <circle cx="12" cy="10" r="2.4" stroke={C.primary} strokeWidth="1.9"/>
+                </svg>
+                <input value={venue} onChange={e => setVenue(e.target.value)}
+                  placeholder="Venue name (e.g. UMSU University Centre)"
+                  style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12,
+                           fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+                />
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10, background:C.card,
+                            border:`1.5px solid ${C.border}`, borderRadius:13, padding:'0 14px', height:46 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
+                  <rect x="3" y="3" width="18" height="18" rx="3" stroke={C.muted} strokeWidth="1.9"/>
+                  <path d="M3 9h18M9 21V9" stroke={C.muted} strokeWidth="1.9" strokeLinecap="round"/>
+                </svg>
+                <input value={room} onChange={e => setRoom(e.target.value)}
+                  placeholder="Floor / Room (e.g. 3rd Floor · Multipurpose Room)"
+                  style={{ flex:1, border:'none', background:'none', outline:'none', fontSize:12,
+                           fontWeight:600, color:C.body, fontFamily:"'Montserrat',-apple-system,sans-serif" }}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Pricing */}

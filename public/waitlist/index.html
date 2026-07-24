@@ -335,6 +335,31 @@ button, input { font-family: inherit; }
 .problem-card p { font-size: 14.5px; font-weight: 600; color: var(--body); line-height: 1.45; margin: 0; }
 .problem-card-wide { grid-column: 1 / -1; }
 
+/* ---------- Solution ---------- */
+.solution { padding: 30px 0 70px; text-align: center; }
+.solution-eyebrow {
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--green);
+}
+.solution h2 {
+  font-family: var(--font-display); font-weight: 800; font-size: clamp(30px, 4vw, 42px);
+  color: var(--ink); max-width: 680px; margin: 12px auto 0; letter-spacing: -0.02em; text-wrap: balance;
+}
+.solution-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+  max-width: 780px; margin: 40px auto 0; text-align: left;
+}
+.solution-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: #fff; border-radius: 18px; padding: 20px 22px; box-shadow: var(--shadow-card);
+}
+.solution-card .ic {
+  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+  background: #E9F9F1; display: flex; align-items: center; justify-content: center;
+}
+.solution-card p { font-size: 14.5px; font-weight: 600; color: var(--body); line-height: 1.45; margin: 0; }
+.solution-card-wide { grid-column: 1 / -1; }
+
 /* ---------- Mission ---------- */
 .mission { padding: 70px 0; text-align: center; }
 .mission h2 {
@@ -396,6 +421,7 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
 @media (max-width: 520px) {
   .pillars { grid-template-columns: repeat(2, 1fr); }
   .problem-grid { grid-template-columns: 1fr; }
+  .solution-grid { grid-template-columns: 1fr; }
   .waitlist-form { flex-direction: column; }
   .waitlist-form .btn { width: 100%; }
   .nav .btn-primary span.long { display: none; }
@@ -508,6 +534,33 @@ footer .fine { font-size: 12.5px; color: var(--subtle); }
     <div class="problem-card problem-card-wide">
       <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9" r="3.4" stroke="#FF6B6B" stroke-width="1.8"/><path d="M5.5 20c0-3.6 3-5.6 6.5-5.6s6.5 2 6.5 5.6" stroke="#FF6B6B" stroke-width="1.8" stroke-linecap="round"/><path d="M17 4.5c1.3.5 2 1.7 2 3s-.7 2.5-2 3" stroke="#FF6B6B" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="1 3.2"/></svg></span>
       <p>Freshman year, not knowing how to find people who actually get you beyond one club fair booth.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap solution reveal">
+  <span class="solution-eyebrow">OUR SOLUTION</span>
+  <h2>Here's how Riply changes that.</h2>
+  <div class="solution-grid">
+    <div class="solution-card">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10B981" stroke-width="1.8"/><path d="m8 12.5 2.5 2.5L16 9.5" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <p>See something you like? Join it, or save it for later. Either way, it's still there when you're ready, not stuck in a photo you'll never open again.</p>
+    </div>
+    <div class="solution-card">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10B981" stroke-width="1.8"/><path d="m8 12.5 2.5 2.5L16 9.5" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <p>You'll always know the real time and place without scrolling through a single chat.</p>
+    </div>
+    <div class="solution-card">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10B981" stroke-width="1.8"/><path d="m8 12.5 2.5 2.5L16 9.5" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <p>Know what's happening before you leave your room, not after it's already over.</p>
+    </div>
+    <div class="solution-card">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10B981" stroke-width="1.8"/><path d="m8 12.5 2.5 2.5L16 9.5" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <p>Pay safely in seconds and walk in with your ticket already waiting. No stranger, no guessing.</p>
+    </div>
+    <div class="solution-card solution-card-wide">
+      <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10B981" stroke-width="1.8"/><path d="m8 12.5 2.5 2.5L16 9.5" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <p>Meet people into what you're into, all year, not just once at a table in September.</p>
     </div>
   </div>
 </section>

@@ -753,12 +753,12 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 {/* Metrics */}
                 <div style={{ display:'flex', alignItems:'center', gap:18 }}>
                   <button onClick={()=>toggleLike(ev.id)} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill={isLiked?'#FF3B6B':'rgba(0,0,0,0)'} stroke={isLiked?'#FF3B6B':'#9AA3B2'} strokeWidth="1.8" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:isLiked?'#FF3B6B':C.subtle }}>{fmt(ev.likes+(isLiked?1:0))}</span>
+                    <svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill={isLiked?'#FF3B6B':'rgba(0,0,0,0)'} stroke={isLiked?'#FF3B6B':C.ink} strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                    <span style={{ fontSize:11, fontWeight:700, color:isLiked?'#FF3B6B':C.ink }}>{fmt(ev.likes+(isLiked?1:0))}</span>
                   </button>
                   <button onClick={()=>toggleSave(ev.id)} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill={isSaved?'#0098F0':'rgba(0,0,0,0)'} stroke={isSaved?'#0098F0':'#9AA3B2'} strokeWidth="1.7" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:isSaved?C.primary:C.subtle }}>{fmt(ev.saves+(isSaved?1:0))}</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill={isSaved?'#0098F0':'rgba(0,0,0,0)'} stroke={isSaved?'#0098F0':C.ink} strokeWidth="1.7" strokeLinejoin="round"/></svg>
+                    <span style={{ fontSize:11, fontWeight:700, color:isSaved?C.primary:C.ink }}>{fmt(ev.saves+(isSaved?1:0))}</span>
                   </button>
                   <button onClick={async (e) => {
                     e.stopPropagation();
@@ -779,17 +779,17 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     if (didShare) recordShare(ev.id);
                   }} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-                      <circle cx="18" cy="5" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
-                      <circle cx="6" cy="12" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
-                      <circle cx="18" cy="19" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
-                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
-                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isSharedEv ? '#FF8A3D' : '#7B8499'} strokeWidth="1.8"/>
+                      <circle cx="18" cy="5" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
+                      <circle cx="6" cy="12" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
+                      <circle cx="18" cy="19" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
                     </svg>
-                    <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : '#7B8499' }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : C.ink }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke="#7B8499" strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:C.body }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.subtle, fontWeight:500 }}>going</span></span>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:18 }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/></svg>
+                    <span style={{ fontSize:11, fontWeight:700, color:C.ink }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.ink, fontWeight:500 }}>going</span></span>
                   </div>
                 </div>
               </div>
@@ -2743,7 +2743,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
   const isMe = !p.author_is_group && !!(currentUser?.userId && p.user_id === currentUser.userId);
 
   return (
-    <div style={{ background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:15 }}>
+    <div style={{ background:'#fff', borderRadius:18, padding:15 }}>
       {/* Author */}
       <div style={{ display:'flex', alignItems:'center', gap:11 }}>
         {(() => {
@@ -2943,17 +2943,17 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"
-                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize:13, fontWeight:700, color:liked?'#FF3B6B':'#7B8499' }}>{(p.likes||0)+(liked?1:0)}</span>
+          <span style={{ fontSize:13, fontWeight:700, color:liked?'#FF3B6B':C.ink }}>{(p.likes||0)+(liked?1:0)}</span>
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
-                  stroke={cOpen?C.primary:C.subtle} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                  stroke={cOpen?C.primary:C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize:13, fontWeight:700, color:'#7B8499' }}>{comments.length}</span>
+          <span style={{ fontSize:13, fontWeight:700, color:C.ink }}>{comments.length}</span>
         </button>
         <button onClick={async () => {
             const shareText = p.text || 'Check this post on Riply';
@@ -2962,11 +2962,11 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
             }
             try { await navigator.clipboard.writeText(shareText); showToast('Copied to clipboard'); } catch { showToast('Post shared'); }
           }}
-          style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
+          style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <circle cx="18" cy="5" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
-            <circle cx="6" cy="12" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
-            <circle cx="18" cy="19" r="2.6" stroke={C.subtle} strokeWidth="1.9"/>
+            <circle cx="18" cy="5" r="2.6" stroke={C.ink} strokeWidth="1.9"/>
+            <circle cx="6" cy="12" r="2.6" stroke={C.ink} strokeWidth="1.9"/>
+            <circle cx="18" cy="19" r="2.6" stroke={C.ink} strokeWidth="1.9"/>
             <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
         </button>
@@ -3221,7 +3221,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
-function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser, markGroupRead }) {
+function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser, markGroupRead, unreadChatCount, unreadPostCount }) {
   // Opening a group's feed counts as seeing its posts, so the group
   // activity row in Notifications stops counting them as missed.
   useEffect(() => { markGroupRead?.(groupId); }, [groupId, markGroupRead]);
@@ -3552,11 +3552,22 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         top: avatarLerp(58, 30),
         left:0, right:0,
         display:'flex', justifyContent:'center',
-        zIndex:30, pointerEvents: avatarProgress > 0.5 ? 'none' : 'auto',
+        // This wrapper spans the full width (left:0/right:0) at zIndex 30 --
+        // above the back/menu buttons (zIndex 21) -- so leaving it
+        // pointer-events:auto meant it caught taps on the back button
+        // underneath it anywhere outside the small centered avatar, even
+        // though nothing was visibly there. The avatar itself re-enables
+        // pointer-events:auto for just its own box below, so the wrapper
+        // can stay pass-through unconditionally.
+        zIndex:30, pointerEvents:'none',
         opacity: 1 - avatarProgress,
         transform: `scale(${avatarLerp(1, 0.7)})`,
       }}>
-        <div style={{ position:'relative', display:'inline-block', pointerEvents:'auto' }}>
+        <div style={{ position:'relative', display:'inline-block',
+                      // Once fully collapsed the avatar is invisible (opacity 0
+                      // above) -- without this it would still swallow taps in
+                      // this circle even though nothing is shown there anymore.
+                      pointerEvents: avatarProgress < 1 ? 'auto' : 'none' }}>
           <div style={{ width:84, height:84, borderRadius:'50%', border:'4px solid #F4F6FA',
                         background:g.logoColor || g.logo_color || "linear-gradient(135deg,#19BFFF,#0098F0)", display:'flex', alignItems:'center',
                         justifyContent:'center', color:'#fff', fontSize:30, fontWeight:800,
@@ -3589,10 +3600,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         </div>
 
         {/* ── Stats ───────────────────────────────────────── */}
-        <div style={{ display:'flex', justifyContent:'center', gap:34, marginTop:16 }}>
+        <div style={{ display:'flex', justifyContent:'center', gap:18, marginTop:16 }}>
           {[{v: liveMembers ?? '—', l:'Members'},{v: livePosts2 ?? '—', l:'Posts'},{v: liveEvents2 !== null ? (liveEvents2 === 0 ? '—' : liveEvents2) : '—', l:'Events'}].map(s => (
             <div key={s.l} style={{ textAlign:'center' }}>
-              <div style={{ fontSize:18, fontWeight:800, color:C.ink }}>{s.v}</div>
+              <div style={{ fontSize:18, fontWeight:600, color:C.ink }}>{s.v}</div>
               <div style={{ fontSize:12, color:C.subtle, fontWeight:600, marginTop:1 }}>{s.l}</div>
             </div>
           ))}
@@ -3606,7 +3617,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             {/* Explore — group analytics */}
             <button onClick={() => navigate('group-analytics', { groupId: g.id })} style={{
               flex:'0 1 170px', height:46, borderRadius:999, border:'none',
-              background:C.ink, color:'#fff', boxShadow:'0 8px 20px rgba(14,23,38,0.28)',
+              background:C.ink, color:'#fff',
               fontSize:15, fontWeight:800, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
@@ -3620,7 +3631,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
             {/* Edit — group manage */}
             <button onClick={() => navigate('group-manage', { groupId: g.id })} style={{
               flex:'0 1 170px', height:46, borderRadius:999, border:'none',
-              background:C.ink, color:'#fff', boxShadow:'0 8px 20px rgba(14,23,38,0.28)',
+              background:C.ink, color:'#fff',
               fontSize:15, fontWeight:800, cursor:'pointer',
               fontFamily:"'Montserrat',-apple-system,sans-serif",
               display:'flex', alignItems:'center', justifyContent:'center', gap:8,
@@ -3638,17 +3649,19 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
               position:'relative', width:46, height:46, border:'none',
               borderRadius:'50%', flexShrink:0, background:'#fff', cursor:'pointer',
               display:'flex', alignItems:'center', justifyContent:'center',
-              boxShadow:'0 4px 12px rgba(16,24,40,0.08)',
             }}>
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
-                <path d="M4 6.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-4 3.5V16.5H6a2 2 0 0 1-2-2Z"
-                      stroke={C.body} strokeWidth="1.9" strokeLinejoin="round"/>
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
+                      fill={unreadChatCount > 0 ? C.primary : 'none'}
+                      stroke={unreadChatCount > 0 ? C.primary : C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <span style={{ position:'absolute', top:-2, right:-2, minWidth:18, height:18,
-                             padding:'0 4px', borderRadius:999, background:C.primary,
-                             color:'#fff', fontSize:10, fontWeight:800,
-                             display:'flex', alignItems:'center', justifyContent:'center',
-                             border:'2px solid #F4F6FA' }}>5</span>
+              {unreadChatCount > 0 && (
+                <span style={{ position:'absolute', top:-2, right:-2, minWidth:18, height:18,
+                               padding:'0 4px', borderRadius:999, background:'#FF3B6B',
+                               color:'#fff', fontSize:10, fontWeight:800,
+                               display:'flex', alignItems:'center', justifyContent:'center',
+                               border:'2px solid #F4F6FA' }}>{unreadChatCount > 99 ? '99+' : unreadChatCount}</span>
+              )}
             </button>
           </>
         ) : (
@@ -3707,12 +3720,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                       strokeWidth="1.9" strokeLinecap="round"/>
                 {!notifyOn && <path d="M4 5 20 19" stroke="#7B8499" strokeWidth="1.9" strokeLinecap="round"/>}
               </svg>
-              {isJoined && notifyOn && (
+              {isJoined && notifyOn && unreadPostCount > 0 && (
                 <span style={{ position:'absolute', top:-2, right:-2, minWidth:18, height:18,
                                padding:'0 4px', borderRadius:999, background:C.primary,
                                color:'#fff', fontSize:10, fontWeight:800,
                                display:'flex', alignItems:'center', justifyContent:'center',
-                               border:'2px solid #F4F6FA' }}>5</span>
+                               border:'2px solid #F4F6FA' }}>{unreadPostCount > 99 ? '99+' : unreadPostCount}</span>
               )}
             </button>
           )}
@@ -3734,7 +3747,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
           return (
             <div onClick={() => navigate('event-details', { eventId: pinnedEvent.id })}
               style={{ margin:'16px 16px 0', display:'flex', alignItems:'center', gap:13,
-                       background:'#fff', borderRadius:18, boxShadow:'0 4px 16px rgba(16,24,40,0.06)',
+                       background:'#fff', borderRadius:18,
                        padding:13, cursor:'pointer' }}>
               <div style={{ width:64, height:64, borderRadius:'50%', flexShrink:0, position:'relative',
                             overflow:'hidden', display:'flex', flexDirection:'column',
@@ -3750,16 +3763,26 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 <div style={{ fontSize:15, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {pinnedEvent.title}
                 </div>
-                {location && (
-                  <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, whiteSpace:'normal', overflowWrap:'anywhere' }}>
-                    {location}
+                {(location || when) && (
+                  <div style={{ fontSize:12.5, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    {location && <span style={{ color:C.subtle }}>{location}</span>}
+                    {location && when && <span style={{ color:C.subtle }}> · </span>}
+                    {when && <span style={{ color:C.primary, fontWeight:700 }}>{when}</span>}
                   </div>
                 )}
-                {when && (
-                  <div style={{ fontSize:12.5, color:C.primary, fontWeight:700, marginTop:5 }}>
-                    {when}
+                <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:6 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill="#FF3B6B" stroke="#FF3B6B" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                    <span style={{ fontSize:11.5, fontWeight:700, color:C.ink }}>{fmt(pinnedEvent.likes || 0)}</span>
                   </div>
-                )}
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
+                      <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                    <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{fmt(pinnedEvent.attendee_count || 0)} going</span>
+                  </div>
+                </div>
               </div>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
                 <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
@@ -3836,20 +3859,21 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
         {(() => {
           const sl = g.social_links || {};
           const links = [
-            { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#39414F" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#39414F" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#39414F"/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
-            { key:'tiktok',    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke="#39414F" strokeWidth="1.6" strokeLinejoin="round"/></svg>, getUrl: v => `https://tiktok.com/@${v.replace(/^@/,'')}` },
-            { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#39414F" strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#39414F" strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
-            { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke="#39414F" strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke="#39414F" strokeWidth="1.7" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
+            { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#E1306C" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#E1306C" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#E1306C"/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
+            { key:'tiktok',    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke={C.ink} strokeWidth="1.6" strokeLinejoin="round"/></svg>, getUrl: v => `https://tiktok.com/@${v.replace(/^@/,'')}` },
+            { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke={C.primary} strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
+            { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M7 7.5C8.5 6.7 10 6.5 12 6.5s3.5.2 5 1c1.8 2.5 2.5 5.5 2.3 9-1.3 1-2.7 1.7-4 2l-.8-1.4M7 7.5c-1.8 2.5-2.5 5.5-2.3 9 1.3 1 2.7 1.7 4 2l.8-1.4M9 14c2 1 4 1 6 0" stroke="#5865F2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
+            { key:'mail',      icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke={C.ink} strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke={C.ink} strokeWidth="1.7" strokeLinejoin="round"/></svg>, getUrl: v => `mailto:${v}` },
+            { key:'reddit',    icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13.5" r="7.5" stroke="#FF4500" strokeWidth="1.7"/><circle cx="8.7" cy="13.5" r="1.2" fill="#FF4500"/><circle cx="15.3" cy="13.5" r="1.2" fill="#FF4500"/><path d="M8.5 16.5c1 .8 2.2 1.2 3.5 1.2s2.5-.4 3.5-1.2" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 6v2M12 6a1.5 1.5 0 1 1 3 0" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round"/><circle cx="17.5" cy="9" r="1.2" stroke="#FF4500" strokeWidth="1.3"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://reddit.com/r/${v.replace(/^\/?r\//,'')}` },
           ].filter(l => sl[l.key]);
           if (links.length === 0) return null;
           return (
             <div style={{ display:'flex', justifyContent:'center', gap:20, padding:'16px 0 4px' }}>
               {links.map(l => (
                 <a key={l.key} href={l.getUrl(sl[l.key])} target="_blank" rel="noopener noreferrer"
-                  style={{ width:38, height:38, borderRadius:11, background:'#fff',
+                  style={{ width:38, height:38,
                            display:'flex', alignItems:'center', justifyContent:'center',
-                           textDecoration:'none',
-                           boxShadow:'0 3px 8px rgba(16,24,40,0.06)' }}>
+                           textDecoration:'none' }}>
                   {l.icon}
                 </a>
               ))}
@@ -3947,7 +3971,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                             <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25, flex:1, minWidth:0,
                                           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
-                            {ev.is_pinned && (
+                            {/* Admins already see pinned state on the toggle button to the
+                                right (highlighted background) -- showing this badge too for
+                                them read as two separate pins on the same row. Members with
+                                no toggle button still need this as their only indicator. */}
+                            {ev.is_pinned && !isGroupAdmin && (
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
                                 <line x1="12" y1="17" x2="12" y2="22" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
                                 <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3961,12 +3989,18 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                             <div style={{ fontSize:11.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
                                           overflow:'hidden', textOverflow:'ellipsis' }}>{ev.venue || ev.location}</div>
                           )}
-                          <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:7 }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                              <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
-                              <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
-                            </svg>
-                            <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{ev.attendees_count || ev.going || 0} going</span>
+                          <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:7 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill="#FF3B6B" stroke="#FF3B6B" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                              <span style={{ fontSize:11.5, fontWeight:700, color:C.ink }}>{fmt(ev.likes || 0)}</span>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
+                                <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
+                              </svg>
+                              <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{fmt(ev.attendee_count || 0)} going</span>
+                            </div>
                           </div>
                         </div>
                         {isGroupAdmin && (
@@ -10636,7 +10670,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
   const [perms,      setPerms]      = useState({ membersPost:true, requireApproval:false, allowInvites:true });
   const [rules,      setRules]      = useState(staticG.rules?.length ? [...staticG.rules] : ['Be respectful and constructive','Original work only — credit sources','No spam or self-promotion','Keep feedback kind and specific']);
   const [ruleDraft,  setRuleDraft]  = useState('');
-  const [social,     setSocial]     = useState({ instagram:'', tiktok:'', website:'', discord:'' });
+  const [social,     setSocial]     = useState({ instagram:'', tiktok:'', website:'', discord:'', mail:'', reddit:'' });
   const [saving,     setSaving]     = useState(false);
   // Populate from DB once loaded
   useEffect(() => {
@@ -10647,7 +10681,7 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
     setVisibility(dbGroup.privacy || 'public');
     if (dbGroup.permissions) setPerms(p => ({ ...p, ...dbGroup.permissions }));
     if (dbGroup.rules?.length) setRules([...dbGroup.rules]);
-    if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', ...dbGroup.social_links });
+    if (dbGroup.social_links) setSocial({ instagram:'', tiktok:'', website:'', discord:'', mail:'', reddit:'', ...dbGroup.social_links });
   }, [dbGroup]);
 
   const CATS = ['Academic','Social','Arts','Sports','Career','Culture'];
@@ -10671,6 +10705,10 @@ function GroupEditScreen({ groupId, editTab, goBack, showToast, currentUser }) {
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.9"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke={C.primary} strokeWidth="1.9"/></svg> },
     { key:'discord',   label:'Discord',   ph:'Invite link',
       icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 7.5C8.5 6.7 10 6.5 12 6.5s3.5.2 5 1c1.8 2.5 2.5 5.5 2.3 9-1.3 1-2.7 1.7-4 2l-.8-1.4M7 7.5c-1.8 2.5-2.5 5.5-2.3 9 1.3 1 2.7 1.7 4 2l.8-1.4M9 14c2 1 4 1 6 0" stroke="#5865F2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    { key:'mail',      label:'Mail',      ph:'group@example.com',
+      icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke={C.ink} strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke={C.ink} strokeWidth="1.7" strokeLinejoin="round"/></svg> },
+    { key:'reddit',    label:'Reddit',    ph:'Subreddit or r/name',
+      icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13.5" r="7.5" stroke="#FF4500" strokeWidth="1.8"/><circle cx="8.7" cy="13.5" r="1.3" fill="#FF4500"/><circle cx="15.3" cy="13.5" r="1.3" fill="#FF4500"/><path d="M8.5 16.5c1 .8 2.2 1.2 3.5 1.2s2.5-.4 3.5-1.2" stroke="#FF4500" strokeWidth="1.6" strokeLinecap="round"/><path d="M12 6v2M12 6a1.5 1.5 0 1 1 3 0" stroke="#FF4500" strokeWidth="1.6" strokeLinecap="round"/><circle cx="17.5" cy="9" r="1.3" stroke="#FF4500" strokeWidth="1.4"/></svg> },
   ];
 
   const Toggle = ({ on, onToggle }) => (
@@ -13256,7 +13294,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
-      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} />;
+      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

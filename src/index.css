@@ -14,6 +14,14 @@ html, body {
   overflow: hidden;
 }
 
+/* Browsers don't inherit font-family into form controls by default -- button,
+   input, select, and textarea use the OS UI font instead. That silently
+   dropped Montserrat from every stat shown inside a <button> (like/comment/
+   share/save counts, etc.) even though every ancestor div correctly set it. */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
 /* iOS Safari auto-zooms the whole page on focus for any text input/textarea
    with a computed font-size under 16px -- this app's inputs are mostly
    13-14px for visual consistency, which is what was actually causing the

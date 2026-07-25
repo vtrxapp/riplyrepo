@@ -1239,6 +1239,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 // ─────────────────────────────────────────────────────────────
 // SCREEN: MESSAGES
 // ─────────────────────────────────────────────────────────────
+const MSG_TABS = ['notifications', 'chats'];
 function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsData, groupActivityData }) {
   const isNotif = msgTab==='notifications';
   const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = chatsData;
@@ -1254,7 +1255,6 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
     ? chats.filter(c => c.name?.toLowerCase().includes(q) || c.preview?.toLowerCase().includes(q))
     : chats;
 
-  const MSG_TABS = ['notifications', 'chats'];
   const msgSwipeRef = useRef(null);
   const handleMsgSwipeStart = (e) => { msgSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
   const handleMsgSwipeEnd = (e) => {

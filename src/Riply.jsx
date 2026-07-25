@@ -8067,7 +8067,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
       </div>
 
       {/* ── Scroll body ────────────────────────────────────── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 220px' }}>
 
         {/* Cover */}
         <button onClick={() => {
@@ -8509,7 +8509,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
       </div>
 
       {/* ── Scroll body ────────────────────────────────────── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 220px' }}>
 
         {/* Cover */}
         <div onClick={() => {
@@ -9363,7 +9363,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       ) : (
       <>
       {/* ── Scroll body ────────────────────────────────────── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 110px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 220px' }}>
 
         {/* Cover */}
         <div onClick={() => {

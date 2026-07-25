@@ -8004,7 +8004,7 @@ function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE CAMPUS GROUP
 // ─────────────────────────────────────────────────────────────
-function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
+function CreateGroupScreen({ goBack, navigate, navigateReplace, showToast, currentUser }) {
   const CATS = APP_CATEGORIES;
   const DEF_RULES = [
     'Be respectful and constructive',
@@ -8398,7 +8398,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             role: 'admin',
           });
           setSubmitting(false);
-          navigate('creation-success', { kind: 'group', id: group.id, title: name.trim() });
+          (navigateReplace || navigate)('creation-success', { kind: 'group', id: group.id, title: name.trim() });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
@@ -8431,7 +8431,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE STUDENT SPACE
 // ─────────────────────────────────────────────────────────────
-function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
+function CreateSpaceScreen({ goBack, navigate, navigateReplace, showToast, currentUser }) {
   const CATS = APP_CATEGORIES;
 
   const [cat,         setCat]        = useState('academic');
@@ -8919,7 +8919,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           }).select().single();
           setSubmitting(false);
           if (error) { showToast('Failed to create space: ' + error.message); return; }
-          navigate('creation-success', { kind: 'space', id: space.id, title: title.trim() });
+          (navigateReplace || navigate)('creation-success', { kind: 'space', id: space.id, title: title.trim() });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
@@ -9013,7 +9013,7 @@ function EventCounterBtn({ onClick, minus }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE EVENT
 // ─────────────────────────────────────────────────────────────
-function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: sourceGroupId, eventId }) {
+function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, currentUser, groupId: sourceGroupId, eventId }) {
   const isEditing = !!eventId;
   const CATS = APP_CATEGORIES;
   const PRESET_RULES = [
@@ -9330,7 +9330,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       showToast(announceError ? 'Event published, but the group announcement post could not be posted' : 'Event published');
       navigate('event-details', { eventId });
     } else {
-      navigate('creation-success', { kind: 'event', id: event.id, title: title.trim() });
+      (navigateReplace || navigate)('creation-success', { kind: 'event', id: event.id, title: title.trim() });
     }
   };
 
@@ -13528,6 +13528,15 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     setNavStack(s => [...s, { screen: scr, ...params }]);
   }, []);
 
+  // Swaps the top of the stack instead of pushing on top of it -- used when
+  // landing on creation-success after publishing an event/space/group, so
+  // the now-stale create form doesn't linger underneath it. Without this,
+  // back from creation-success (or from wherever "View X" pushes next)
+  // walked straight back into the create form instead of past it.
+  const navigateReplace = useCallback((scr, params = {}) => {
+    setNavStack(s => [...s.slice(0, -1), { screen: scr, ...params }]);
+  }, []);
+
   const goBack = useCallback(() => {
     setNavStack(s => s.length > 1 ? s.slice(0, -1) : s);
   }, []);
@@ -13636,10 +13645,10 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} chatsData={chatsData} groupActivityData={groupActivityData} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
-      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
+      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
-      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
-      case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
+      case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;

@@ -2957,18 +2957,42 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         );
       })()}
 
-      {/* Image(s) — multiple photos scroll horizontally, a single photo fills the width */}
+      {/* Image(s) — an X/Twitter-style adaptive gallery. A single photo keeps
+          its own aspect ratio (capped by maxHeight for an extreme portrait)
+          instead of being force-cropped into a fixed box, so nothing gets
+          cut off; 2-4 photos lay out in a grid shaped to the photo count
+          (matching X's 2-up / big-left-plus-two-stacked / 2x2 patterns),
+          each cell still using objectFit:cover since a uniform grid --
+          unlike the single-photo case -- inherently needs equal-size cells.
+          5+ photos fall back to the pre-existing horizontal scroll. */}
       {Array.isArray(p.images) && p.images.length > 1 ? (
-        <div data-hscroll="true" style={{ display:'flex', gap:8, overflowX:'auto', marginTop:11, paddingBottom:2 }}>
-          {p.images.map((url, i) => (
-            <div key={i} style={{ borderRadius:14, overflow:'hidden', flexShrink:0, width:220, height:220 }}>
-              <img src={url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
-            </div>
-          ))}
-        </div>
-      ) : p.image_url && (
-        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, aspectRatio:'4 / 3' }}>
-          <img src={p.image_url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
+        p.images.length <= 4 ? (
+          <div style={{
+            display:'grid', gap:4, marginTop:11, borderRadius:14, overflow:'hidden', height:280,
+            gridTemplateColumns: p.images.length === 3 ? '1.2fr 1fr' : '1fr 1fr',
+            gridTemplateRows: p.images.length === 2 ? '1fr' : '1fr 1fr',
+          }}>
+            {p.images.slice(0, 4).map((url, i) => (
+              <div key={i} style={{
+                overflow:'hidden',
+                ...(p.images.length === 3 && i === 0 ? { gridColumn:'1', gridRow:'1 / 3' } : {}),
+              }}>
+                <img src={url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div data-hscroll="true" style={{ display:'flex', gap:8, overflowX:'auto', marginTop:11, paddingBottom:2 }}>
+            {p.images.map((url, i) => (
+              <div key={i} style={{ borderRadius:14, overflow:'hidden', flexShrink:0, width:220, height:220 }}>
+                <img src={url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
+              </div>
+            ))}
+          </div>
+        )
+      ) : (p.image_url || p.images?.[0]) && (
+        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:420 }}>
+          <img src={p.image_url || p.images[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:420, display:'block', objectFit:'contain' }} />
         </div>
       )}
 

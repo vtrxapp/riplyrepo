@@ -3724,7 +3724,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
         <div style={{ height:50 }}/>
 
         {/* ── Name + desc ─────────────────────────────────── */}
-        <div style={{ padding:'11px 24px 0', textAlign:'center' }}>
+        <div style={{ padding:'8px 24px 0', textAlign:'center' }}>
           <div style={{ fontSize:21, fontWeight:700, letterSpacing:-0.3, color:C.ink }}>{g.name}</div>
           <div style={{ fontSize:13, lineHeight:1.55, color:'#7B8499', marginTop:8,
                         display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>

@@ -464,7 +464,7 @@ function PullToRefresh({ onRefresh, style, children, onTouchStart: extraStart, o
   );
 }
 
-function SearchBar({ placeholder, hint, value, onChange, onFilter, filterCount }) {
+function SearchBar({ placeholder, hint, value, onChange, onFilter, filterCount = 0 }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:11, background:C.chip, borderRadius:18, padding:'11px 11px 11px 15px', boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="11" cy="11" r="7" stroke="#8A93A6" strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke="#8A93A6" strokeWidth="2" strokeLinecap="round"/></svg>

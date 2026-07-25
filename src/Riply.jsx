@@ -13627,7 +13627,16 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
 
   const renderScreen = () => {
     switch(screen) {
-      case 'loading':   return <div style={{ width:'100%', height:'100%', background:C.pageBg }} />;
+      case 'loading':   return (
+        // Matches the splash screen's own background (#fff) and keeps a
+        // centered mark on screen, instead of a plain C.pageBg rectangle --
+        // that mismatched gray plus zero content was the "flash to a blank
+        // screen" between splash fading out and Home actually being ready.
+        <div style={{ width:'100%', height:'100%', background:'#fff',
+                      display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <img src="/logo.png" alt="" style={{ width:220, height:110, objectFit:'contain', opacity:0.9 }}/>
+        </div>
+      );
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
       case 'auth':      return <AuthScreen setScreen={setScreen} showToast={showToast} initialStep={navParams.initialStep} initialRole={navParams.role} currentUser={currentUser} />;
       case 'home':      return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} currentUser={currentUser} />;

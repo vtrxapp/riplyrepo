@@ -5643,9 +5643,15 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   const scrollTimerRef = useRef(null);
   const scrollToBottom = () => {
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    scrollTimerRef.current = setTimeout(() => {
-      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }, 40);
+    const jump = () => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; };
+    // A single fixed-delay timeout raced the actual layout: image/attachment
+    // bubbles (hasImage/hasFile above) still change scrollHeight well after
+    // 40ms once their thumbnail finishes loading, so that first jump could
+    // land short of the real bottom. rAF waits for the just-rendered message
+    // list to actually paint; the 300ms follow-up catches image bubbles that
+    // finish loading after that first paint.
+    requestAnimationFrame(() => requestAnimationFrame(jump));
+    scrollTimerRef.current = setTimeout(jump, 300);
   };
   useEffect(() => () => {
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);

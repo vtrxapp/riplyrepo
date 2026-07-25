@@ -5713,14 +5713,31 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   })
 
   const scrollTimerRef = useRef(null);
+  const scrollRafRef = useRef([]);
   const scrollToBottom = () => {
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    scrollTimerRef.current = setTimeout(() => {
-      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }, 40);
+    // A rapid run of scrollToBottom() calls (e.g. several messages landing
+    // in quick succession) would otherwise queue up multiple overlapping
+    // rAF chains -- harmless since jump() is idempotent, but pointless
+    // duplicate work every time this fires. Cancel outstanding ones first.
+    scrollRafRef.current.forEach(id => cancelAnimationFrame(id));
+    const jump = () => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; };
+    // A single fixed-delay timeout raced the actual layout: image/attachment
+    // bubbles (hasImage/hasFile above) still change scrollHeight well after
+    // 40ms once their thumbnail finishes loading, so that first jump could
+    // land short of the real bottom. rAF waits for the just-rendered message
+    // list to actually paint; the 300ms follow-up catches image bubbles that
+    // finish loading after that first paint.
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(jump);
+      scrollRafRef.current = [raf2];
+    });
+    scrollRafRef.current = [raf1];
+    scrollTimerRef.current = setTimeout(jump, 300);
   };
   useEffect(() => () => {
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollRafRef.current.forEach(id => cancelAnimationFrame(id));
   }, []);
 
   const send = async () => {

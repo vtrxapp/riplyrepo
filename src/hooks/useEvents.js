@@ -100,8 +100,20 @@ export function useEvents({ category, search, filters } = {}) {
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
       const todayIso = todayStart.toISOString()
 
-      // Delete past events from DB
-      await supabase.from('events').delete().lt('date', todayIso)
+      // Archive + delete past events from DB. Routed through the same
+      // SECURITY DEFINER RPC the daily cron job uses (sql/archive_expired_events.sql)
+      // rather than a raw delete -- events_delete's RLS only allows deleting
+      // your own rows, so a raw `.delete()` here only ever actually removed
+      // the current user's own past events; this ensures every expired
+      // event gets snapshotted into archived_events before it's gone,
+      // regardless of who created it or who happened to trigger this fetch.
+      // Fire-and-forget rather than awaited: the SELECT below already
+      // excludes past events via its own date filter regardless of whether
+      // archiving has actually run yet, so a slow or failing archive pass
+      // must never delay or break the rest of this fetch.
+      supabase.rpc('archive_expired_events')
+        .then(({ error }) => { if (error) console.error('[useEvents] archive_expired_events failed:', error) })
+        .catch(err => console.error('[useEvents] archive_expired_events threw:', err))
 
       let q = supabase.from('events').select('*')
         .gte('date', todayIso)
@@ -124,10 +136,16 @@ export function useEvents({ category, search, filters } = {}) {
         q = q.gte('date', range[0]).lte('date', range[1])
       }
 
-      // Server-side search via ilike
+      // Server-side search via ilike. Commas are PostgREST's own delimiter
+      // between conditions in an `.or()` filter string, so a raw comma in
+      // the search text (e.g. "pizza, free food") would corrupt the filter
+      // and the request would fail outright instead of just not matching --
+      // treated as a space here, same graceful degradation an ilike search
+      // already implies.
       if (search && search.trim()) {
+        const safeSearch = search.trim().replace(/,/g, ' ')
         q = q.or(
-          `title.ilike.%${search.trim()}%,org.ilike.%${search.trim()}%,location.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%`
+          `title.ilike.%${safeSearch}%,org.ilike.%${safeSearch}%,location.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`
         )
       }
 

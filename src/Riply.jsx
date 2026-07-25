@@ -5539,23 +5539,28 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
         ) : (
           <button onClick={async () => {
             const next = !joined;
-            setJoined(next);
-            // Keep the app-wide spaceJoined map (what the Spaces screen's
-            // "My Spaces" tab reads) in sync -- this screen used to track
-            // join state only locally, so joining a space here wouldn't
-            // show under My Spaces until the whole app reloaded.
-            setSpaceJoined?.(j => ({ ...j, [sp.id]: next }));
-            // Optimistically update avatar stack
-            if (next) {
-              const me = { avatar_url: currentUser?.avatarUrl || null, color: currentUser?.avatarColor || '#7C5CFF', initial: (currentUser?.name || user?.firstName || 'U')[0]?.toUpperCase() || 'U', user_id: user?.id };
-              setRealParticipants(prev => prev.some(p => p.user_id === user?.id) ? prev : [me, ...prev]);
-            } else {
-              setRealParticipants(prev => prev.filter(p => p.user_id !== user?.id));
-            }
+            const me = { avatar_url: currentUser?.avatarUrl || null, color: currentUser?.avatarColor || '#7C5CFF', initial: (currentUser?.name || user?.firstName || 'U')[0]?.toUpperCase() || 'U', user_id: user?.id };
+            const applyLocal = (isJoined) => {
+              setJoined(isJoined);
+              // Keep the app-wide spaceJoined map (what the Spaces screen's
+              // "My Spaces" tab reads) in sync -- this screen used to track
+              // join state only locally, so joining a space here wouldn't
+              // show under My Spaces until the whole app reloaded.
+              setSpaceJoined?.(j => ({ ...j, [sp.id]: isJoined }));
+              setRealParticipants(prev => isJoined
+                ? (prev.some(p => p.user_id === user?.id) ? prev : [me, ...prev])
+                : prev.filter(p => p.user_id !== user?.id));
+            };
+            applyLocal(next);
             const isUuid = typeof sp.id === 'string' && sp.id.includes('-');
             if (user?.id && isUuid) {
-              if (next) await supabase.from('space_participants').upsert({ space_id: sp.id, user_id: user.id });
-              else await supabase.from('space_participants').delete().eq('space_id', sp.id).eq('user_id', user.id);
+              const { error } = next
+                ? await supabase.from('space_participants').upsert({ space_id: sp.id, user_id: user.id })
+                : await supabase.from('space_participants').delete().eq('space_id', sp.id).eq('user_id', user.id);
+              if (error) {
+                applyLocal(!next);
+                showToast(`Failed to ${next ? 'join' : 'leave'}: ` + error.message);
+              }
             }
           }} style={{
             width:'100%', height:54, borderRadius:18, cursor:'pointer',

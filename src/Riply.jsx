@@ -6195,10 +6195,12 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
     if (!cu?.userId) return;
     Promise.all([
       supabase.from('tickets').select('event_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
-      // Excludes pending join requests -- a request-only group hasn't
-      // actually approved this user yet, so it shouldn't count toward
-      // "Groups Joined" any more than an unanswered event invite would.
-      supabase.from('group_members').select('group_id', { count: 'exact', head: true }).eq('user_id', cu.userId).neq('role', 'pending'),
+      // Whitelisted to the same active-membership roles used elsewhere in
+      // this file (e.g. GroupAnalyticsScreen's member count, admin checks)
+      // rather than blacklisting 'pending' -- excludes pending join requests
+      // (a request-only group hasn't actually approved this user yet) without
+      // silently counting some future non-membership role no one's added yet.
+      supabase.from('group_members').select('group_id', { count: 'exact', head: true }).eq('user_id', cu.userId).in('role', ['member', 'admin', 'owner']),
       supabase.from('space_participants').select('space_id', { count: 'exact', head: true }).eq('user_id', cu.userId),
     ]).then(([rsvps, grps, spaces]) => {
       setStats({ events: rsvps.count || 0, groups: grps.count || 0, spaces: spaces.count || 0 });

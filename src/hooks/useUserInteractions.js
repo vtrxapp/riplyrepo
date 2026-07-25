@@ -53,11 +53,16 @@ export function useUserInteractions() {
     }
   }, [user?.id, saved])
 
-  // Share is one-way: once shared it stays recorded
+  // Share is one-way: once shared it stays recorded. Only flipped to true
+  // *after* the upsert succeeds -- marking it optimistically beforehand would
+  // leave the UI thinking a share was recorded (permanently, since this is
+  // one-way) even when a network/RLS failure meant no row was ever saved,
+  // with no way for the user to retry.
   const recordShare = useCallback(async (eventId) => {
     if (!user?.id || shared[eventId]) return
+    const { error } = await supabase.from('event_shares').upsert({ user_id: user.id, event_id: eventId }, { onConflict: 'user_id,event_id' })
+    if (error) { console.error('[useUserInteractions] recordShare failed:', error); return }
     setSharedState(p => ({ ...p, [eventId]: true }))
-    await supabase.from('event_shares').upsert({ user_id: user.id, event_id: eventId }, { onConflict: 'user_id,event_id' })
   }, [user?.id, shared])
 
   const toggleSaveSpace = useCallback(async (spaceId) => {
@@ -82,11 +87,14 @@ export function useUserInteractions() {
     }
   }, [user?.id, postLiked])
 
-  // One-way, same as recordShare for events -- once shared it stays recorded.
+  // One-way, same as recordShare for events -- once shared it stays recorded,
+  // and only marked so after the upsert actually succeeds (see recordShare's
+  // comment for why).
   const recordPostShare = useCallback(async (postId) => {
     if (!user?.id || postShared[postId]) return
+    const { error } = await supabase.from('post_shares').upsert({ user_id: user.id, post_id: postId }, { onConflict: 'user_id,post_id' })
+    if (error) { console.error('[useUserInteractions] recordPostShare failed:', error); return }
     setPostSharedState(p => ({ ...p, [postId]: true }))
-    await supabase.from('post_shares').upsert({ user_id: user.id, post_id: postId }, { onConflict: 'user_id,post_id' })
   }, [user?.id, postShared])
 
   return { liked, saved, spaceSaved, shared, postLiked, postShared, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike, recordPostShare }

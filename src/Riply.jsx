@@ -3043,9 +3043,17 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
             const shareText = p.text || 'Check this post on Riply';
             let didShare = false;
             if (navigator.share) {
-              try { await navigator.share({ title: 'Riply post', text: shareText, url: window.location.href }); didShare = true; } catch {}
+              try {
+                await navigator.share({ title: 'Riply post', text: shareText, url: window.location.href });
+                didShare = true;
+              } catch (err) {
+                // AbortError just means the user closed the native share
+                // sheet without picking anything -- not a real failure.
+                if (err?.name !== 'AbortError') showToast('Unable to share post');
+              }
             } else {
-              try { await navigator.clipboard.writeText(shareText); showToast('Copied to clipboard'); didShare = true; } catch { showToast('Post shared'); }
+              try { await navigator.clipboard.writeText(shareText); showToast('Copied to clipboard'); didShare = true; }
+              catch { showToast('Unable to copy post'); }
             }
             if (didShare) recordPostShare(pid);
           }}
@@ -3056,7 +3064,11 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
             <circle cx="18" cy="19" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9"/>
             <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
-          <span style={{ fontSize:13, fontWeight:700, color:isSharedPost?'#FF8A3D':C.ink }}>{(p.shares||0)+(isSharedPost?1:0)}</span>
+          {/* Real, server-maintained count (sql/post_shares.sql's trigger) --
+              no local +1 here, unlike the like counter above, since a second
+              optimistic add on top of the trigger's own increment would
+              double-count once the row refreshes. */}
+          <span style={{ fontSize:13, fontWeight:700, color:isSharedPost?'#FF8A3D':C.ink }}>{p.shares||0}</span>
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>

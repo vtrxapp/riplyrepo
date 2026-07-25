@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { setCachedMany } from '../lib/detailCache'
 
 async function attachUserProfiles(rows, idField = 'host_id') {
   if (!rows?.length) return rows || []
@@ -23,8 +24,13 @@ async function attachUserProfiles(rows, idField = 'host_id') {
 export function useSpaces() {
   const [spaces,  setSpaces]  = useState([])
   const [loading, setLoading] = useState(true)
+  // Bumped on every fetch() call so an earlier-fired request can't resolve
+  // after a later one (e.g. a rapid refetch()) and overwrite both the list
+  // state and the shared detail cache with stale rows.
+  const genRef = useRef(0)
 
   const fetch = useCallback(async () => {
+    const gen = ++genRef.current
     setLoading(true)
     const today = new Date().toISOString().slice(0, 10)
 
@@ -37,8 +43,11 @@ export function useSpaces() {
       .gte('day', today)
       .order('day', { ascending: true })
 
+    if (gen !== genRef.current) return
     const enriched = await attachUserProfiles(data || [], 'host_id')
+    if (gen !== genRef.current) return
     setSpaces(enriched)
+    setCachedMany('space', enriched)
     setLoading(false)
   }, [])
 

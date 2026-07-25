@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { setCachedMany } from '../lib/detailCache'
 
 export function useGroups() {
   const [groups,  setGroups]  = useState([])
@@ -47,7 +48,7 @@ export function useGroups() {
       rows.sort((a, b) => (ROLE_RANK[a.role] ?? 3) - (ROLE_RANK[b.role] ?? 3))
     })
 
-    setGroups(list.map(g => {
+    const enriched = list.map(g => {
       const rows = byGroup[g.id] || []
       return {
         ...g,
@@ -58,7 +59,9 @@ export function useGroups() {
           initial:      (m.users?.name || '?')[0].toUpperCase(),
         })),
       }
-    }))
+    })
+    setGroups(enriched)
+    setCachedMany('group', enriched)
     setLoading(false)
   }, [])
 

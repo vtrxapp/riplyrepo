@@ -23,6 +23,7 @@ import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
 import { uploadImage, safeExt } from "./hooks/useUpload";
 import { supabase } from "./lib/supabase";
+import { getCached, setCached, evictCached, clearDetailCache } from "./lib/detailCache";
 import QRCode from "qrcode";
 import jsQR from "jsqr";
 
@@ -3336,7 +3337,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
 
   const { user, isLoaded: userLoaded } = useUser();
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
-  const [dbGroup,     setDbGroup]     = useState(null);
+  // Seeded from the Discover/Groups list (or a previous visit) so this
+  // renders the real group immediately instead of briefly falling through to
+  // the unrelated `staticG` mock below while the fetch is in flight.
+  const [dbGroup,     setDbGroup]     = useState(() => getCached('group', groupId));
   const [groupEvents, setGroupEvents] = useState([]);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
@@ -3370,8 +3374,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
     const isStale = () => gen !== loadGenRef.current;
 
     // Reset all group-scoped state up front so stale values from the previous
-    // group can't linger while the new lookup is in flight.
-    setDbGroup(null);
+    // group can't linger while the new lookup is in flight -- dbGroup resets
+    // to whatever's cached for *this* group (often already correct) rather
+    // than null, so switching groups doesn't blank the screen if this one's
+    // been seen before.
+    setDbGroup(getCached('group', groupId));
     setMembershipChecked(false);
     setIsGroupAdmin(false);
     setJoinState(staticG.state || 'join');
@@ -3389,7 +3396,25 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
     (async () => {
       const { data: freshGroup } = await supabase.from('groups').select('*').eq('id', groupId).maybeSingle();
       if (isStale()) return;
-      if (freshGroup) setDbGroup(freshGroup);
+      if (freshGroup) {
+        // This screen only ever reads member_count/member_previews-shaped
+        // data via the separately-tracked liveMembers state (refreshCounts
+        // above), never from dbGroup -- but merge any such computed fields
+        // in from whatever was cached anyway, rather than dropping them,
+        // in case a future field here ends up being computed-only like
+        // useGroups.js's member_count/member_previews are.
+        const prevCached = getCached('group', groupId);
+        const merged = prevCached
+          ? { ...freshGroup, member_count: prevCached.member_count, member_previews: prevCached.member_previews }
+          : freshGroup;
+        setCached('group', groupId, merged);
+        setDbGroup(merged);
+      } else {
+        // maybeSingle() with no error and no data means the group genuinely
+        // doesn't exist (or isn't visible to this user) anymore -- don't
+        // keep serving a stale cached copy of it.
+        evictCached('group', groupId);
+      }
 
       // Wait for Clerk to finish loading before deciding there's no user —
       // otherwise a momentarily-null user during auth load gets treated as
@@ -4901,14 +4926,30 @@ function calcSpaceProgress(timeStr, dayStr, duration) {
 // ─────────────────────────────────────────────────────────────
 function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, toggleSaveSpace, currentUser }) {
   const { user } = useUser();
-  const [dbSpace, setDbSpace] = useState(null);
+  // Seeded from whatever the Spaces list already fetched (or a previous
+  // visit to this space) so re-opening it -- or opening it fresh from an
+  // already-loaded list -- renders instantly instead of sitting on "Loading
+  // space…" for a beat; a fresh fetch still runs in the background either way.
+  const [dbSpace, setDbSpace] = useState(() => getCached('space', spaceId));
   useEffect(() => {
     if (!spaceId) return;
+    // Guards against a stale response from a previous spaceId (fast
+    // navigation between spaces) writing over the current one's state --
+    // same pattern useEvent() already uses.
+    let cancelled = false;
+    setDbSpace(getCached('space', spaceId));
     supabase.from('spaces').select('*').eq('id', spaceId).single()
-      .then(async ({ data }) => {
-        if (!data) return;
+      .then(async ({ data, error: err }) => {
+        if (cancelled) return;
+        if (!data) {
+          // PGRST116 = confirmed 0 rows (space deleted/gone), not just a
+          // transient fetch error -- don't keep serving it from cache.
+          if (err?.code === 'PGRST116') evictCached('space', spaceId);
+          return;
+        }
         if (data.host_id) {
           const { data: u } = await supabase.from('users').select('name,avatar_url,avatar_color').eq('id', data.host_id).single();
+          if (cancelled) return;
           if (u) {
             data.host_text   = u.name || data.host_text;
             data.host_name   = u.name || data.host_text;
@@ -4916,8 +4957,10 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             data.host_color  = u.avatar_color || null;
           }
         }
+        setCached('space', spaceId, data);
         setDbSpace(data);
       });
+    return () => { cancelled = true; };
   }, [spaceId]);
   const sp = dbSpace || SPACES.find(s => s.id === spaceId) || null;
   const [joined,   setJoined]   = useState(false);
@@ -13399,6 +13442,21 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   const notifs = useNotifications();
   const chatsData = useChats();
   const groupActivityData = useGroupActivity();
+
+  // Clear the shared event/space/group detail cache whenever the signed-in
+  // identity changes (sign-out, or a different account signing in within
+  // the same session) -- it's a module-level cache, so without this a
+  // second account on the same device/tab could briefly see a previous
+  // account's cached group data (which can include private groups) before
+  // that screen's own access check re-runs.
+  const prevUserIdRef = useRef(undefined);
+  useEffect(() => {
+    if (!currentUser.isLoaded) return;
+    if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== currentUser.userId) {
+      clearDetailCache();
+    }
+    prevUserIdRef.current = currentUser.userId;
+  }, [currentUser.isLoaded, currentUser.userId]);
 
   // Font injection
   useEffect(() => {

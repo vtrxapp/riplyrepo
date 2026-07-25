@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { getCached, setCached, setCachedMany, evictCached } from '../lib/detailCache'
 
 // A group-linked event's card should read as coming from the group itself
 // (name + group photo), never from whichever member happened to create it --
@@ -93,8 +94,13 @@ export function useEvents({ category, search, filters } = {}) {
   const [events,  setEvents]  = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
+  // Bumped on every fetch() call so an earlier-fired request (e.g. a rapid
+  // burst of filter changes) can't resolve after a later one and overwrite
+  // both the list state and the shared detail cache with stale rows.
+  const genRef = useRef(0)
 
   const fetch = useCallback(async () => {
+      const gen = ++genRef.current
       setLoading(true)
 
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
@@ -202,9 +208,15 @@ export function useEvents({ category, search, filters } = {}) {
 
       const { data, error } = await q
 
+      if (gen !== genRef.current) return
       if (error) { setError(error); setLoading(false); return }
       const enriched = await attachUserProfiles(data || [])
+      if (gen !== genRef.current) return
       setEvents(enriched)
+      // Seed the detail cache so opening any of these from this list (or
+      // re-opening one already seen) renders instantly instead of showing a
+      // loading skeleton for data that's already sitting right here.
+      setCachedMany('event', enriched)
       setLoading(false)
   }, [category, search, JSON.stringify(filters)])
 
@@ -216,14 +228,22 @@ export function useEvents({ category, search, filters } = {}) {
 // Fetch a single event by id — for screens (tickets, check-in) that need one
 // specific event rather than a filtered list.
 export function useEvent(eventId) {
-  const [event, setEvent] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // Start from anything already cached (from a list fetch, or a previous
+  // visit to this same event) so a revisit -- or a first open coming from an
+  // already-loaded list -- paints immediately instead of blocking on a fresh
+  // round trip. A background fetch still runs either way to keep this
+  // correct and catch anything that changed since it was cached.
+  const cached = getCached('event', eventId)
+  const [event, setEvent] = useState(cached)
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState(null)
 
   useEffect(() => {
     if (!eventId) { setEvent(null); setError(null); setLoading(false); return }
     let cancelled = false
-    setLoading(true)
+    const fromCache = getCached('event', eventId)
+    setEvent(fromCache)
+    setLoading(!fromCache)
     setError(null)
     // Same published/legacy-NULL status gating as useEvents() — otherwise a
     // single-event fetch by id could render a draft/pending row that the
@@ -233,16 +253,30 @@ export function useEvent(eventId) {
       .single()
       .then(async ({ data, error: err }) => {
         if (cancelled) return
-        if (err || !data) { setEvent(null); setError(err || null); setLoading(false); return }
+        if (err || !data) {
+          // PGRST116 = .single() found 0 rows -- the event is genuinely gone
+          // (deleted/unpublished), not just a transient fetch hiccup, so the
+          // cache entry shouldn't keep being served as if it were current.
+          if (err?.code === 'PGRST116') evictCached('event', eventId)
+          // Always surface the error so a caller can tell a background
+          // refresh failed -- but only clear the visible event when there's
+          // nothing cached to fall back on, so a transient failure doesn't
+          // blank out data that was already showing correctly.
+          if (!fromCache) setEvent(null)
+          setError(err || null)
+          setLoading(false)
+          return
+        }
         const [enriched] = await attachUserProfiles([data])
         if (cancelled) return
+        setCached('event', eventId, enriched)
         setEvent(enriched)
         setLoading(false)
       })
       .catch((err) => {
         if (cancelled) return
         console.error('[useEvent] fetch error:', err)
-        setEvent(null)
+        if (!fromCache) setEvent(null)
         setError(err)
         setLoading(false)
       })

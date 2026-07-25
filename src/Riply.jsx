@@ -3726,14 +3726,14 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
         {/* ── Name + desc ─────────────────────────────────── */}
         <div style={{ padding:'8px 24px 0', textAlign:'center' }}>
           <div style={{ fontSize:21, fontWeight:700, letterSpacing:-0.3, color:C.ink }}>{g.name}</div>
-          <div style={{ fontSize:13, lineHeight:1.55, color:'#7B8499', marginTop:8,
+          <div style={{ fontSize:13, lineHeight:1.55, color:'#7B8499', marginTop:6,
                         display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
             {g.desc || g.description || ""}
           </div>
         </div>
 
         {/* ── Stats ───────────────────────────────────────── */}
-        <div style={{ display:'flex', justifyContent:'center', gap:18, marginTop:8 }}>
+        <div style={{ display:'flex', justifyContent:'center', gap:18, marginTop:5 }}>
           {[{v: liveMembers ?? '—', l:'Members'},{v: livePosts2 ?? '—', l:'Posts'},{v: liveEvents2 !== null ? (liveEvents2 === 0 ? '—' : liveEvents2) : '—', l:'Events'}].map(s => (
             <div key={s.l} style={{ textAlign:'center' }}>
               <div style={{ fontSize:18, fontWeight:700, color:C.ink }}>{s.v}</div>

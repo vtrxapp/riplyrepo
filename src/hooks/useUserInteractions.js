@@ -9,6 +9,7 @@ export function useUserInteractions() {
   const [spaceSaved,  setSpaceSavedState] = useState({})
   const [shared,      setSharedState]     = useState({})
   const [postLiked,   setPostLikedState]  = useState({})
+  const [postShared,  setPostSharedState] = useState({})
 
   useEffect(() => {
     if (!user?.id) return
@@ -19,12 +20,14 @@ export function useUserInteractions() {
       supabase.from('space_saves').select('space_id').eq('user_id', uid),
       supabase.from('event_shares').select('event_id').eq('user_id', uid),
       supabase.from('post_likes').select('post_id').eq('user_id', uid),
-    ]).then(([likes, saves, ssaves, shares, plikes]) => {
+      supabase.from('post_shares').select('post_id').eq('user_id', uid),
+    ]).then(([likes, saves, ssaves, shares, plikes, pshares]) => {
       if (likes.data)  setLikedState(Object.fromEntries(likes.data.map(r => [r.event_id, true])))
       if (saves.data)  setSavedState(Object.fromEntries(saves.data.map(r => [r.event_id, true])))
       if (ssaves.data) setSpaceSavedState(Object.fromEntries(ssaves.data.map(r => [r.space_id, true])))
       if (shares.data) setSharedState(Object.fromEntries(shares.data.map(r => [r.event_id, true])))
       if (plikes.data) setPostLikedState(Object.fromEntries(plikes.data.map(r => [r.post_id, true])))
+      if (pshares.data) setPostSharedState(Object.fromEntries(pshares.data.map(r => [r.post_id, true])))
     })
   }, [user?.id])
 
@@ -50,11 +53,16 @@ export function useUserInteractions() {
     }
   }, [user?.id, saved])
 
-  // Share is one-way: once shared it stays recorded
+  // Share is one-way: once shared it stays recorded. Only flipped to true
+  // *after* the upsert succeeds -- marking it optimistically beforehand would
+  // leave the UI thinking a share was recorded (permanently, since this is
+  // one-way) even when a network/RLS failure meant no row was ever saved,
+  // with no way for the user to retry.
   const recordShare = useCallback(async (eventId) => {
     if (!user?.id || shared[eventId]) return
+    const { error } = await supabase.from('event_shares').upsert({ user_id: user.id, event_id: eventId }, { onConflict: 'user_id,event_id' })
+    if (error) { console.error('[useUserInteractions] recordShare failed:', error); return }
     setSharedState(p => ({ ...p, [eventId]: true }))
-    await supabase.from('event_shares').upsert({ user_id: user.id, event_id: eventId }, { onConflict: 'user_id,event_id' })
   }, [user?.id, shared])
 
   const toggleSaveSpace = useCallback(async (spaceId) => {
@@ -79,5 +87,15 @@ export function useUserInteractions() {
     }
   }, [user?.id, postLiked])
 
-  return { liked, saved, spaceSaved, shared, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike }
+  // One-way, same as recordShare for events -- once shared it stays recorded,
+  // and only marked so after the upsert actually succeeds (see recordShare's
+  // comment for why).
+  const recordPostShare = useCallback(async (postId) => {
+    if (!user?.id || postShared[postId]) return
+    const { error } = await supabase.from('post_shares').upsert({ user_id: user.id, post_id: postId }, { onConflict: 'user_id,post_id' })
+    if (error) { console.error('[useUserInteractions] recordPostShare failed:', error); return }
+    setPostSharedState(p => ({ ...p, [postId]: true }))
+  }, [user?.id, postShared])
+
+  return { liked, saved, spaceSaved, shared, postLiked, postShared, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike, recordPostShare }
 }

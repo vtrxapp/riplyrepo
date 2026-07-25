@@ -162,7 +162,7 @@ function detectMeetingPlatform(url) {
 const C = {
   primary: '#0098F0', bright: '#19BFFF',
   grad: 'linear-gradient(135deg,#19BFFF,#0098F0)',
-  ink: '#0E1726', body: '#1A2233', muted: '#5B6473', subtle: '#9AA3B2',
+  ink: '#0E1726', inkMuted: 'rgba(14,23,38,0.55)', body: '#1A2233', muted: '#5B6473', subtle: '#9AA3B2',
   pageBg: '#F4F6FA', card: '#FFFFFF', border: '#E8EBF0', chip: '#F1F3F7',
   divider: '#EEF0F4', danger: '#E5484D', success: '#15A34A',
 };
@@ -861,7 +861,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     </svg>
                     <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : C.ink }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/></svg>
                     <span style={{ fontSize:11, fontWeight:700, color:C.ink }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.ink, fontWeight:500 }}>going</span></span>
                   </div>
@@ -2745,9 +2745,10 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
 // ─────────────────────────────────────────────────────────────
 // POST CARD (extracts useComments per post)
 // ─────────────────────────────────────────────────────────────
-function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, navigate, isGroupAdmin, deletePost, togglePinPost }) {
+function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, currentUser, showToast, navigate, isGroupAdmin, deletePost, togglePinPost }) {
   const pid = p.id;
   const liked = !!postLiked[pid];
+  const isSharedPost = !!postShared[pid];
   const { comments, addComment, likeComment } = useComments(pid);
   const [cOpen, setCOpen] = useState(false);
   const [draft, setDraft] = useState('');
@@ -3040,26 +3041,42 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
         </button>
         <button onClick={async () => {
             const shareText = p.text || 'Check this post on Riply';
+            let didShare = false;
             if (navigator.share) {
-              try { await navigator.share({ title: 'Riply post', text: shareText, url: window.location.href }); return; } catch {}
+              try {
+                await navigator.share({ title: 'Riply post', text: shareText, url: window.location.href });
+                didShare = true;
+              } catch (err) {
+                // AbortError just means the user closed the native share
+                // sheet without picking anything -- not a real failure.
+                if (err?.name !== 'AbortError') showToast('Unable to share post');
+              }
+            } else {
+              try { await navigator.clipboard.writeText(shareText); showToast('Copied to clipboard'); didShare = true; }
+              catch { showToast('Unable to copy post'); }
             }
-            try { await navigator.clipboard.writeText(shareText); showToast('Copied to clipboard'); } catch { showToast('Post shared'); }
+            if (didShare) recordPostShare(pid);
           }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <circle cx="18" cy="5" r="2.6" stroke={C.ink} strokeWidth="1.9"/>
-            <circle cx="6" cy="12" r="2.6" stroke={C.ink} strokeWidth="1.9"/>
-            <circle cx="18" cy="19" r="2.6" stroke={C.ink} strokeWidth="1.9"/>
-            <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={C.subtle} strokeWidth="1.9" strokeLinecap="round"/>
+            <circle cx="18" cy="5" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9"/>
+            <circle cx="6" cy="12" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9"/>
+            <circle cx="18" cy="19" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9"/>
+            <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
+          {/* Real, server-maintained count (sql/post_shares.sql's trigger) --
+              no local +1 here, unlike the like counter above, since a second
+              optimistic add on top of the trigger's own increment would
+              double-count once the row refreshes. */}
+          <span style={{ fontSize:13, fontWeight:700, color:isSharedPost?'#FF8A3D':C.ink }}>{p.shares||0}</span>
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
+          <span style={{ fontSize:13, fontWeight:700, color:C.inkMuted }}>{fmt(comments.length)} {comments.length === 1 ? 'Reaction' : 'Reactions'}</span>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
                   stroke={cOpen?C.primary:C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize:13, fontWeight:700, color:C.ink }}>{comments.length} Reactions</span>
         </button>
       </div>
 
@@ -3312,7 +3329,7 @@ function PostCard({ p, postLiked, togglePostLike, currentUser, showToast, naviga
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
-function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, navigate, showToast, currentUser, markGroupRead, unreadChatCount, unreadPostCount }) {
+function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, recordPostShare, goBack, navigate, showToast, currentUser, markGroupRead, unreadChatCount, unreadPostCount }) {
   // Opening a group's feed counts as seeing its posts, so the group
   // activity row in Notifications stops counting them as missed.
   useEffect(() => { markGroupRead?.(groupId); }, [groupId, markGroupRead]);
@@ -4006,7 +4023,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
                 ) : livePosts.length === 0 ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
                 ) : livePosts.map((p) => (
-                  <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} currentUser={currentUser} showToast={showToast}
+                  <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} currentUser={currentUser} showToast={showToast}
                     navigate={navigate} isGroupAdmin={isGroupAdmin} deletePost={deletePost} togglePinPost={togglePinPost} />
                 ))}
                 </>
@@ -13448,7 +13465,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
   }, []);
 
   // Home state
-  const { liked, saved, spaceSaved, shared, postLiked, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike } = useUserInteractions();
+  const { liked, saved, spaceSaved, shared, postLiked, postShared, toggleLike, toggleSave, toggleSaveSpace, recordShare, togglePostLike, recordPostShare } = useUserInteractions();
   const [filters, setFilters] = useState({});
   const [activeCat, setActiveCat] = useState('all');
   const [query, setQuery] = useState('');
@@ -13545,7 +13562,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
-      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} />;
+      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

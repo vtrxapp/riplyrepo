@@ -1115,6 +1115,19 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
     {id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'},
   ];
   const [discoverQuery, setDiscoverQuery] = useState('');
+  const discoverSwipeRef = useRef(null);
+  const handleDiscoverSwipeStart = (e) => { discoverSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const handleDiscoverSwipeEnd = (e) => {
+    if (!discoverSwipeRef.current) return;
+    const dx = e.changedTouches[0].clientX - discoverSwipeRef.current.x;
+    const dy = e.changedTouches[0].clientY - discoverSwipeRef.current.y;
+    discoverSwipeRef.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+    const ids = TABS.map(t => t.id);
+    const i = ids.indexOf(discoverTab);
+    const next = dx < 0 ? Math.min(i + 1, ids.length - 1) : Math.max(i - 1, 0);
+    setDiscoverTab(ids[next]);
+  };
   // groupJoined only tracks "has a group_members row" — it can't by itself
   // distinguish an approved membership from a pending request, so track
   // pending state separately to avoid the button reading "Joined ✓" right
@@ -1148,7 +1161,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
       </div>
 
       {/* Groups */}
-      <PullToRefresh onRefresh={refetchGroups} style={{ flex:1, padding:'14px 16px 104px' }}>
+      <PullToRefresh onRefresh={refetchGroups} style={{ flex:1, padding:'14px 16px 104px' }}
+        onTouchStart={handleDiscoverSwipeStart} onTouchEnd={handleDiscoverSwipeEnd}>
         {list.length===0 && !groupsLoading && <div style={{ textAlign:'center', padding:'48px 24px', color:C.subtle, fontSize:12 }}>No groups in this category yet.</div>}
         {groupsLoading && list.length===0 && <SkeletonRows />}
         {list.map(g => {
@@ -1236,6 +1250,7 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
 // ─────────────────────────────────────────────────────────────
 // SCREEN: MESSAGES
 // ─────────────────────────────────────────────────────────────
+const MSG_TABS = ['notifications', 'chats'];
 function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsData, groupActivityData }) {
   const isNotif = msgTab==='notifications';
   const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = chatsData;
@@ -1250,6 +1265,19 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
   const filteredChats = q
     ? chats.filter(c => c.name?.toLowerCase().includes(q) || c.preview?.toLowerCase().includes(q))
     : chats;
+
+  const msgSwipeRef = useRef(null);
+  const handleMsgSwipeStart = (e) => { msgSwipeRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const handleMsgSwipeEnd = (e) => {
+    if (!msgSwipeRef.current) return;
+    const dx = e.changedTouches[0].clientX - msgSwipeRef.current.x;
+    const dy = e.changedTouches[0].clientY - msgSwipeRef.current.y;
+    msgSwipeRef.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+    const i = MSG_TABS.indexOf(msgTab);
+    const next = dx < 0 ? Math.min(i + 1, MSG_TABS.length - 1) : Math.max(i - 1, 0);
+    setMsgTab(MSG_TABS[next]);
+  };
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', position:'relative', background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
@@ -1279,7 +1307,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
       </div>
 
       {/* Body */}
-      <PullToRefresh onRefresh={isNotif ? (() => Promise.all([refetchNotifs(), refetchGroupActivity()])) : refetchChats} style={{ flex:1, padding:'14px 16px 104px' }}>
+      <PullToRefresh onRefresh={isNotif ? (() => Promise.all([refetchNotifs(), refetchGroupActivity()])) : refetchChats} style={{ flex:1, padding:'14px 16px 104px' }}
+        onTouchStart={handleMsgSwipeStart} onTouchEnd={handleMsgSwipeEnd}>
         {isNotif ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {/* Mark all read */}

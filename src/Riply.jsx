@@ -3721,7 +3721,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
       <div style={{ flex:1, overflowY:'auto' }} onScroll={handleGroupScroll}>
 
         {/* Spacer so content starts below the floating avatar */}
-        <div style={{ height:50 }}/>
+        <div style={{ height:40 }}/>
 
         {/* ── Name + desc ─────────────────────────────────── */}
         <div style={{ padding:'8px 24px 0', textAlign:'center' }}>

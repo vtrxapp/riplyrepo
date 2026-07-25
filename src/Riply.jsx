@@ -8004,7 +8004,12 @@ function CreationSuccessScreen({ kind, id, title, navigate, setScreen }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE CAMPUS GROUP
 // ─────────────────────────────────────────────────────────────
-function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
+function CreateGroupScreen({ goBack, navigate, navigateReplace, showToast, currentUser }) {
+  // Guards the post-submit navigateReplace call against a stale async
+  // completion if the user has already left this screen (header back
+  // button / edge-swipe) by the time the awaited group insert resolves.
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   const CATS = APP_CATEGORIES;
   const DEF_RULES = [
     'Be respectful and constructive',
@@ -8398,7 +8403,8 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
             role: 'admin',
           });
           setSubmitting(false);
-          navigate('creation-success', { kind: 'group', id: group.id, title: name.trim() });
+          if (!mountedRef.current) return;
+          navigateReplace('creation-success', { kind: 'group', id: group.id, title: name.trim() });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
@@ -8431,7 +8437,12 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE STUDENT SPACE
 // ─────────────────────────────────────────────────────────────
-function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
+function CreateSpaceScreen({ goBack, navigate, navigateReplace, showToast, currentUser }) {
+  // Guards the post-submit navigateReplace call against a stale async
+  // completion if the user has already left this screen (header back
+  // button / edge-swipe) by the time the awaited space insert resolves.
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   const CATS = APP_CATEGORIES;
 
   const [cat,         setCat]        = useState('academic');
@@ -8919,7 +8930,8 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
           }).select().single();
           setSubmitting(false);
           if (error) { showToast('Failed to create space: ' + error.message); return; }
-          navigate('creation-success', { kind: 'space', id: space.id, title: title.trim() });
+          if (!mountedRef.current) return;
+          navigateReplace('creation-success', { kind: 'space', id: space.id, title: title.trim() });
         }} style={{
           width:'100%', height:50, border:'none', borderRadius:15,
           cursor: canCreate && !submitting ? 'pointer' : 'not-allowed',
@@ -9013,7 +9025,7 @@ function EventCounterBtn({ onClick, minus }) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE EVENT
 // ─────────────────────────────────────────────────────────────
-function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: sourceGroupId, eventId }) {
+function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, currentUser, groupId: sourceGroupId, eventId }) {
   const isEditing = !!eventId;
   const CATS = APP_CATEGORIES;
   const PRESET_RULES = [
@@ -9055,6 +9067,14 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
   const removeGuest = (i) => setGuests(g => g.filter((_, idx) => idx !== i));
 
   const [isPublic,   setIsPublic]   = useState(true);
+  // Guards the post-submit navigation below against a stale async
+  // completion: the header back button and the app's edge-swipe gesture
+  // both stay active during submission, so a user can leave this screen
+  // before the awaited Supabase calls resolve. Forcing a navigateReplace
+  // once they're already elsewhere would hijack whatever screen they've
+  // since navigated to.
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   // Tracks *which* action is in flight ('draft' | 'published' | null) so each
   // button can show its own "…ing" label instead of both going stale together.
   const [submittingStatus, setSubmittingStatus] = useState(null);
@@ -9257,13 +9277,21 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
         if (notifErr) console.error('[submitEvent] price-change notify failed:', notifErr);
       }
       if (!isLeavingDraft) {
+        // The header back button and the app's edge-swipe gesture both stay
+        // active during submission, so the user may have already left this
+        // screen by the time the awaited write above resolves -- don't force
+        // navigation on top of wherever they've since navigated to.
+        if (!mountedRef.current) return;
         setSubmittingStatus(null);
         showToast('Changes saved');
         // EventDetailsScreen only loads published/no-status events -- a
         // draft or pending event (status still 'draft'/'pending') would 404
         // there and silently fall back to an unrelated mock event.
-        if (status === 'draft' || status === 'pending') navigate('event-manager');
-        else navigate('event-details', { eventId });
+        // navigateReplace (not navigate) so this edit form doesn't linger in
+        // the nav stack underneath the screen we're going to -- same reason
+        // the create-success transition below uses it.
+        if (status === 'draft' || status === 'pending') navigateReplace('event-manager');
+        else navigateReplace('event-details', { eventId });
         return;
       }
     }
@@ -9317,20 +9345,22 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       const { error: countErr } = await supabase.rpc('increment_group_event_count', { p_group_id: effectiveGroupId });
       if (countErr) console.error('[submitEvent] increment_group_event_count failed:', countErr);
     }
+    // Same stale-completion guard as the isEditing exit point above.
+    if (!mountedRef.current) return;
     setSubmittingStatus(null);
     if (status === 'draft') {
       showToast('Draft saved');
-      navigate('event-manager');
+      navigateReplace('event-manager');
     } else if (status === 'pending') {
       showToast('Submitted for approval — an admin will review it before it goes live');
-      navigate('event-manager');
+      navigateReplace('event-manager');
     } else if (isLeavingDraft) {
       // Don't let a generic success toast silently overwrite the more
       // important "announcement post failed" one shown above.
       showToast(announceError ? 'Event published, but the group announcement post could not be posted' : 'Event published');
-      navigate('event-details', { eventId });
+      navigateReplace('event-details', { eventId });
     } else {
-      navigate('creation-success', { kind: 'event', id: event.id, title: title.trim() });
+      navigateReplace('creation-success', { kind: 'event', id: event.id, title: title.trim() });
     }
   };
 
@@ -13528,6 +13558,15 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
     setNavStack(s => [...s, { screen: scr, ...params }]);
   }, []);
 
+  // Swaps the top of the stack instead of pushing on top of it -- used when
+  // landing on creation-success after publishing an event/space/group, so
+  // the now-stale create form doesn't linger underneath it. Without this,
+  // back from creation-success (or from wherever "View X" pushes next)
+  // walked straight back into the create form instead of past it.
+  const navigateReplace = useCallback((scr, params = {}) => {
+    setNavStack(s => [...s.slice(0, -1), { screen: scr, ...params }]);
+  }, []);
+
   const goBack = useCallback(() => {
     setNavStack(s => s.length > 1 ? s.slice(0, -1) : s);
   }, []);
@@ -13636,10 +13675,10 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'messages':  return <MessagesScreen msgTab={msgTab} setMsgTab={setMsgTab} navigate={navigate} showToast={showToast} notifs={notifs} chatsData={chatsData} groupActivityData={groupActivityData} />;
       case 'profile':   return <ProfileScreen navigate={navigate} showToast={showToast} currentUser={currentUser} saved={saved} />;
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
-      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
+      case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
-      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
-      case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
+      case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;

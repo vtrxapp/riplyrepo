@@ -646,13 +646,23 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
   useEffect(() => {
     if (!currentUser?.userId) { setMyEventIds(new Set()); return; }
     let cancelled = false;
-    supabase.from('tickets').select('event_id').eq('user_id', currentUser.userId).then(({ data, error }) => {
+    // Also pulls events this user organizes -- ticket rows alone missed an
+    // organizer's own event unless they'd also bought a ticket to it, which
+    // meant "My Events" could be empty for someone who'd only ever created
+    // events and never RSVP'd to anyone else's.
+    Promise.all([
+      supabase.from('tickets').select('event_id').eq('user_id', currentUser.userId),
+      supabase.from('events').select('id').eq('user_id', currentUser.userId),
+    ]).then(([ticketsRes, ownedRes]) => {
       if (cancelled) return;
-      if (error) { console.error('[HomeScreen] failed to load ticket event ids:', error); setMyEventIds(new Set()); return; }
-      setMyEventIds(new Set((data || []).map(r => r.event_id)));
+      if (ticketsRes.error) console.error('[HomeScreen] failed to load ticket event ids:', ticketsRes.error);
+      if (ownedRes.error)   console.error('[HomeScreen] failed to load owned event ids:', ownedRes.error);
+      const ids = new Set((ticketsRes.data || []).map(r => r.event_id));
+      (ownedRes.data || []).forEach(r => ids.add(r.id));
+      setMyEventIds(ids);
     }).catch((err) => {
       if (cancelled) return;
-      console.error('[HomeScreen] ticket event id fetch threw:', err);
+      console.error('[HomeScreen] my-event id fetch threw:', err);
       setMyEventIds(new Set());
     });
     return () => { cancelled = true; };
@@ -3354,7 +3364,7 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
-function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, recordPostShare, goBack, navigate, showToast, currentUser, markGroupRead, unreadChatCount, unreadPostCount }) {
+function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, recordPostShare, goBack, navigate, showToast, currentUser, markGroupRead, unreadChatCount, unreadPostCount, groupJoined, setGroupJoined }) {
   // Opening a group's feed counts as seeing its posts, so the group
   // activity row in Notifications stops counting them as missed.
   useEffect(() => { markGroupRead?.(groupId); }, [groupId, markGroupRead]);
@@ -3544,18 +3554,25 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
     try {
       if (joinState === 'join') {
         setJoinState('joined');
+        // Keep the app-wide groupJoined map (what Discover's "My Groups" tab
+        // reads) in sync -- this screen used to mutate group_members without
+        // ever touching that shared state, so a group joined here wouldn't
+        // show under My Groups until the whole app reloaded.
+        setGroupJoined?.(j => ({ ...j, [groupId]: true }));
         const { error } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'member' });
-        if (error) { setJoinState('join'); showToast('Failed to join: ' + error.message); return; }
+        if (error) { setJoinState('join'); setGroupJoined?.(j => ({ ...j, [groupId]: false })); showToast('Failed to join: ' + error.message); return; }
         refreshCounts();
       } else if (joinState === 'joined') {
         setJoinState('join');
+        setGroupJoined?.(j => ({ ...j, [groupId]: false }));
         const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-        if (error) { setJoinState('joined'); showToast('Failed to leave: ' + error.message); return; }
+        if (error) { setJoinState('joined'); setGroupJoined?.(j => ({ ...j, [groupId]: true })); showToast('Failed to leave: ' + error.message); return; }
         refreshCounts();
       } else if (joinState === 'request') {
         setJoinState('requested');
+        setGroupJoined?.(j => ({ ...j, [groupId]: true }));
         const { error: joinErr } = await supabase.from('group_members').upsert({ group_id: groupId, user_id: user.id, role: 'pending' });
-        if (joinErr) { setJoinState('request'); showToast('Failed to send request: ' + joinErr.message); return; }
+        if (joinErr) { setJoinState('request'); setGroupJoined?.(j => ({ ...j, [groupId]: false })); showToast('Failed to send request: ' + joinErr.message); return; }
 
         const { error: notifErr } = await supabase.from('notifications').insert({
           user_id: user.id,
@@ -3583,8 +3600,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
         }
       } else if (joinState === 'requested') {
         setJoinState('request');
+        setGroupJoined?.(j => ({ ...j, [groupId]: false }));
         const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-        if (error) { setJoinState('requested'); showToast('Failed to cancel request: ' + error.message); return; }
+        if (error) { setJoinState('requested'); setGroupJoined?.(j => ({ ...j, [groupId]: true })); showToast('Failed to cancel request: ' + error.message); return; }
       }
     } finally {
       setMembershipMutating(false);
@@ -4948,7 +4966,7 @@ function calcSpaceProgress(timeStr, dayStr, duration) {
 // ─────────────────────────────────────────────────────────────
 // SCREEN: SPACE DETAILS
 // ─────────────────────────────────────────────────────────────
-function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, toggleSaveSpace, currentUser }) {
+function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, toggleSaveSpace, currentUser, spaceJoined, setSpaceJoined }) {
   const { user } = useUser();
   // Seeded from whatever the Spaces list already fetched (or a previous
   // visit to this space) so re-opening it -- or opening it fresh from an
@@ -5522,6 +5540,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
           <button onClick={async () => {
             const next = !joined;
             setJoined(next);
+            // Keep the app-wide spaceJoined map (what the Spaces screen's
+            // "My Spaces" tab reads) in sync -- this screen used to track
+            // join state only locally, so joining a space here wouldn't
+            // show under My Spaces until the whole app reloaded.
+            setSpaceJoined?.(j => ({ ...j, [sp.id]: next }));
             // Optimistically update avatar stack
             if (next) {
               const me = { avatar_url: currentUser?.avatarUrl || null, color: currentUser?.avatarColor || '#7C5CFF', initial: (currentUser?.name || user?.firstName || 'U')[0]?.toUpperCase() || 'U', user_id: user?.id };
@@ -13643,8 +13666,8 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
-      case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} />;
-      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} />;
+      case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} />;
+      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} groupJoined={groupJoined} setGroupJoined={setGroupJoined} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

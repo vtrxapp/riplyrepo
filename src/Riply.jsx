@@ -23,6 +23,7 @@ import { useGroups } from "./hooks/useGroups";
 import { useSpaces } from "./hooks/useSpaces";
 import { uploadImage, safeExt } from "./hooks/useUpload";
 import { supabase } from "./lib/supabase";
+import { getCached, setCached } from "./lib/detailCache";
 import QRCode from "qrcode";
 import jsQR from "jsqr";
 
@@ -3336,7 +3337,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
 
   const { user, isLoaded: userLoaded } = useUser();
   const staticG = GROUPS.find(gr => gr.id === groupId) || GROUPS[0];
-  const [dbGroup,     setDbGroup]     = useState(null);
+  // Seeded from the Discover/Groups list (or a previous visit) so this
+  // renders the real group immediately instead of briefly falling through to
+  // the unrelated `staticG` mock below while the fetch is in flight.
+  const [dbGroup,     setDbGroup]     = useState(() => getCached('group', groupId));
   const [groupEvents, setGroupEvents] = useState([]);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
@@ -3370,8 +3374,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
     const isStale = () => gen !== loadGenRef.current;
 
     // Reset all group-scoped state up front so stale values from the previous
-    // group can't linger while the new lookup is in flight.
-    setDbGroup(null);
+    // group can't linger while the new lookup is in flight -- dbGroup resets
+    // to whatever's cached for *this* group (often already correct) rather
+    // than null, so switching groups doesn't blank the screen if this one's
+    // been seen before.
+    setDbGroup(getCached('group', groupId));
     setMembershipChecked(false);
     setIsGroupAdmin(false);
     setJoinState(staticG.state || 'join');
@@ -3389,7 +3396,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
     (async () => {
       const { data: freshGroup } = await supabase.from('groups').select('*').eq('id', groupId).maybeSingle();
       if (isStale()) return;
-      if (freshGroup) setDbGroup(freshGroup);
+      if (freshGroup) { setCached('group', groupId, freshGroup); setDbGroup(freshGroup); }
 
       // Wait for Clerk to finish loading before deciding there's no user —
       // otherwise a momentarily-null user during auth load gets treated as
@@ -4901,9 +4908,14 @@ function calcSpaceProgress(timeStr, dayStr, duration) {
 // ─────────────────────────────────────────────────────────────
 function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, toggleSaveSpace, currentUser }) {
   const { user } = useUser();
-  const [dbSpace, setDbSpace] = useState(null);
+  // Seeded from whatever the Spaces list already fetched (or a previous
+  // visit to this space) so re-opening it -- or opening it fresh from an
+  // already-loaded list -- renders instantly instead of sitting on "Loading
+  // space…" for a beat; a fresh fetch still runs in the background either way.
+  const [dbSpace, setDbSpace] = useState(() => getCached('space', spaceId));
   useEffect(() => {
     if (!spaceId) return;
+    setDbSpace(getCached('space', spaceId));
     supabase.from('spaces').select('*').eq('id', spaceId).single()
       .then(async ({ data }) => {
         if (!data) return;
@@ -4916,6 +4928,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             data.host_color  = u.avatar_color || null;
           }
         }
+        setCached('space', spaceId, data);
         setDbSpace(data);
       });
   }, [spaceId]);

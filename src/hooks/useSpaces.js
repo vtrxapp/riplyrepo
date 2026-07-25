@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { setCachedMany } from '../lib/detailCache'
 
 async function attachUserProfiles(rows, idField = 'host_id') {
   if (!rows?.length) return rows || []
@@ -39,6 +40,7 @@ export function useSpaces() {
 
     const enriched = await attachUserProfiles(data || [], 'host_id')
     setSpaces(enriched)
+    setCachedMany('space', enriched)
     setLoading(false)
   }, [])
 

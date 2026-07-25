@@ -4233,7 +4233,7 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   // group-linked event always showed the creator instead of the group here,
   // even though the home feed card (which does go through attachUserProfiles)
   // showed the group correctly.
-  const { event: dbEvent, loading: eventLoading } = useEvent(eventId);
+  const { event: dbEvent, loading: eventLoading, error: eventError } = useEvent(eventId);
   const [expanded, setExpanded] = useState(false);
 
   // Real "You may also like": other published events in the same category,
@@ -4274,8 +4274,15 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
     <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
                   justifyContent:'center', gap:14, padding:24, textAlign:'center',
                   background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
-      <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>Event not found</div>
-      <button onClick={goBack} style={{ height:44, padding:'0 22px', border:'none', borderRadius:14,
+      <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>
+        {/* useEvent() returns null for a genuinely-missing/unpublished row
+            and also for a fetch failure (network/RLS/backend) -- distinguish
+            them here so a transient error doesn't read as "this event
+            doesn't exist". */}
+        {eventError ? "Couldn't load this event" : 'Event not found'}
+      </div>
+      {eventError && <div style={{ fontSize:12.5, color:C.subtle, maxWidth:280 }}>Check your connection and try again.</div>}
+      <button type="button" onClick={goBack} style={{ height:44, padding:'0 22px', border:'none', borderRadius:14,
         background:C.grad, color:'#fff', fontSize:13.5, fontWeight:800, cursor:'pointer',
         fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Go Back</button>
     </div>

@@ -477,8 +477,10 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter, filterCount =
         {hint && <div style={{ fontSize:10, color:C.subtle, marginTop:3 }}>{hint}</div>}
       </div>
       {onFilter && (
-        <button onClick={onFilter} style={{ position:'relative', flexShrink:0, width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <button type="button" onClick={onFilter}
+          aria-label={filterCount > 0 ? `Filters, ${filterCount} active` : 'Filters'}
+          style={{ position:'relative', flexShrink:0, width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
             <line x1="3" y1="6" x2="10.5" y2="6" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
             <line x1="15.5" y1="6" x2="21" y2="6" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
             <circle cx="13" cy="6" r="2.5" stroke="#fff" strokeWidth="1.9"/>

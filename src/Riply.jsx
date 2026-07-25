@@ -4226,32 +4226,15 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, goBack, naviga
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
 function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, navigate, goBack, showToast, role }) {
-  const [dbEvent, setDbEvent] = useState(null);
-  useEffect(() => {
-    if (!eventId) return;
-    supabase.from('events').select('*').eq('id', eventId)
-      .or('status.is.null,status.eq.published')
-      .single()
-      .then(async ({ data }) => {
-        if (!data) return;
-        if (data.user_id) {
-          const { data: u } = await supabase.from('users').select('name,avatar_url,avatar_color').eq('id', data.user_id).single();
-          if (u) {
-            data.org         = u.name || data.org;
-            data.orgInitial  = (u.name || data.org || 'O')[0].toUpperCase();
-            data.org_avatar  = u.avatar_url || null;
-            data.org_color   = u.avatar_color || null;
-          }
-        }
-        setDbEvent(data);
-      });
-  }, [eventId]);
-  const ev = dbEvent || EVENTS.find(e => e.id === eventId) || EVENTS[0];
-  const th = THEME[ev.primary || ev.category] || THEME.social;
+  // useEvent() already resolves the organizer correctly (group name/avatar
+  // when the event is group-linked, else the creator's own profile) via the
+  // same attachUserProfiles() used everywhere else -- this screen used to
+  // duplicate that lookup with its own user_id-only fetch, which meant a
+  // group-linked event always showed the creator instead of the group here,
+  // even though the home feed card (which does go through attachUserProfiles)
+  // showed the group correctly.
+  const { event: dbEvent, loading: eventLoading } = useEvent(eventId);
   const [expanded, setExpanded] = useState(false);
-  const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isShared = !!shared[ev.id];
-
-  const attendeeCount = ev.attendee_count || ev.attendees || 0;
 
   // Real "You may also like": other published events in the same category,
   // not the static mock EVENTS array (which always surfaced whatever mock
@@ -4271,6 +4254,38 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   // second synchronous setState-in-effect for what's really just "there's no
   // real event yet, so there's nothing to recommend".
   const similarEvents = dbEvent?.id ? similar : [];
+
+  // ── LOADING / NOT FOUND ──────────────────────────────────────
+  // No mock-data fallback here -- falling back to the static EVENTS array
+  // (whose first entry is an unrelated "Karaoke Night" seed) is exactly what
+  // caused a wrong event to flash briefly before the real one loaded.
+  if (eventLoading) return (
+    <div style={{ height:'100%', overflowY:'auto', background:C.pageBg }}>
+      <Shimmer width="100%" height={260} radius={0} />
+      <div style={{ padding:'18px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+        <Shimmer width="70%" height={22} />
+        <Shimmer width="45%" height={14} />
+        <Shimmer width="90%" height={14} style={{ marginTop:8 }} />
+        <Shimmer width="80%" height={14} />
+      </div>
+    </div>
+  );
+  if (!dbEvent) return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                  justifyContent:'center', gap:14, padding:24, textAlign:'center',
+                  background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+      <div style={{ fontSize:15, fontWeight:800, color:C.ink }}>Event not found</div>
+      <button onClick={goBack} style={{ height:44, padding:'0 22px', border:'none', borderRadius:14,
+        background:C.grad, color:'#fff', fontSize:13.5, fontWeight:800, cursor:'pointer',
+        fontFamily:"'Montserrat',-apple-system,sans-serif" }}>Go Back</button>
+    </div>
+  );
+
+  const ev = dbEvent;
+  const th = THEME[ev.primary || ev.category] || THEME.social;
+  const isLiked = !!liked[ev.id], isSaved = !!saved[ev.id], isShared = !!shared[ev.id];
+
+  const attendeeCount = ev.attendee_count || ev.attendees || 0;
 
   const HeaderBtn = ({ onClick, children }) => (
     <button onClick={onClick} style={{ width:38, height:38, border:'none', borderRadius:12,

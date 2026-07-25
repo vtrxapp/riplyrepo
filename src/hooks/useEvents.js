@@ -100,8 +100,14 @@ export function useEvents({ category, search, filters } = {}) {
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
       const todayIso = todayStart.toISOString()
 
-      // Delete past events from DB
-      await supabase.from('events').delete().lt('date', todayIso)
+      // Archive + delete past events from DB. Routed through the same
+      // SECURITY DEFINER RPC the daily cron job uses (sql/archive_expired_events.sql)
+      // rather than a raw delete -- events_delete's RLS only allows deleting
+      // your own rows, so a raw `.delete()` here only ever actually removed
+      // the current user's own past events; this ensures every expired
+      // event gets snapshotted into archived_events before it's gone,
+      // regardless of who created it or who happened to trigger this fetch.
+      await supabase.rpc('archive_expired_events')
 
       let q = supabase.from('events').select('*')
         .gte('date', todayIso)

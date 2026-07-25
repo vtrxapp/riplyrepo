@@ -13632,9 +13632,9 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
         // centered mark on screen, instead of a plain C.pageBg rectangle --
         // that mismatched gray plus zero content was the "flash to a blank
         // screen" between splash fading out and Home actually being ready.
-        <div style={{ width:'100%', height:'100%', background:'#fff',
+        <div style={{ width:'100%', height:'100%', background:C.card,
                       display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <img src="/logo.png" alt="" style={{ width:220, height:110, objectFit:'contain', opacity:0.9 }}/>
+          <img src="/logo.png" alt="" aria-hidden="true" style={{ width:220, height:110, objectFit:'contain', opacity:0.9 }}/>
         </div>
       );
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;

@@ -163,7 +163,7 @@ function detectMeetingPlatform(url) {
 const C = {
   primary: '#0098F0', bright: '#19BFFF',
   grad: 'linear-gradient(135deg,#19BFFF,#0098F0)',
-  ink: '#0E1726', inkMuted: 'rgba(14,23,38,0.55)', body: '#1A2233', muted: '#5B6473', subtle: '#9AA3B2',
+  ink: '#0E1726', body: '#1A2233', muted: '#5B6473', subtle: '#9AA3B2',
   pageBg: '#F4F6FA', card: '#FFFFFF', border: '#E8EBF0', chip: '#F1F3F7',
   divider: '#EEF0F4', danger: '#E5484D', success: '#15A34A',
 };
@@ -3073,7 +3073,7 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
-          <span style={{ fontSize:13, fontWeight:700, color:C.inkMuted }}>{fmt(comments.length)} {comments.length === 1 ? 'Reaction' : 'Reactions'}</span>
+          <span style={{ fontSize:13, fontWeight:500, color:'#A9A1A1' }}>{fmt(comments.length)} {comments.length === 1 ? 'Reaction' : 'Reactions'}</span>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
                   stroke={cOpen?C.primary:C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3736,7 +3736,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
         <div style={{ display:'flex', justifyContent:'center', gap:18, marginTop:16 }}>
           {[{v: liveMembers ?? '—', l:'Members'},{v: livePosts2 ?? '—', l:'Posts'},{v: liveEvents2 !== null ? (liveEvents2 === 0 ? '—' : liveEvents2) : '—', l:'Events'}].map(s => (
             <div key={s.l} style={{ textAlign:'center' }}>
-              <div style={{ fontSize:18, fontWeight:600, color:C.ink }}>{s.v}</div>
+              <div style={{ fontSize:18, fontWeight:700, color:C.ink }}>{s.v}</div>
               <div style={{ fontSize:12, color:C.subtle, fontWeight:600, marginTop:1 }}>{s.l}</div>
             </div>
           ))}

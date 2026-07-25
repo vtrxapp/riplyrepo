@@ -464,7 +464,7 @@ function PullToRefresh({ onRefresh, style, children, onTouchStart: extraStart, o
   );
 }
 
-function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
+function SearchBar({ placeholder, hint, value, onChange, onFilter, filterCount }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:11, background:C.chip, borderRadius:18, padding:'11px 11px 11px 15px', boxShadow:'inset 0 0 0 1px rgba(16,24,40,0.04)' }}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}><circle cx="11" cy="11" r="7" stroke="#8A93A6" strokeWidth="2"/><path d="m20 20-3.2-3.2" stroke="#8A93A6" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -477,7 +477,7 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
         {hint && <div style={{ fontSize:10, color:C.subtle, marginTop:3 }}>{hint}</div>}
       </div>
       {onFilter && (
-        <button onClick={onFilter} style={{ flexShrink:0, width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
+        <button onClick={onFilter} style={{ position:'relative', flexShrink:0, width:40, height:40, border:'none', borderRadius:13, background:C.grad, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 10px rgba(2,162,240,0.32)' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <line x1="3" y1="6" x2="10.5" y2="6" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
             <line x1="15.5" y1="6" x2="21" y2="6" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
@@ -489,6 +489,14 @@ function SearchBar({ placeholder, hint, value, onChange, onFilter }) {
             <line x1="18.5" y1="18" x2="21" y2="18" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
             <circle cx="16" cy="18" r="2.5" stroke="#fff" strokeWidth="1.9"/>
           </svg>
+          {filterCount > 0 && (
+            <span style={{ position:'absolute', top:-5, right:-5, minWidth:18, height:18,
+                           padding:'0 4px', borderRadius:999, background:C.danger,
+                           color:'#fff', fontSize:10, fontWeight:800, lineHeight:'18px',
+                           textAlign:'center', boxShadow:'0 0 0 2px #fff' }}>
+              {filterCount}
+            </span>
+          )}
         </button>
       )}
     </div>
@@ -701,6 +709,7 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
             hint={query ? undefined : 'Try "Social events this weekend"'}
             value={query} onChange={e=>setQuery(e.target.value)}
             onFilter={()=>navigate('filters',{from:'home', filters, setFilters})}
+            filterCount={filters ? Object.keys(filters).length : 0}
           />
         </div>
       </div>
@@ -2716,17 +2725,21 @@ function FiltersScreen({ from, filters: initialFilters, setFilters: applyFilters
           </div>
         )}
         <button onClick={() => {
-          if (count === 0) { showToast('Select at least one filter'); return; }
+          // Clearing every chip and pressing Apply is a legitimate way to
+          // clear filters that were already applied to the parent screen --
+          // blocking it here (as "select at least one filter") meant a user
+          // who hit Clear All had no way to actually clear anything; the old
+          // filter set just stayed applied until they picked something new.
           if (applyFilters) applyFilters(selected);
-          showToast(`${count} filter${count > 1 ? 's' : ''} applied to ${fromLabel}`);
+          showToast(count > 0 ? `${count} filter${count > 1 ? 's' : ''} applied to ${fromLabel}` : `Filters cleared`);
           goBack();
         }} style={{
           width:'100%', height:56, border:'none', borderRadius:18, cursor:'pointer',
-          background: count > 0 ? 'linear-gradient(135deg,#19BFFF,#008FF0)' : '#C5CBD6',
+          background: 'linear-gradient(135deg,#19BFFF,#008FF0)',
           color:'#fff', fontSize:15, fontWeight:800,
           fontFamily:"'Montserrat',-apple-system,sans-serif",
           display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-          boxShadow: count > 0 ? '0 10px 24px rgba(2,162,240,0.42)' : 'none',
+          boxShadow: '0 10px 24px rgba(2,162,240,0.42)',
           transition:'all .2s',
         }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

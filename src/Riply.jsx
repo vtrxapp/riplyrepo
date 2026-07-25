@@ -3052,8 +3052,19 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
           </div>
         )
       ) : (p.image_url || p.images?.[0]) && (
-        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:420 }}>
-          <img src={p.image_url || p.images[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:420, display:'block', objectFit:'contain' }} />
+        // width:'100%' + height:'auto' + maxHeight used to fight each other on
+        // an extreme-portrait photo: once maxHeight actually clamps the
+        // height, the spec has the browser recompute *width* down via the
+        // image's own ratio too, instead of keeping it at 100% -- so a tall,
+        // narrow photo like this rendered visibly narrower than the card
+        // (unwanted gutters) while every ordinary (landscape/near-square)
+        // photo -- never hitting the cap -- stayed full width. maxWidth:100%
+        // (not width:100%) plus centering lets a normal photo still fill the
+        // card exactly as before, and only lets a genuine extreme portrait
+        // shrink -- centered on purpose, not flush left by accident.
+        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:420,
+                      display:'flex', justifyContent:'center' }}>
+          <img src={p.image_url || p.images[0]} alt="" style={{ maxWidth:'100%', height:'auto', maxHeight:420, display:'block', objectFit:'contain' }} />
         </div>
       )}
 

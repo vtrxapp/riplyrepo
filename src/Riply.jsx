@@ -168,6 +168,13 @@ const C = {
   divider: '#EEF0F4', danger: '#E5484D', success: '#15A34A',
 };
 
+// Bottom padding for CreateEvent/CreateSpace/CreateGroup's scrollable body,
+// sized to clear their sticky action bar in its tallest state (warning
+// banner + group-visibility toggle + edit-mode extra button, whichever
+// combination applies). One constant so the three screens can't drift out
+// of sync with each other.
+const FORM_SCROLL_BOTTOM_PADDING = 220;
+
 const THEME = {
   social:   { grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', label:'Social',   org:'#FF5A8A' },
   career:   { grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)', label:'Career',   org:'#2F6BFF' },
@@ -8067,7 +8074,7 @@ function CreateGroupScreen({ goBack, navigate, showToast, currentUser }) {
       </div>
 
       {/* ── Scroll body ────────────────────────────────────── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 220px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:`18px 16px ${FORM_SCROLL_BOTTOM_PADDING}px` }}>
 
         {/* Cover */}
         <button onClick={() => {
@@ -8509,7 +8516,7 @@ function CreateSpaceScreen({ goBack, navigate, showToast, currentUser }) {
       </div>
 
       {/* ── Scroll body ────────────────────────────────────── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 220px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:`18px 16px ${FORM_SCROLL_BOTTOM_PADDING}px` }}>
 
         {/* Cover */}
         <div onClick={() => {
@@ -9363,7 +9370,7 @@ function CreateEventScreen({ goBack, navigate, showToast, currentUser, groupId: 
       ) : (
       <>
       {/* ── Scroll body ────────────────────────────────────── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'18px 16px 220px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:`18px 16px ${FORM_SCROLL_BOTTOM_PADDING}px` }}>
 
         {/* Cover */}
         <div onClick={() => {

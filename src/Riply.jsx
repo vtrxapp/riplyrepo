@@ -2846,8 +2846,12 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
   };
 
   const startReply = (c) => {
-    setReplyTo({ id: c.id, author: c.author });
-    setDraft(`@${c.author} `);
+    // No "@Name " prefill -- the reply is linked via reply_to_id/reply_to_name
+    // regardless of what's typed, and nesting the reply directly under its
+    // parent already makes the relationship obvious without repeating the
+    // name in the comment body.
+    setReplyTo({ id: c.id, author: c.author, avatar: c.aAvatar, color: c.aColor, initial: c.aInitial });
+    setDraft('');
     setCOpen(true);
     setTimeout(() => inputRef.current?.focus(), 100);
   };
@@ -3201,9 +3205,9 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
                     <span style={{ fontSize:13.5, fontWeight:800, color:C.ink }}>{c.author}</span>
                     <span style={{ fontSize:11, color:C.subtle }}>{c.time}</span>
                   </div>
-                  {c.replyToName && (
-                    <div style={{ fontSize:10.5, color:C.primary, fontWeight:700, marginTop:2 }}>↩ {c.replyToName}</div>
-                  )}
+                  {/* No "↩ Name" badge here -- replies already render nested
+                      directly under their parent comment (see the .map below),
+                      which already makes the reply relationship obvious. */}
                   <div style={{ fontSize:13.5, color:C.body, marginTop:3, lineHeight:1.4 }}><Linkify text={c.text} /></div>
                   <div style={{ display:'flex', alignItems:'center', gap:16, marginTop:7 }}>
                     <button onClick={() => handleLikeComment(c.id)}
@@ -3309,7 +3313,15 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
               {replyTo && (
                 <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:6, background:'rgba(0,152,240,0.07)',
                               margin:'0 16px', borderRadius:8, padding:'5px 10px' }}>
-                  <span style={{ fontSize:11, color:C.primary, fontWeight:600 }}>↩ Replying to {replyTo.author}</span>
+                  <div style={{ width:18, height:18, borderRadius:'50%', flexShrink:0, overflow:'hidden',
+                                background: replyTo.avatar ? 'transparent' : (replyTo.color || C.primary),
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                color:'#fff', fontSize:9, fontWeight:800 }}>
+                    {replyTo.avatar
+                      ? <img src={replyTo.avatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      : (replyTo.initial || replyTo.author?.[0]?.toUpperCase() || '?')}
+                  </div>
+                  <span style={{ fontSize:11, color:C.primary, fontWeight:600 }}>Replying to {replyTo.author}</span>
                   <button onClick={() => { setReplyTo(null); setDraft(''); }}
                     style={{ border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto',
                              fontSize:12, color:C.subtle, lineHeight:1 }}>✕</button>

@@ -2923,7 +2923,7 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         })()}
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <span style={{ fontSize:14, fontWeight:800, color:C.ink }}>
+            <span style={{ fontSize:14, fontWeight:400, color:'#14181B' }}>
               {isMe ? (currentUser.name || p.author) : p.author}
             </span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -3137,9 +3137,9 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"
-                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                  fill={liked?'#FF3B6B':'none'} stroke={liked?'#FF3B6B':'#222222'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize:13, fontWeight:700, color:liked?'#FF3B6B':C.ink }}>{(p.likes||0)+(liked?1:0)}</span>
+          <span style={{ fontSize:12, fontWeight:400, color:liked?'#FF3B6B':'#14181B' }}>{(p.likes||0)+(liked?1:0)}</span>
         </button>
         <button onClick={async () => {
             const shareText = p.text || 'Check this post on Riply';
@@ -3161,20 +3161,20 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
           }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:14 }}>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-            <circle cx="18" cy="5" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9"/>
-            <circle cx="6" cy="12" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9"/>
-            <circle cx="18" cy="19" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9"/>
-            <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={isSharedPost?'#FF8A3D':C.ink} strokeWidth="1.9" strokeLinecap="round"/>
+            <circle cx="18" cy="5" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':'#222222'} strokeWidth="1.9"/>
+            <circle cx="6" cy="12" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':'#222222'} strokeWidth="1.9"/>
+            <circle cx="18" cy="19" r="2.6" fill={isSharedPost?'#FF8A3D':'none'} stroke={isSharedPost?'#FF8A3D':'#222222'} strokeWidth="1.9"/>
+            <path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3" stroke={isSharedPost?'#FF8A3D':'#222222'} strokeWidth="1.9" strokeLinecap="round"/>
           </svg>
           {/* Real, server-maintained count (sql/post_shares.sql's trigger) --
               no local +1 here, unlike the like counter above, since a second
               optimistic add on top of the trigger's own increment would
               double-count once the row refreshes. */}
-          <span style={{ fontSize:13, fontWeight:700, color:isSharedPost?'#FF8A3D':C.ink }}>{p.shares||0}</span>
+          <span style={{ fontSize:12, fontWeight:400, color:isSharedPost?'#FF8A3D':'#14181B' }}>{p.shares||0}</span>
         </button>
         <button onClick={() => { setCOpen(o=>!o); setTimeout(()=>inputRef.current?.focus(),100); }}
           style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', cursor:'pointer', padding:0, marginLeft:'auto' }}>
-          <span style={{ fontSize:13, fontWeight:700, color:C.inkMuted }}>{fmt(comments.length)} {comments.length === 1 ? 'Reaction' : 'Reactions'}</span>
+          <span style={{ fontSize:12, fontWeight:500, color:'#A9A1A1' }}>{fmt(comments.length)} {comments.length === 1 ? 'Reaction' : 'Reactions'}</span>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
                   stroke={cOpen?C.primary:C.ink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
@@ -3834,8 +3834,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
 
         {/* ── Name + desc ─────────────────────────────────── */}
         <div style={{ padding:'11px 24px 0', textAlign:'center' }}>
-          <div style={{ fontSize:21, fontWeight:700, letterSpacing:-0.3, color:C.ink }}>{g.name}</div>
-          <div style={{ fontSize:13, lineHeight:1.55, color:'#7B8499', marginTop:6,
+          <div style={{ fontSize:18, fontWeight:700, color:'#14181B' }}>{g.name}</div>
+          <div style={{ fontSize:12, fontWeight:400, lineHeight:1.55, color:'#57636C', marginTop:6,
                         display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
             {g.desc || g.description || ""}
           </div>
@@ -3845,8 +3845,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
         <div style={{ display:'flex', justifyContent:'center', gap:18, marginTop:8 }}>
           {[{v: liveMembers ?? '—', l:'Members'},{v: livePosts2 ?? '—', l:'Posts'},{v: liveEvents2 !== null ? (liveEvents2 === 0 ? '—' : liveEvents2) : '—', l:'Events'}].map(s => (
             <div key={s.l} style={{ textAlign:'center' }}>
-              <div style={{ fontSize:18, fontWeight:700, color:C.ink }}>{s.v}</div>
-              <div style={{ fontSize:12, color:C.subtle, fontWeight:600, marginTop:1 }}>{s.l}</div>
+              <div style={{ fontSize:18, fontWeight:700, color:'#14181B' }}>{s.v}</div>
+              <div style={{ fontSize:12, color:'#57636C', fontWeight:400, marginTop:1 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -3995,23 +3995,23 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
               <div style={{ width:64, height:64, borderRadius:'50%', flexShrink:0, position:'relative',
                             overflow:'hidden', display:'flex', flexDirection:'column',
                             alignItems:'center', justifyContent:'center', background:C.primary }}>
-                <span style={{ position:'relative', fontSize:20, fontWeight:800, color:'#fff', lineHeight:1, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{day}</span>
-                <span style={{ position:'relative', fontSize:10, fontWeight:700, color:'#fff', letterSpacing:0.5, marginTop:2, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{mon}</span>
+                <span style={{ position:'relative', fontSize:18, fontWeight:600, color:'#fff', lineHeight:1, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{day}</span>
+                <span style={{ position:'relative', fontSize:12, fontWeight:500, color:'#fff', letterSpacing:0.5, marginTop:2, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{mon}</span>
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:15, fontWeight:500, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                <div style={{ fontSize:14, fontWeight:500, color:'#14181B', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {pinnedEvent.title}
                 </div>
                 {(location || when) && (
-                  <div style={{ fontSize:12.5, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                    {location && <span style={{ color:C.subtle }}>{location}</span>}
-                    {location && when && <span style={{ color:C.subtle }}> · </span>}
-                    {when && <span style={{ color:C.subtle }}>{when}</span>}
+                  <div style={{ fontSize:12, fontWeight:400, color:'#14181B', marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    {location && <span>{location}</span>}
+                    {location && when && <span> · </span>}
+                    {when && <span>{when}</span>}
                   </div>
                 )}
-                <div style={{ fontSize:11.5, marginTop:6 }}>
-                  <span style={{ color:C.primary, fontWeight:700 }}>{fmt(pinnedEvent.attendee_count || 0)} going</span>
-                  <span style={{ color:C.ink, fontWeight:500 }}> · {fmt(pinnedEvent.likes || 0)} interested</span>
+                <div style={{ fontSize:12, fontWeight:400, marginTop:6 }}>
+                  <span style={{ color:C.primary }}>{fmt(pinnedEvent.attendee_count || 0)} going</span>
+                  <span style={{ color:'#57636C' }}> · {fmt(pinnedEvent.likes || 0)} interested</span>
                 </div>
               </div>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>

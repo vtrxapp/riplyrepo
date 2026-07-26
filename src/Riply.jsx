@@ -3983,7 +3983,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
           const mon = !isNaN(d) ? d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase() : '';
           // Only the start time -- not the full range -- for the pinned card.
           const when = pinnedEvent.start_time ? fmt12(pinnedEvent.start_time)
-            : pinnedEvent.time_range ? fmtRange(pinnedEvent.time_range).split(/[–-]/)[0].trim() : '';
+            : pinnedEvent.time_range ? fmtRange(pinnedEvent.time_range).split(/[-–—]/)[0].trim() : '';
           const location = [pinnedEvent.location, pinnedEvent.venue]
             .map(value => typeof value === 'string' ? value.trim() : '')
             .find(Boolean) || '';

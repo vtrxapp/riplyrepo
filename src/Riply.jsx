@@ -3041,14 +3041,14 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
       {Array.isArray(p.images) && p.images.length > 1 ? (
         <div data-hscroll="true" style={{ display:'flex', overflowX:'auto', gap:6, marginTop:11, paddingBottom:2 }}>
           {p.images.map((url, i) => (
-            <div key={i} style={{ flexShrink:0, height:GALLERY_ROW_HEIGHT, borderRadius:14, overflow:'hidden' }}>
-              <img src={url} alt="" style={{ height:'100%', width:'auto', display:'block', objectFit:'contain', borderRadius:14 }} />
+            <div key={i} style={{ flexShrink:0, height:GALLERY_ROW_HEIGHT, borderRadius:20, overflow:'hidden' }}>
+              <img src={url} alt="" style={{ height:'100%', width:'auto', display:'block', objectFit:'contain', borderRadius:20 }} />
             </div>
           ))}
         </div>
       ) : (p.image_url || p.images?.[0]) && (
-        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:MAX_POST_IMAGE_HEIGHT }}>
-          <img src={p.image_url || p.images?.[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:14 }} />
+        <div style={{ borderRadius:20, overflow:'hidden', marginTop:11, maxHeight:MAX_POST_IMAGE_HEIGHT }}>
+          <img src={p.image_url || p.images?.[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:20 }} />
         </div>
       )}
 

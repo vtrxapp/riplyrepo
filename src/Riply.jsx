@@ -428,7 +428,7 @@ function SwipeToDeleteRow({ children, onDelete, deleteLabel = 'Delete', revealWi
 // an async onRefresh. Only starts tracking a pull when the container is
 // already scrolled to the very top, so it never fights a normal scroll
 // gesture partway down the list.
-function PullToRefresh({ onRefresh, style, children, onTouchStart: extraStart, onTouchEnd: extraEnd }) {
+function PullToRefresh({ onRefresh, style, children, onTouchStart: extraStart, onTouchEnd: extraEnd, onScroll }) {
   const [pullY, setPullY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const containerRef = useRef(null);
@@ -465,7 +465,7 @@ function PullToRefresh({ onRefresh, style, children, onTouchStart: extraStart, o
   };
 
   return (
-    <div ref={containerRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+    <div ref={containerRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onScroll={onScroll}
       style={{ ...style, overflowY:'auto', overscrollBehavior:'contain' }}>
       <div style={{ height: refreshing ? THRESHOLD : pullY,
                     transition: draggingRef.current ? 'none' : 'height .2s ease',
@@ -3467,6 +3467,45 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
       .then(({ count }) => { if (!isStale()) setLiveEvents2(count ?? 0); });
   };
 
+  // Pull-to-refresh: re-runs the same group/counts/events lookups the
+  // mount effect does, without resetting state first -- unlike that
+  // effect (which blanks everything so a *different* group's stale data
+  // can't linger), a manual refresh of the *same* group should just
+  // silently swap in fresh values once they arrive. This screen isn't
+  // remounted by groupId (no `key` at the call site, unlike
+  // EventDetailsScreen), so the same loadGenRef staleness guard the mount
+  // effect uses is needed here too -- otherwise a refresh started on one
+  // group could resolve after the user has already navigated to another
+  // and overwrite that group's state instead.
+  const refetchGroup = async () => {
+    const gen = ++loadGenRef.current;
+    const isStale = () => gen !== loadGenRef.current;
+    refreshCounts(isStale);
+    const eventsPromise = supabase.from('events').select('*').eq('group_id', groupId)
+      .or('status.is.null,status.eq.published')
+      .order('created_at', { ascending: false }).limit(10)
+      .then(({ data }) => { if (!isStale()) setGroupEvents(data || []); });
+    const groupPromise = supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
+      .then(({ data: freshGroup, error }) => {
+        if (isStale()) return;
+        if (!freshGroup) {
+          // Same as the mount path below: no error and no row means the
+          // group genuinely doesn't exist (or isn't visible to this user)
+          // anymore -- don't keep serving a stale cached copy of it just
+          // because a manual refresh happened to be the one to find out.
+          if (!error) { evictCached('group', groupId); setDbGroup(null); }
+          return;
+        }
+        const prevCached = getCached('group', groupId);
+        const merged = prevCached
+          ? { ...freshGroup, member_count: prevCached.member_count, member_previews: prevCached.member_previews }
+          : freshGroup;
+        setCached('group', groupId, merged);
+        setDbGroup(merged);
+      });
+    await Promise.all([eventsPromise, groupPromise]);
+  };
+
   // Bumped on every groupId/user change so in-flight requests from a previous
   // group/user can't overwrite state after the effect has moved on.
   const loadGenRef = useRef(0);
@@ -3829,7 +3868,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
         </div>
       </div>
 
-      <div style={{ flex:1, overflowY:'auto' }} onScroll={handleGroupScroll}>
+      <PullToRefresh onRefresh={refetchGroup} style={{ flex:1 }} onScroll={handleGroupScroll}>
 
         {/* Spacer so content starts below the floating avatar */}
         <div style={{ height:50 }}/>
@@ -4286,7 +4325,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
           </>
         )}
 
-      </div>{/* end scroll */}
+      </PullToRefresh>{/* end scroll */}
 
       {/* ── FAB: Compose (joined) ────────────────────────── */}
       {isJoined && (

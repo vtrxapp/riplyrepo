@@ -4342,8 +4342,12 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   // never block or affect what the viewer sees.
   useEffect(() => {
     if (!eventId) return;
+    // PostgrestBuilder only implements `.then()` (PromiseLike), not `.catch()`
+    // -- chaining `.catch()` directly here (with no preceding `.then()`)
+    // would throw "catch is not a function" at runtime instead of silently
+    // logging the failure.
     supabase.rpc('increment_event_views', { event_id_arg: eventId })
-      .catch((err) => console.debug('[event-view] increment_event_views failed', err));
+      .then(({ error }) => { if (error) console.debug('[event-view] increment_event_views failed', error); });
   }, [eventId]);
 
   // Real "You may also like": other published events in the same category,
@@ -12796,7 +12800,10 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
   // check-in data regardless) -- this stops a non-owner from even seeing the
   // screen shell for someone else's event, same gate GroupAnalyticsScreen
   // uses for admin-only access.
-  if (currentUser?.userId && ev.user_id && ev.user_id !== currentUser.userId) {
+  // Fail closed: if currentUser hasn't resolved yet (or ev has no owner on
+  // record), deny rather than let the gate silently no-op and render the
+  // shell for a viewer we can't actually confirm is the organizer.
+  if (!currentUser?.userId || ev.user_id !== currentUser.userId) {
     return (
       <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
                     justifyContent:'center', gap:12, padding:24, textAlign:'center',

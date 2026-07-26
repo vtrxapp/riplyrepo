@@ -21,3 +21,10 @@ begin
   update events set views_count = views_count + 1 where id = event_id_arg;
 end;
 $$;
+
+-- Postgres grants EXECUTE on a new function to PUBLIC by default, which
+-- would let an unauthenticated (anon) caller invoke this SECURITY DEFINER
+-- function directly and inflate any organizer's view count without limit.
+-- Restrict it to signed-in users only.
+revoke all on function public.increment_event_views(uuid) from public;
+grant execute on function public.increment_event_views(uuid) to authenticated;

@@ -16,6 +16,31 @@ function formatTime(iso) {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
+// Comments store a one-time snapshot of the author's name/avatar/color at
+// comment time (author_name, author_initial, author_color, author_avatar_url),
+// which never updates again -- unlike Chats, which always does a live
+// users-table lookup. Overlay each author's live profile after the initial
+// fetch so a name/photo changed later in Settings shows up on old comments too.
+async function attachLiveProfiles(rows) {
+  if (!rows?.length) return rows || []
+  const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))]
+  if (!userIds.length) return rows
+  const { data: users, error } = await supabase.from('users').select('id,name,avatar_url,avatar_color').in('id', userIds)
+  if (error) { console.error('[useComments] live profile lookup failed:', error); return rows }
+  const userMap = Object.fromEntries((users || []).map(u => [u.id, u]))
+  return rows.map(r => {
+    const u = userMap[r.user_id]
+    if (!u) return r
+    return {
+      ...r,
+      author_name:       u.name || r.author_name,
+      author_initial:    (u.name || r.author_name || 'M')[0].toUpperCase(),
+      author_avatar_url: u.avatar_url || null,
+      author_color:      u.avatar_color || r.author_color,
+    }
+  })
+}
+
 export function useComments(postId) {
   const { user } = useUser()
   const [comments, setComments] = useState([])
@@ -36,15 +61,26 @@ export function useComments(postId) {
 
   useEffect(() => {
     if (!postId) return
+    let ignore = false
     setLoading(true)
     supabase
       .from('post_comments')
       .select('*')
       .eq('post_id', postId)
       .order('created_at', { ascending: true })
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error) console.error('[useComments] fetch error:', error.message, error.code)
-        setComments((data || []).map(normalize))
+        const withLiveProfiles = await attachLiveProfiles(data || [])
+        if (ignore) return
+        const fetched = withLiveProfiles.map(normalize)
+        // Preserve any comment added via realtime/optimistic update while this
+        // fetch was in flight -- don't let a late-resolving initial load wipe
+        // out a newer local entry that isn't in `fetched` yet.
+        setComments(prev => {
+          const fetchedIds = new Set(fetched.map(c => c.id))
+          const extra = prev.filter(c => !fetchedIds.has(c.id))
+          return [...fetched, ...extra]
+        })
         setLoading(false)
       })
 
@@ -65,7 +101,7 @@ export function useComments(postId) {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => { ignore = true; supabase.removeChannel(channel) }
   }, [postId])
 
   const addComment = useCallback(async (content, currentUserProfile, replyTo = null) => {

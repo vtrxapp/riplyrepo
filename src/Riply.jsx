@@ -2978,16 +2978,16 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
               return (
                 <button key={i} onClick={() => castVote(i)} disabled={voted}
                   style={{ position:'relative', width:'100%', textAlign:'left', border:'none',
-                           borderRadius:12, overflow:'hidden', padding:0, cursor: voted ? 'default' : 'pointer',
+                           borderRadius:20, overflow:'hidden', padding:0, cursor: voted ? 'default' : 'pointer',
                            background:'transparent' }}>
                   {/* progress bar bg */}
-                  <div style={{ position:'absolute', inset:0, borderRadius:12,
+                  <div style={{ position:'absolute', inset:0, borderRadius:20,
                                 background: isMyV
                                   ? 'rgba(0,152,240,0.12)'
                                   : voted ? '#F3F4F8' : '#F3F4F8' }}/>
                   {/* filled portion */}
                   {voted && (
-                    <div style={{ position:'absolute', top:0, left:0, bottom:0, borderRadius:12,
+                    <div style={{ position:'absolute', top:0, left:0, bottom:0, borderRadius:20,
                                   width:`${pct}%`, transition:'width 0.5s ease',
                                   background: isMyV
                                     ? C.grad
@@ -3089,7 +3089,7 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
       {p.linked_event_title && (
         <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
           style={{ display:'flex', alignItems:'center', gap:10, marginTop:10, width:'100%',
-                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:12, padding:'10px 12px', cursor:'pointer' }}>
+                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:20, padding:'10px 12px', cursor:'pointer' }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
             <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
             <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
@@ -4152,7 +4152,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                     const d = ev.date ? new Date(ev.date) : null;
                     const day = d ? d.getDate().toString() : '';
                     const mon = d ? d.toLocaleString('en',{month:'short'}).toUpperCase() : '';
-                    const grad = THEME[ev.category || ev.primary]?.grad || 'linear-gradient(135deg,#7C5CFF,#02B6FE)';
+                    // Only the start time -- not the full date -- alongside the
+                    // badge, same as the pinned card above: the badge already
+                    // shows day/month, so repeating the full date in the
+                    // subtitle too was redundant.
+                    const evWhen = ev.start_time ? fmt12(ev.start_time)
+                      : ev.time_range ? fmtRange(ev.time_range).split(/[-–—]/)[0].trim() : '';
                     const togglePinEvent = async (e) => {
                       e.stopPropagation();
                       const nextPinned = !ev.is_pinned;
@@ -4165,14 +4170,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                       <div key={ev.id} onClick={() => navigate('event-details',{eventId:ev.id})}
                         style={{ display:'flex', gap:13, background:'#fff', borderRadius:18,
                                  boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:13, cursor:'pointer', marginBottom:10 }}>
-                        <div style={{ width:58, height:58, borderRadius:14, flexShrink:0,
-                                      background:grad, position:'relative', overflow:'hidden',
+                        <div style={{ width:58, height:58, borderRadius:'50%', flexShrink:0,
+                                      background:C.primary, position:'relative', overflow:'hidden',
                                       display:'flex', flexDirection:'column', alignItems:'center',
                                       justifyContent:'center', color:'#fff' }}>
-                          <div style={{ position:'absolute', inset:0, background:
-                              'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
-                          <span style={{ position:'relative', fontSize:18, fontWeight:800, lineHeight:1 }}>{day}</span>
-                          <span style={{ position:'relative', fontSize:9.5, fontWeight:700, letterSpacing:0.5, marginTop:2 }}>{mon}</span>
+                          <span style={{ position:'relative', fontSize:18, fontWeight:600, lineHeight:1, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{day}</span>
+                          <span style={{ position:'relative', fontSize:12, fontWeight:500, letterSpacing:0.5, marginTop:2, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{mon}</span>
                         </div>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -4189,9 +4192,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                               </svg>
                             )}
                           </div>
-                          <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>
-                            {fmtDate(ev.full_date || ev.date)}{(ev.start_time || ev.time_range) ? ` · ${fmtRange(ev.time_range) || fmt12(ev.start_time)}` : ''}
-                          </div>
+                          {evWhen && (
+                            <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>
+                              {evWhen}
+                            </div>
+                          )}
                           {(ev.location || ev.venue) && (
                             <div style={{ fontSize:11.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
                                           overflow:'hidden', textOverflow:'ellipsis' }}>{ev.venue || ev.location}</div>

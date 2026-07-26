@@ -4000,7 +4000,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                 <span style={{ position:'relative', fontSize:10, fontWeight:700, color:'#fff', letterSpacing:0.5, marginTop:2, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{mon}</span>
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:15, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                <div style={{ fontSize:15, fontWeight:500, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {pinnedEvent.title}
                 </div>
                 {(location || when) && (

@@ -4179,7 +4179,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                         </div>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                            <div style={{ fontSize:14.5, fontWeight:800, color:C.ink, lineHeight:1.25, flex:1, minWidth:0,
+                            <div style={{ fontSize:14, fontWeight:500, color:'#14181B', lineHeight:1.25, flex:1, minWidth:0,
                                           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
                             {/* Admins already see pinned state on the toggle button to the
                                 right (highlighted background) -- showing this badge too for
@@ -4192,18 +4192,17 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                               </svg>
                             )}
                           </div>
-                          {evWhen && (
-                            <div style={{ fontSize:12, color:C.subtle, marginTop:4 }}>
-                              {evWhen}
+                          {(ev.location || ev.venue || evWhen) && (
+                            <div style={{ fontSize:12, fontWeight:400, color:'#14181B', marginTop:3, whiteSpace:'nowrap',
+                                          overflow:'hidden', textOverflow:'ellipsis' }}>
+                              {(ev.venue || ev.location) && <span>{ev.venue || ev.location}</span>}
+                              {(ev.venue || ev.location) && evWhen && <span> · </span>}
+                              {evWhen && <span>{evWhen}</span>}
                             </div>
                           )}
-                          {(ev.location || ev.venue) && (
-                            <div style={{ fontSize:11.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
-                                          overflow:'hidden', textOverflow:'ellipsis' }}>{ev.venue || ev.location}</div>
-                          )}
-                          <div style={{ fontSize:11.5, fontWeight:700, marginTop:7 }}>
+                          <div style={{ fontSize:12, fontWeight:400, marginTop:6 }}>
                             <span style={{ color:C.primary }}>{fmt(ev.attendee_count || 0)} going</span>
-                            <span style={{ color:C.ink }}> · {fmt(ev.likes || 0)} interested</span>
+                            <span style={{ color:'#57636C' }}> · {fmt(ev.likes || 0)} interested</span>
                           </div>
                         </div>
                         {isGroupAdmin && (

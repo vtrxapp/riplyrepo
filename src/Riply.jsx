@@ -3457,8 +3457,16 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
       .order('created_at', { ascending: false }).limit(10)
       .then(({ data }) => { if (!isStale()) setGroupEvents(data || []); });
     const groupPromise = supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
-      .then(({ data: freshGroup }) => {
-        if (isStale() || !freshGroup) return;
+      .then(({ data: freshGroup, error }) => {
+        if (isStale()) return;
+        if (!freshGroup) {
+          // Same as the mount path below: no error and no row means the
+          // group genuinely doesn't exist (or isn't visible to this user)
+          // anymore -- don't keep serving a stale cached copy of it just
+          // because a manual refresh happened to be the one to find out.
+          if (!error) { evictCached('group', groupId); setDbGroup(null); }
+          return;
+        }
         const prevCached = getCached('group', groupId);
         const merged = prevCached
           ? { ...freshGroup, member_count: prevCached.member_count, member_previews: prevCached.member_previews }

@@ -3987,7 +3987,6 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
           const location = [pinnedEvent.location, pinnedEvent.venue]
             .map(value => typeof value === 'string' ? value.trim() : '')
             .find(Boolean) || '';
-          const grad = THEME[pinnedEvent.category || pinnedEvent.primary]?.grad || 'linear-gradient(135deg,#7C5CFF,#02B6FE)';
           return (
             <div onClick={() => navigate('event-details', { eventId: pinnedEvent.id })}
               style={{ margin:'16px 16px 0', display:'flex', alignItems:'center', gap:13,
@@ -3995,7 +3994,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                        padding:13, cursor:'pointer' }}>
               <div style={{ width:64, height:64, borderRadius:'50%', flexShrink:0, position:'relative',
                             overflow:'hidden', display:'flex', flexDirection:'column',
-                            alignItems:'center', justifyContent:'center', background:grad }}>
+                            alignItems:'center', justifyContent:'center', background:C.primary }}>
                 <span style={{ position:'relative', fontSize:20, fontWeight:800, color:'#fff', lineHeight:1, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{day}</span>
                 <span style={{ position:'relative', fontSize:10, fontWeight:700, color:'#fff', letterSpacing:0.5, marginTop:2, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{mon}</span>
               </div>
@@ -4007,12 +4006,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                   <div style={{ fontSize:12.5, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                     {location && <span style={{ color:C.subtle }}>{location}</span>}
                     {location && when && <span style={{ color:C.subtle }}> · </span>}
-                    {when && <span style={{ color:C.primary, fontWeight:700 }}>{when}</span>}
+                    {when && <span style={{ color:C.subtle }}>{when}</span>}
                   </div>
                 )}
-                <div style={{ fontSize:11.5, fontWeight:700, marginTop:6 }}>
-                  <span style={{ color:C.primary }}>{fmt(pinnedEvent.attendee_count || 0)} going</span>
-                  <span style={{ color:C.ink }}> · {fmt(pinnedEvent.likes || 0)} interested</span>
+                <div style={{ fontSize:11.5, marginTop:6 }}>
+                  <span style={{ color:C.primary, fontWeight:700 }}>{fmt(pinnedEvent.attendee_count || 0)} going</span>
+                  <span style={{ color:C.ink, fontWeight:500 }}> · {fmt(pinnedEvent.likes || 0)} interested</span>
                 </div>
               </div>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>

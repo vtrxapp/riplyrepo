@@ -3422,6 +3422,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
   // the unrelated `staticG` mock below while the fetch is in flight.
   const [dbGroup,     setDbGroup]     = useState(() => getCached('group', groupId));
   const [groupEvents, setGroupEvents] = useState([]);
+  const [groupSpaces, setGroupSpaces] = useState([]);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
   const [membershipChecked, setMembershipChecked] = useState(false);
@@ -3463,6 +3464,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
     setIsGroupAdmin(false);
     setJoinState(staticG.state || 'join');
     setGroupEvents([]);
+    setGroupSpaces([]);
     setLiveMembers(null);
     setLivePosts2(null);
     setLiveEvents2(null);
@@ -3472,6 +3474,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
       .or('status.is.null,status.eq.published')
       .order('created_at', { ascending: false }).limit(10)
       .then(({ data }) => { if (!isStale()) setGroupEvents(data || []); });
+    supabase.from('spaces').select('*').eq('group_id', groupId)
+      .order('created_at', { ascending: false }).limit(10)
+      .then(({ data, error }) => {
+        if (isStale()) return;
+        if (error) { console.error('[GroupProfileScreen] failed to load spaces:', error); return; }
+        setGroupSpaces(data || []);
+      });
 
     (async () => {
       const { data: freshGroup } = await supabase.from('groups').select('*').eq('id', groupId).maybeSingle();
@@ -4095,7 +4104,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
           <>
             {/* Tabs */}
             <div style={{ display:'flex', padding:'8px 0 0', marginTop:14 }}>
-              {['posts','events','media','rules'].map(t => (
+              {['posts','events','spaces','media','rules'].map(t => (
                 <button key={t} onClick={() => setActiveTab(t)} style={{
                   flex:1, border:'none', background:'none', cursor:'pointer',
                   fontFamily:"'Montserrat',-apple-system,sans-serif",
@@ -4217,6 +4226,62 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                             </svg>
                           </button>
                         )}
+                      </div>
+                    );
+                  })
+                }
+                </>
+              )}
+
+              {/* SPACES */}
+              {activeTab === 'spaces' && (
+                <>
+                {isJoined && (
+                  <button onClick={() => navigate('create-space', { groupId })}
+                    style={{ width:'100%', height:44, border:`1.5px dashed ${C.primary}`, borderRadius:14,
+                             background:'rgba(2,162,240,0.05)', color:C.primary, fontSize:13,
+                             fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center',
+                             justifyContent:'center', gap:8,
+                             fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke={C.primary} strokeWidth="2.2" strokeLinecap="round"/>
+                    </svg>
+                    Create Space
+                  </button>
+                )}
+                {groupSpaces.length === 0
+                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No upcoming spaces</div>
+                  : groupSpaces.map(sp => {
+                    const dLabel = spaceDayLabel(sp.day);
+                    const spWhen = sp.time ? fmt12(sp.time) : '';
+                    const count = sp.participants || 0;
+                    return (
+                      <div key={sp.id} onClick={() => navigate('space-details', { spaceId: sp.id })}
+                        style={{ display:'flex', gap:13, background:'#fff', borderRadius:18,
+                                 boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:13, cursor:'pointer', marginBottom:10 }}>
+                        <div style={{ width:58, height:58, borderRadius:'50%', flexShrink:0,
+                                      background:C.primary, position:'relative', overflow:'hidden',
+                                      display:'flex', alignItems:'center', justifyContent:'center', color:'#fff' }}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="8.5" stroke="#fff" strokeWidth="2"/>
+                            <path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke="#fff" strokeWidth="1.6"/>
+                          </svg>
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14, fontWeight:500, color:'#14181B', lineHeight:1.25,
+                                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{sp.title}</div>
+                          {(sp.location || dLabel || spWhen) && (
+                            <div style={{ fontSize:12, fontWeight:400, color:'#14181B', marginTop:3, whiteSpace:'nowrap',
+                                          overflow:'hidden', textOverflow:'ellipsis' }}>
+                              {sp.location && <span>{sp.location}</span>}
+                              {sp.location && (dLabel || spWhen) && <span> · </span>}
+                              {(dLabel || spWhen) && <span>{[dLabel, spWhen].filter(Boolean).join(' · ')}</span>}
+                            </div>
+                          )}
+                          <div style={{ fontSize:12, fontWeight:400, marginTop:6 }}>
+                            <span style={{ color:C.primary }}>{fmt(count)} joined</span>
+                          </div>
+                        </div>
                       </div>
                     );
                   })
@@ -8527,13 +8592,32 @@ function CreateGroupScreen({ goBack, navigate, navigateReplace, showToast, curre
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE STUDENT SPACE
 // ─────────────────────────────────────────────────────────────
-function CreateSpaceScreen({ goBack, navigate, navigateReplace, showToast, currentUser }) {
+function CreateSpaceScreen({ goBack, navigate, navigateReplace, showToast, currentUser, groupId: sourceGroupId }) {
   // Guards the post-submit navigateReplace call against a stale async
   // completion if the user has already left this screen (header back
   // button / edge-swipe) by the time the awaited space insert resolves.
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
   const CATS = APP_CATEGORIES;
+
+  // Same "post to group" picker as CreateEventScreen, and for the same
+  // reason: a space created from Home's FAB had no way to end up under any
+  // group's Spaces tab, even for an admin who obviously meant it to.
+  const [myAdminGroups, setMyAdminGroups] = useState([]);
+  const [pickedGroupId, setPickedGroupId] = useState(null);
+  useEffect(() => {
+    if (sourceGroupId || !currentUser?.userId) return;
+    let cancelled = false;
+    supabase.from('group_members').select('group_id, groups(id, name)')
+      .eq('user_id', currentUser.userId).eq('status', 'approved').in('role', ['admin', 'owner'])
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { console.error('[CreateSpaceScreen] failed to load admin groups:', error); return; }
+        setMyAdminGroups((data || []).filter(r => r.groups).map(r => r.groups));
+      });
+    return () => { cancelled = true; };
+  }, [sourceGroupId, currentUser?.userId]);
+  const effectiveGroupId = sourceGroupId || pickedGroupId;
 
   const [cat,         setCat]        = useState('academic');
   const [title,       setTitle]      = useState('');
@@ -8663,6 +8747,23 @@ function CreateSpaceScreen({ goBack, navigate, navigateReplace, showToast, curre
               height:'100%', objectFit:'cover', borderRadius:18, zIndex:1 }}/>
           )}
         </div>
+
+        {/* Post to group -- same optional picker as CreateEventScreen */}
+        {!sourceGroupId && myAdminGroups.length > 0 && (
+          <div style={{ marginTop:20 }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:0.4,
+                          textTransform:'uppercase', color:C.subtle, marginBottom:9 }}>
+              Post to Group (optional)
+            </div>
+            <select value={pickedGroupId || ''} onChange={e => setPickedGroupId(e.target.value || null)}
+              style={{ width:'100%', height:46, border:`1.5px solid ${C.border}`, borderRadius:13,
+                       background:C.card, padding:'0 14px', fontSize:13, fontWeight:600, color:C.body,
+                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+              <option value="">No group (personal space)</option>
+              {myAdminGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+          </div>
+        )}
 
         {/* Category */}
         <div style={{ marginTop:20 }}>
@@ -8997,6 +9098,7 @@ function CreateSpaceScreen({ goBack, navigate, navigateReplace, showToast, curre
           const { data: space, error } = await supabase.from('spaces').insert({
             title: title.trim(),
             description: about.trim(),
+            group_id: effectiveGroupId || null,
             host_id: currentUser.userId,
             host_text: currentUser.name || 'Host',
             category: cat,
@@ -13997,7 +14099,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
-      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
+      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;

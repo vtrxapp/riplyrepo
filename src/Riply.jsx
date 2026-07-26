@@ -9374,17 +9374,28 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
       status,
     };
 
+    // Editing an event with the group picker was silently a no-op for
+    // group_id/is_public -- the picker updates local state, but the
+    // edit branch's .update(sharedFields) never included either field,
+    // so attaching/changing/detaching a group (or its visibility) while
+    // editing never actually saved. Both branches now share this.
+    const eventFields = {
+      ...sharedFields,
+      group_id: effectiveGroupId || null,
+      is_public: effectiveGroupId ? isPublic : true,
+    };
+
     let event, error;
     if (isEditing) {
       // Editing never touches attendee_count/likes/saves/shares/trending --
       // those are live counters this screen has no business resetting.
       ({ data: event, error } = await supabase.from('events')
-        .update(sharedFields)
+        .update(eventFields)
         .eq('id', eventId)
         .select().single());
     } else {
       ({ data: event, error } = await supabase.from('events').insert({
-        ...sharedFields,
+        ...eventFields,
         user_id: currentUser.userId,
         org: currentUser.name || 'Organizer',
         org_initial: (currentUser.name || 'O')[0].toUpperCase(),
@@ -9393,8 +9404,6 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
         saves: 0,
         shares: 0,
         trending: false,
-        group_id: effectiveGroupId || null,
-        is_public: effectiveGroupId ? isPublic : true,
         // Set once at creation and never touched again (not part of
         // sharedFields, so later edits can't overwrite it) -- the "Reduced
         // Price" badge compares the current price against this baseline.

@@ -61,6 +61,7 @@ export function useComments(postId) {
 
   useEffect(() => {
     if (!postId) return
+    let ignore = false
     setLoading(true)
     supabase
       .from('post_comments')
@@ -70,6 +71,7 @@ export function useComments(postId) {
       .then(async ({ data, error }) => {
         if (error) console.error('[useComments] fetch error:', error.message, error.code)
         const withLiveProfiles = await attachLiveProfiles(data || [])
+        if (ignore) return
         setComments(withLiveProfiles.map(normalize))
         setLoading(false)
       })
@@ -91,7 +93,7 @@ export function useComments(postId) {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => { ignore = true; supabase.removeChannel(channel) }
   }, [postId])
 
   const addComment = useCallback(async (content, currentUserProfile, replyTo = null) => {

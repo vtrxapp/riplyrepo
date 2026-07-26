@@ -9185,7 +9185,21 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
   // + event_count bump on publish. Falls back to the loaded event's own
   // group_id whenever the nav param didn't supply one.
   const [loadedGroupId, setLoadedGroupId] = useState(null);
-  const effectiveGroupId = sourceGroupId || loadedGroupId;
+  // Groups this organizer admins/owns -- only these can be picked as the
+  // "post to group" target for an event created outside a group's own
+  // page (e.g. Home's quick-create FAB), since only admins can publish an
+  // official group event. Without a picker here, every event created from
+  // Home had group_id permanently null and could never show up under any
+  // group's Events tab, even for an admin who obviously meant it to.
+  const [myAdminGroups, setMyAdminGroups] = useState([]);
+  const [pickedGroupId, setPickedGroupId] = useState(null);
+  useEffect(() => {
+    if (sourceGroupId || !currentUser?.userId) return;
+    supabase.from('group_members').select('group_id, groups(id, name)')
+      .eq('user_id', currentUser.userId).eq('status', 'approved').in('role', ['admin', 'owner'])
+      .then(({ data }) => setMyAdminGroups((data || []).filter(r => r.groups).map(r => r.groups)));
+  }, [sourceGroupId, currentUser?.userId]);
+  const effectiveGroupId = sourceGroupId || pickedGroupId;
 
   // Converts a stored "6:00 PM"-style string back to the 24-hour "18:00"
   // a native <input type="time"> needs to show it as prefilled.
@@ -9235,6 +9249,7 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
       setIsPublic(ev.is_public !== false);
       setEventStatus(ev.status || 'published');
       setLoadedGroupId(ev.group_id || null);
+      setPickedGroupId(ev.group_id || null);
       setLoadingEvent(false);
     })();
     return () => { cancelled = true; };
@@ -9534,6 +9549,23 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
               height:'155px', objectFit:'cover', borderRadius:18, zIndex:1 }}/>
           )}
         </div>
+        {/* Post to group -- only offered when this screen wasn't already
+            opened from inside a group (sourceGroupId set), and only among
+            groups this organizer actually admins/owns. Optional: leaving it
+            on "No group" keeps the event a personal one, same as before. */}
+        {!sourceGroupId && myAdminGroups.length > 0 && (
+          <div style={{ marginTop:20 }}>
+            <EventLabel>Post to Group (optional)</EventLabel>
+            <select value={pickedGroupId || ''} onChange={e => setPickedGroupId(e.target.value || null)}
+              style={{ width:'100%', height:46, border:`1.5px solid ${C.border}`, borderRadius:13,
+                       background:C.card, padding:'0 14px', fontSize:13, fontWeight:600, color:C.body,
+                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+              <option value="">No group (personal event)</option>
+              {myAdminGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+          </div>
+        )}
+
         {/* Category */}
         <div style={{ marginTop:20 }}>
           <EventLabel>Category</EventLabel>

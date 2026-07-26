@@ -3442,16 +3442,23 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
   // mount effect does, without resetting state first -- unlike that
   // effect (which blanks everything so a *different* group's stale data
   // can't linger), a manual refresh of the *same* group should just
-  // silently swap in fresh values once they arrive.
+  // silently swap in fresh values once they arrive. This screen isn't
+  // remounted by groupId (no `key` at the call site, unlike
+  // EventDetailsScreen), so the same loadGenRef staleness guard the mount
+  // effect uses is needed here too -- otherwise a refresh started on one
+  // group could resolve after the user has already navigated to another
+  // and overwrite that group's state instead.
   const refetchGroup = async () => {
-    refreshCounts();
+    const gen = ++loadGenRef.current;
+    const isStale = () => gen !== loadGenRef.current;
+    refreshCounts(isStale);
     const eventsPromise = supabase.from('events').select('*').eq('group_id', groupId)
       .or('status.is.null,status.eq.published')
       .order('created_at', { ascending: false }).limit(10)
-      .then(({ data }) => setGroupEvents(data || []));
+      .then(({ data }) => { if (!isStale()) setGroupEvents(data || []); });
     const groupPromise = supabase.from('groups').select('*').eq('id', groupId).maybeSingle()
       .then(({ data: freshGroup }) => {
-        if (!freshGroup) return;
+        if (isStale() || !freshGroup) return;
         const prevCached = getCached('group', groupId);
         const merged = prevCached
           ? { ...freshGroup, member_count: prevCached.member_count, member_previews: prevCached.member_previews }

@@ -4236,7 +4236,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
               {/* SPACES */}
               {activeTab === 'spaces' && (
                 <>
-                {isJoined && (
+                {/* Admin/owner-only, unlike the Events tab's button above --
+                    a plain member creating a space here has it attach to the
+                    group with no admin review step at all (spaces_insert's
+                    RLS only checks host_id, not role), so letting any joined
+                    member trigger that would let a non-admin unilaterally
+                    post official group content. */}
+                {isGroupAdmin && (
                   <button onClick={() => navigate('create-space', { groupId })}
                     style={{ width:'100%', height:44, border:`1.5px dashed ${C.primary}`, borderRadius:14,
                              background:'rgba(2,162,240,0.05)', color:C.primary, fontSize:13,
@@ -4250,7 +4256,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                   </button>
                 )}
                 {groupSpaces.length === 0
-                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No upcoming spaces</div>
+                  ? <div style={{ textAlign:'center', padding:'32px 0', color:C.subtle, fontSize:12 }}>No spaces yet</div>
                   : groupSpaces.map(sp => {
                     const dLabel = spaceDayLabel(sp.day);
                     const spWhen = sp.time ? fmt12(sp.time) : '';

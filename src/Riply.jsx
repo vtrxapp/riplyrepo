@@ -9156,7 +9156,13 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
   };
   const removeGuest = (i) => setGuests(g => g.filter((_, idx) => idx !== i));
 
-  const [isPublic,   setIsPublic]   = useState(true);
+  // Defaults to group-only the moment a group is attached (sourceGroupId
+  // immediately, or pickedGroupId once the admin picks one from the
+  // dropdown) -- an admin has to explicitly flip the toggle below to make
+  // a group event public, rather than every group event being public by
+  // default unless they remember to opt out.
+  const [isPublic,   setIsPublic]   = useState(!sourceGroupId);
+  const isPublicTouchedRef = useRef(false);
   // Guards the post-submit navigation below against a stale async
   // completion: the header back button and the app's edge-swipe gesture
   // both stay active during submission, so a user can leave this screen
@@ -9225,6 +9231,14 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
   }, [loadedGroupId, myAdminGroups]);
   const groupOptions = currentGroupFallback ? [...myAdminGroups, currentGroupFallback] : myAdminGroups;
   const effectiveGroupId = sourceGroupId || pickedGroupId;
+  // Re-defaults to group-only every time a group gets attached via the
+  // picker (not just at initial mount, which only covers sourceGroupId) --
+  // skipped once the admin has actually touched the toggle themselves, so
+  // their explicit choice never gets silently overwritten by a later pick.
+  useEffect(() => {
+    if (isPublicTouchedRef.current) return;
+    setIsPublic(!effectiveGroupId);
+  }, [effectiveGroupId]);
 
   // Converts a stored "6:00 PM"-style string back to the 24-hour "18:00"
   // a native <input type="time"> needs to show it as prefilled.
@@ -9271,6 +9285,9 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
       setAbout(ev.description || ev.full_desc || '');
       setRules(Object.fromEntries((ev.rules || []).map(r => [r, true])));
       setGuests(ev.guests || []);
+      // Counts as "touched" so the group-attach effect above never
+      // overwrites this event's own already-saved visibility.
+      isPublicTouchedRef.current = true;
       setIsPublic(ev.is_public !== false);
       setEventStatus(ev.status || 'published');
       setLoadedGroupId(ev.group_id || null);
@@ -9938,7 +9955,7 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
                 {isPublic ? 'Visible on the home feed for everyone' : 'Only visible inside this group'}
               </div>
             </div>
-            <div onClick={() => setIsPublic(p => !p)}
+            <div onClick={() => { isPublicTouchedRef.current = true; setIsPublic(p => !p); }}
               style={{ width:44, height:26, borderRadius:999, cursor:'pointer', flexShrink:0,
                        background: isPublic ? C.primary : '#C5CBD6', position:'relative',
                        transition:'background 0.2s' }}>

@@ -9218,7 +9218,13 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
   };
   const removeGuest = (i) => setGuests(g => g.filter((_, idx) => idx !== i));
 
-  const [isPublic,   setIsPublic]   = useState(true);
+  // Defaults to group-only the moment a group is attached (sourceGroupId
+  // immediately, or pickedGroupId once the admin picks one from the
+  // dropdown) -- an admin has to explicitly flip the toggle below to make
+  // a group event public, rather than every group event being public by
+  // default unless they remember to opt out.
+  const [isPublic,   setIsPublic]   = useState(!sourceGroupId);
+  const isPublicTouchedRef = useRef(false);
   // Guards the post-submit navigation below against a stale async
   // completion: the header back button and the app's edge-swipe gesture
   // both stay active during submission, so a user can leave this screen
@@ -9247,7 +9253,54 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
   // + event_count bump on publish. Falls back to the loaded event's own
   // group_id whenever the nav param didn't supply one.
   const [loadedGroupId, setLoadedGroupId] = useState(null);
-  const effectiveGroupId = sourceGroupId || loadedGroupId;
+  // Groups this organizer admins/owns -- only these can be picked as the
+  // "post to group" target for an event created outside a group's own
+  // page (e.g. Home's quick-create FAB), since only admins can publish an
+  // official group event. Without a picker here, every event created from
+  // Home had group_id permanently null and could never show up under any
+  // group's Events tab, even for an admin who obviously meant it to.
+  const [myAdminGroups, setMyAdminGroups] = useState([]);
+  const [pickedGroupId, setPickedGroupId] = useState(null);
+  // The group an event being edited is already attached to (loadedGroupId)
+  // may not be one of myAdminGroups any more -- e.g. the organizer was
+  // since demoted, or removed, from that group. The <select> below still
+  // needs to show it as the current selection (not silently drop it the
+  // moment the picker renders with no matching <option>), so fetch its
+  // name separately whenever it isn't already in myAdminGroups.
+  const [currentGroupFallback, setCurrentGroupFallback] = useState(null);
+  useEffect(() => {
+    if (sourceGroupId || !currentUser?.userId) return;
+    let cancelled = false;
+    supabase.from('group_members').select('group_id, groups(id, name)')
+      .eq('user_id', currentUser.userId).eq('status', 'approved').in('role', ['admin', 'owner'])
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { console.error('[CreateEventScreen] failed to load admin groups:', error); return; }
+        setMyAdminGroups((data || []).filter(r => r.groups).map(r => r.groups));
+      });
+    return () => { cancelled = true; };
+  }, [sourceGroupId, currentUser?.userId]);
+  useEffect(() => {
+    if (!loadedGroupId || myAdminGroups.some(g => g.id === loadedGroupId)) { setCurrentGroupFallback(null); return; }
+    let cancelled = false;
+    supabase.from('groups').select('id, name').eq('id', loadedGroupId).maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { console.error('[CreateEventScreen] failed to load current group:', error); return; }
+        setCurrentGroupFallback(data || null);
+      });
+    return () => { cancelled = true; };
+  }, [loadedGroupId, myAdminGroups]);
+  const groupOptions = currentGroupFallback ? [...myAdminGroups, currentGroupFallback] : myAdminGroups;
+  const effectiveGroupId = sourceGroupId || pickedGroupId;
+  // Re-defaults to group-only every time a group gets attached via the
+  // picker (not just at initial mount, which only covers sourceGroupId) --
+  // skipped once the admin has actually touched the toggle themselves, so
+  // their explicit choice never gets silently overwritten by a later pick.
+  useEffect(() => {
+    if (isPublicTouchedRef.current) return;
+    setIsPublic(!effectiveGroupId);
+  }, [effectiveGroupId]);
 
   // Converts a stored "6:00 PM"-style string back to the 24-hour "18:00"
   // a native <input type="time"> needs to show it as prefilled.
@@ -9294,9 +9347,13 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
       setAbout(ev.description || ev.full_desc || '');
       setRules(Object.fromEntries((ev.rules || []).map(r => [r, true])));
       setGuests(ev.guests || []);
+      // Counts as "touched" so the group-attach effect above never
+      // overwrites this event's own already-saved visibility.
+      isPublicTouchedRef.current = true;
       setIsPublic(ev.is_public !== false);
       setEventStatus(ev.status || 'published');
       setLoadedGroupId(ev.group_id || null);
+      setPickedGroupId(ev.group_id || null);
       setLoadingEvent(false);
     })();
     return () => { cancelled = true; };
@@ -9379,17 +9436,28 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
       status,
     };
 
+    // Editing an event with the group picker was silently a no-op for
+    // group_id/is_public -- the picker updates local state, but the
+    // edit branch's .update(sharedFields) never included either field,
+    // so attaching/changing/detaching a group (or its visibility) while
+    // editing never actually saved. Both branches now share this.
+    const eventFields = {
+      ...sharedFields,
+      group_id: effectiveGroupId || null,
+      is_public: effectiveGroupId ? isPublic : true,
+    };
+
     let event, error;
     if (isEditing) {
       // Editing never touches attendee_count/likes/saves/shares/trending --
       // those are live counters this screen has no business resetting.
       ({ data: event, error } = await supabase.from('events')
-        .update(sharedFields)
+        .update(eventFields)
         .eq('id', eventId)
         .select().single());
     } else {
       ({ data: event, error } = await supabase.from('events').insert({
-        ...sharedFields,
+        ...eventFields,
         user_id: currentUser.userId,
         org: currentUser.name || 'Organizer',
         org_initial: (currentUser.name || 'O')[0].toUpperCase(),
@@ -9398,8 +9466,6 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
         saves: 0,
         shares: 0,
         trending: false,
-        group_id: effectiveGroupId || null,
-        is_public: effectiveGroupId ? isPublic : true,
         // Set once at creation and never touched again (not part of
         // sharedFields, so later edits can't overwrite it) -- the "Reduced
         // Price" badge compares the current price against this baseline.
@@ -9596,6 +9662,23 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
               height:'155px', objectFit:'cover', borderRadius:18, zIndex:1 }}/>
           )}
         </div>
+        {/* Post to group -- only offered when this screen wasn't already
+            opened from inside a group (sourceGroupId set), and only among
+            groups this organizer actually admins/owns. Optional: leaving it
+            on "No group" keeps the event a personal one, same as before. */}
+        {!sourceGroupId && groupOptions.length > 0 && (
+          <div style={{ marginTop:20 }}>
+            <EventLabel>Post to Group (optional)</EventLabel>
+            <select value={pickedGroupId || ''} onChange={e => setPickedGroupId(e.target.value || null)}
+              style={{ width:'100%', height:46, border:`1.5px solid ${C.border}`, borderRadius:13,
+                       background:C.card, padding:'0 14px', fontSize:13, fontWeight:600, color:C.body,
+                       fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+              <option value="">No group (personal event)</option>
+              {groupOptions.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+          </div>
+        )}
+
         {/* Category */}
         <div style={{ marginTop:20 }}>
           <EventLabel>Category</EventLabel>
@@ -9943,7 +10026,7 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
                 {isPublic ? 'Visible on the home feed for everyone' : 'Only visible inside this group'}
               </div>
             </div>
-            <div onClick={() => setIsPublic(p => !p)}
+            <div onClick={() => { isPublicTouchedRef.current = true; setIsPublic(p => !p); }}
               style={{ width:44, height:26, borderRadius:999, cursor:'pointer', flexShrink:0,
                        background: isPublic ? C.primary : '#C5CBD6', position:'relative',
                        transition:'background 0.2s' }}>

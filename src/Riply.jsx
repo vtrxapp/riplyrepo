@@ -3842,10 +3842,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
         </div>
 
         {/* ── Stats ───────────────────────────────────────── */}
-        <div style={{ display:'flex', justifyContent:'center', gap:18, marginTop:16 }}>
+        <div style={{ display:'flex', justifyContent:'center', gap:18, marginTop:8 }}>
           {[{v: liveMembers ?? '—', l:'Members'},{v: livePosts2 ?? '—', l:'Posts'},{v: liveEvents2 !== null ? (liveEvents2 === 0 ? '—' : liveEvents2) : '—', l:'Events'}].map(s => (
             <div key={s.l} style={{ textAlign:'center' }}>
-              <div style={{ fontSize:18, fontWeight:600, color:C.ink }}>{s.v}</div>
+              <div style={{ fontSize:18, fontWeight:700, color:C.ink }}>{s.v}</div>
               <div style={{ fontSize:12, color:C.subtle, fontWeight:600, marginTop:1 }}>{s.l}</div>
             </div>
           ))}
@@ -3981,11 +3981,13 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
           const d = new Date(pinnedEvent.full_date || pinnedEvent.date || '');
           const day = !isNaN(d) ? String(d.getDate()) : '–';
           const mon = !isNaN(d) ? d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase() : '';
-          const when = pinnedEvent.time_range ? fmtRange(pinnedEvent.time_range)
-            : pinnedEvent.start_time ? fmt12(pinnedEvent.start_time) : '';
+          // Only the start time -- not the full range -- for the pinned card.
+          const when = pinnedEvent.start_time ? fmt12(pinnedEvent.start_time)
+            : pinnedEvent.time_range ? fmtRange(pinnedEvent.time_range).split(/[-–—]/)[0].trim() : '';
           const location = [pinnedEvent.location, pinnedEvent.venue]
             .map(value => typeof value === 'string' ? value.trim() : '')
             .find(Boolean) || '';
+          const grad = THEME[pinnedEvent.category || pinnedEvent.primary]?.grad || 'linear-gradient(135deg,#7C5CFF,#02B6FE)';
           return (
             <div onClick={() => navigate('event-details', { eventId: pinnedEvent.id })}
               style={{ margin:'16px 16px 0', display:'flex', alignItems:'center', gap:13,
@@ -3993,16 +3995,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                        padding:13, cursor:'pointer' }}>
               <div style={{ width:64, height:64, borderRadius:'50%', flexShrink:0, position:'relative',
                             overflow:'hidden', display:'flex', flexDirection:'column',
-                            alignItems:'center', justifyContent:'center',
-                            background: pinnedEvent.image_url ? '#000' : C.grad }}>
-                {pinnedEvent.image_url && (
-                  <img src={pinnedEvent.image_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.55 }}/>
-                )}
+                            alignItems:'center', justifyContent:'center', background:grad }}>
                 <span style={{ position:'relative', fontSize:20, fontWeight:800, color:'#fff', lineHeight:1, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{day}</span>
                 <span style={{ position:'relative', fontSize:10, fontWeight:700, color:'#fff', letterSpacing:0.5, marginTop:2, textShadow:'0 1px 4px rgba(0,0,0,0.4)' }}>{mon}</span>
               </div>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:15, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                <div style={{ fontSize:15, fontWeight:500, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                   {pinnedEvent.title}
                 </div>
                 {(location || when) && (
@@ -4012,18 +4010,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                     {when && <span style={{ color:C.primary, fontWeight:700 }}>{when}</span>}
                   </div>
                 )}
-                <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:6 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill="#FF3B6B" stroke="#FF3B6B" strokeWidth="1.8" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:11.5, fontWeight:700, color:C.ink }}>{fmt(pinnedEvent.likes || 0)}</span>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
-                      <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
-                    </svg>
-                    <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{fmt(pinnedEvent.attendee_count || 0)} going</span>
-                  </div>
+                <div style={{ fontSize:11.5, fontWeight:700, marginTop:6 }}>
+                  <span style={{ color:C.primary }}>{fmt(pinnedEvent.attendee_count || 0)} going</span>
+                  <span style={{ color:C.ink }}> · {fmt(pinnedEvent.likes || 0)} interested</span>
                 </div>
               </div>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
@@ -4101,12 +4090,12 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
         {(() => {
           const sl = g.social_links || {};
           const links = [
-            { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke="#E1306C" strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke="#E1306C" strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill="#E1306C"/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
+            { key:'instagram', icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="5" stroke={C.ink} strokeWidth="1.8"/><circle cx="12" cy="12" r="3.4" stroke={C.ink} strokeWidth="1.8"/><circle cx="16.5" cy="7.5" r="1" fill={C.ink}/></svg>, getUrl: v => `https://instagram.com/${v.replace(/^@/,'')}` },
             { key:'tiktok',    icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46V13a1 1 0 1 0 1 1V4h2c.3 1.8 1.7 3.2 3.5 3.5v2c-1.3-.1-2.5-.5-3.5-1.2" stroke={C.ink} strokeWidth="1.6" strokeLinejoin="round"/></svg>, getUrl: v => `https://tiktok.com/@${v.replace(/^@/,'')}` },
-            { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke={C.primary} strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke={C.primary} strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
-            { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M7 7.5C8.5 6.7 10 6.5 12 6.5s3.5.2 5 1c1.8 2.5 2.5 5.5 2.3 9-1.3 1-2.7 1.7-4 2l-.8-1.4M7 7.5c-1.8 2.5-2.5 5.5-2.3 9 1.3 1 2.7 1.7 4 2l.8-1.4M9 14c2 1 4 1 6 0" stroke="#5865F2" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
+            { key:'website',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke={C.ink} strokeWidth="1.7"/><path d="M3.5 12h17M12 3.5c2.5 2.4 2.5 14.6 0 17M12 3.5c-2.5 2.4-2.5 14.6 0 17" stroke={C.ink} strokeWidth="1.7"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://${v}` },
+            { key:'discord',   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M7 7.5C8.5 6.7 10 6.5 12 6.5s3.5.2 5 1c1.8 2.5 2.5 5.5 2.3 9-1.3 1-2.7 1.7-4 2l-.8-1.4M7 7.5c-1.8 2.5-2.5 5.5-2.3 9 1.3 1 2.7 1.7 4 2l.8-1.4M9 14c2 1 4 1 6 0" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://discord.gg/${v}` },
             { key:'mail',      icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" stroke={C.ink} strokeWidth="1.7"/><path d="m4 7 8 6 8-6" stroke={C.ink} strokeWidth="1.7" strokeLinejoin="round"/></svg>, getUrl: v => `mailto:${v}` },
-            { key:'reddit',    icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13.5" r="7.5" stroke="#FF4500" strokeWidth="1.7"/><circle cx="8.7" cy="13.5" r="1.2" fill="#FF4500"/><circle cx="15.3" cy="13.5" r="1.2" fill="#FF4500"/><path d="M8.5 16.5c1 .8 2.2 1.2 3.5 1.2s2.5-.4 3.5-1.2" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 6v2M12 6a1.5 1.5 0 1 1 3 0" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round"/><circle cx="17.5" cy="9" r="1.2" stroke="#FF4500" strokeWidth="1.3"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://reddit.com/r/${v.replace(/^\/?r\//,'')}` },
+            { key:'reddit',    icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13.5" r="7.5" stroke={C.ink} strokeWidth="1.7"/><circle cx="8.7" cy="13.5" r="1.2" fill={C.ink}/><circle cx="15.3" cy="13.5" r="1.2" fill={C.ink}/><path d="M8.5 16.5c1 .8 2.2 1.2 3.5 1.2s2.5-.4 3.5-1.2" stroke={C.ink} strokeWidth="1.5" strokeLinecap="round"/><path d="M12 6v2M12 6a1.5 1.5 0 1 1 3 0" stroke={C.ink} strokeWidth="1.5" strokeLinecap="round"/><circle cx="17.5" cy="9" r="1.2" stroke={C.ink} strokeWidth="1.3"/></svg>, getUrl: v => v.startsWith('http') ? v : `https://reddit.com/r/${v.replace(/^\/?r\//,'')}` },
           ].filter(l => sl[l.key]);
           if (links.length === 0) return null;
           return (
@@ -4202,10 +4191,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                                       background:grad, position:'relative', overflow:'hidden',
                                       display:'flex', flexDirection:'column', alignItems:'center',
                                       justifyContent:'center', color:'#fff' }}>
-                          {ev.image_url
-                            ? <img src={ev.image_url} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
-                            : <div style={{ position:'absolute', inset:0, background:
-                                'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>}
+                          <div style={{ position:'absolute', inset:0, background:
+                              'repeating-linear-gradient(135deg,rgba(255,255,255,0.14) 0,rgba(255,255,255,0.14) 2px,transparent 2px,transparent 9px)'}}/>
                           <span style={{ position:'relative', fontSize:18, fontWeight:800, lineHeight:1 }}>{day}</span>
                           <span style={{ position:'relative', fontSize:9.5, fontWeight:700, letterSpacing:0.5, marginTop:2 }}>{mon}</span>
                         </div>
@@ -4231,18 +4218,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                             <div style={{ fontSize:11.5, color:C.subtle, marginTop:2, whiteSpace:'nowrap',
                                           overflow:'hidden', textOverflow:'ellipsis' }}>{ev.venue || ev.location}</div>
                           )}
-                          <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:7 }}>
-                            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                              <svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill="#FF3B6B" stroke="#FF3B6B" strokeWidth="1.8" strokeLinejoin="round"/></svg>
-                              <span style={{ fontSize:11.5, fontWeight:700, color:C.ink }}>{fmt(ev.likes || 0)}</span>
-                            </div>
-                            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                <circle cx="9" cy="8.5" r="3" stroke={C.primary} strokeWidth="1.8"/>
-                                <path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.primary} strokeWidth="1.8" strokeLinecap="round"/>
-                              </svg>
-                              <span style={{ fontSize:11.5, fontWeight:700, color:C.primary }}>{fmt(ev.attendee_count || 0)} going</span>
-                            </div>
+                          <div style={{ fontSize:11.5, fontWeight:700, marginTop:7 }}>
+                            <span style={{ color:C.primary }}>{fmt(ev.attendee_count || 0)} going</span>
+                            <span style={{ color:C.ink }}> · {fmt(ev.likes || 0)} interested</span>
                           </div>
                         </div>
                         {isGroupAdmin && (

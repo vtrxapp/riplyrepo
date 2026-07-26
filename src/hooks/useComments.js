@@ -72,7 +72,15 @@ export function useComments(postId) {
         if (error) console.error('[useComments] fetch error:', error.message, error.code)
         const withLiveProfiles = await attachLiveProfiles(data || [])
         if (ignore) return
-        setComments(withLiveProfiles.map(normalize))
+        const fetched = withLiveProfiles.map(normalize)
+        // Preserve any comment added via realtime/optimistic update while this
+        // fetch was in flight -- don't let a late-resolving initial load wipe
+        // out a newer local entry that isn't in `fetched` yet.
+        setComments(prev => {
+          const fetchedIds = new Set(fetched.map(c => c.id))
+          const extra = prev.filter(c => !fetchedIds.has(c.id))
+          return [...fetched, ...extra]
+        })
         setLoading(false)
       })
 

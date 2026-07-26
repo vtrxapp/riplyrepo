@@ -2850,7 +2850,18 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
     // regardless of what's typed, and nesting the reply directly under its
     // parent already makes the relationship obvious without repeating the
     // name in the comment body.
-    setReplyTo({ id: c.id, author: c.author, avatar: c.aAvatar, color: c.aColor, initial: c.aInitial });
+    // Same isMeComment override CommentRow uses below to render this same
+    // comment -- without it, replying to your own comment after a profile
+    // change would show the "Replying to" indicator with a stale avatar/
+    // color that disagrees with what the comment itself displays.
+    const isMeComment = !!(currentUser?.userId && c.user_id === currentUser.userId);
+    setReplyTo({
+      id: c.id,
+      author: c.author,
+      avatar: isMeComment ? currentUser.avatarUrl : c.aAvatar,
+      color: isMeComment ? (currentUser.avatarColor || c.aColor) : c.aColor,
+      initial: isMeComment ? (currentUser.name?.[0]?.toUpperCase() || c.aInitial) : c.aInitial,
+    });
     setDraft('');
     setCOpen(true);
     setTimeout(() => inputRef.current?.focus(), 100);

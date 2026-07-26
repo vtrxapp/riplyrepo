@@ -3033,7 +3033,7 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
           bug that fails to clip a child larger than the container, which
           silently undid an earlier attempt at this same fix. */}
       {Array.isArray(p.images) && p.images.length > 1 ? (
-        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:11 }}>
+        <div style={{ display:'flex', flexWrap:'wrap', alignItems:'flex-start', gap:6, marginTop:11 }}>
           {p.images.map((url, i) => (
             <div key={i} style={{ flex:'1 1 calc(50% - 3px)', borderRadius:14, overflow:'hidden', maxHeight:MAX_POST_IMAGE_HEIGHT }}>
               <img src={url} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:14 }} />

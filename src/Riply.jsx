@@ -3534,7 +3534,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
 
   const [joinState,  setJoinState]  = useState(staticG.state || "join");
   const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
-  const GROUP_TABS = ['posts', 'events', 'media', 'rules'];
+  const GROUP_TABS = ['posts', 'events', 'spaces', 'media', 'rules'];
   const [activeTab,  setActiveTab]  = useState('posts');
   // Continuous scroll-driven collapse — the header scrubs in lockstep with
   // scrollTop instead of snapping at a threshold, so content never slides
@@ -8598,7 +8598,7 @@ function CreateGroupScreen({ goBack, navigate, navigateReplace, showToast, curre
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CREATE STUDENT SPACE
 // ─────────────────────────────────────────────────────────────
-function CreateSpaceScreen({ goBack, navigate, navigateReplace, showToast, currentUser, groupId: sourceGroupId }) {
+function CreateSpaceScreen({ goBack, navigateReplace, showToast, currentUser, groupId: sourceGroupId }) {
   // Guards the post-submit navigateReplace call against a stale async
   // completion if the user has already left this screen (header back
   // button / edge-swipe) by the time the awaited space insert resolves.
@@ -14105,7 +14105,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'saved-events': return <SavedEventsScreen goBack={goBack} navigate={navigate} saved={saved} spaceSaved={spaceSaved} />;
       case 'create-event': return <CreateEventScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} eventId={navParams.eventId} />;
       case 'my-tickets':   return <MyTicketsScreen goBack={goBack} navigate={navigate} showToast={showToast} setScreen={setScreen} />;
-      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
+      case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;

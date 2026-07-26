@@ -3022,21 +3022,21 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         );
       })()}
 
-      {/* Image(s) — each photo keeps its own aspect ratio (capped by
-          maxHeight only for an extreme portrait) instead of being
-          force-cropped into a fixed-height grid/row cell, so nothing ever
-          gets cut off scrolling through a post's photos; a multi-image post
-          can have one taller photo and one shorter one, exactly as
-          uploaded. Centering is done via plain block layout + margin:'0
-          auto' rather than a flex container -- overflow:hidden +
-          border-radius on a display:flex container is a known WebKit/iOS
+      {/* Image(s) — matches X/Twitter's own multi-photo layout: photos sit
+          side by side sharing the row's width, but each one's height is
+          its own (capped only for an extreme portrait), so nothing gets
+          cropped -- a taller photo next to a shorter one just makes that
+          one column taller, exactly like a real X post with mixed-ratio
+          photos. Each photo's own wrapper (not the flex row itself) carries
+          overflow:hidden + borderRadius -- putting overflow:hidden and
+          borderRadius directly on a flex *container* is a known WebKit/iOS
           bug that fails to clip a child larger than the container, which
           silently undid an earlier attempt at this same fix. */}
       {Array.isArray(p.images) && p.images.length > 1 ? (
-        <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:11 }}>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:11 }}>
           {p.images.map((url, i) => (
-            <div key={i} style={{ borderRadius:14, overflow:'hidden', maxHeight:MAX_POST_IMAGE_HEIGHT }}>
-              <img src={url} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:14 }} />
+            <div key={i} style={{ flex:'1 1 calc(50% - 3px)', borderRadius:14, overflow:'hidden', maxHeight:MAX_POST_IMAGE_HEIGHT }}>
+              <img src={url} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', objectFit:'contain', borderRadius:14 }} />
             </div>
           ))}
         </div>

@@ -3036,7 +3036,7 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:11 }}>
           {p.images.map((url, i) => (
             <div key={i} style={{ flex:'1 1 calc(50% - 3px)', borderRadius:14, overflow:'hidden', maxHeight:MAX_POST_IMAGE_HEIGHT }}>
-              <img src={url} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', objectFit:'contain', borderRadius:14 }} />
+              <img src={url} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:14 }} />
             </div>
           ))}
         </div>

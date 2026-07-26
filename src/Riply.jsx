@@ -175,6 +175,10 @@ const C = {
 // of sync with each other.
 const FORM_SCROLL_BOTTOM_PADDING = 220;
 
+// Cap for a single post image's rendered height (PostCard) -- shared by the
+// container and the img itself so the two can't drift out of sync.
+const MAX_POST_IMAGE_HEIGHT = 420;
+
 const THEME = {
   social:   { grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', label:'Social',   org:'#FF5A8A' },
   career:   { grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)', label:'Career',   org:'#2F6BFF' },
@@ -3052,8 +3056,20 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
           </div>
         )
       ) : (p.image_url || p.images?.[0]) && (
-        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:420 }}>
-          <img src={p.image_url || p.images[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:420, display:'block', objectFit:'contain' }} />
+        // width:'100%' is kept (not maxWidth) so a low-res image still
+        // stretches to fill the card exactly as before -- only the missing
+        // centering was the actual bug. Per spec, a replaced element's own
+        // max-height still overrides that 100% width and recomputes it down
+        // via the image's ratio once an extreme-portrait photo (tall,
+        // narrow) actually hits the cap, so it previously rendered visibly
+        // narrower than the card (unwanted gutters) with no centering to
+        // make that look intentional. The container's borderRadius stops
+        // clipping once the image no longer reaches its edges, so the
+        // radius is repeated directly on the img to keep the corners
+        // rounded either way.
+        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:MAX_POST_IMAGE_HEIGHT,
+                      display:'flex', justifyContent:'center' }}>
+          <img src={p.image_url || p.images?.[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', objectFit:'contain', borderRadius:14 }} />
         </div>
       )}
 

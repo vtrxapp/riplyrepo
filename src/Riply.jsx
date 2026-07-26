@@ -179,6 +179,12 @@ const FORM_SCROLL_BOTTOM_PADDING = 220;
 // container and the img itself so the two can't drift out of sync.
 const MAX_POST_IMAGE_HEIGHT = 420;
 
+// Fixed row height for a multi-image post's horizontal-scroll gallery
+// (PostCard) -- each photo's width then follows from its own aspect ratio
+// at this height, so a wide photo just takes more horizontal space than a
+// narrow one instead of being cropped to fit a shared column width.
+const GALLERY_ROW_HEIGHT = 260;
+
 const THEME = {
   social:   { grad:'linear-gradient(135deg,#FF5A8A,#FF8A3D)', label:'Social',   org:'#FF5A8A' },
   career:   { grad:'linear-gradient(135deg,#2F6BFF,#6C4DF2)', label:'Career',   org:'#2F6BFF' },
@@ -2923,7 +2929,7 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         })()}
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <span style={{ fontSize:14, fontWeight:400, color:'#14181B' }}>
+            <span style={{ fontSize:14, fontWeight:600, color:'#14181B' }}>
               {isMe ? (currentUser.name || p.author) : p.author}
             </span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -2954,7 +2960,7 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
       </div>
 
       {/* Post text */}
-      <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:12, lineHeight:1.5 }}><Linkify text={p.text} /></div>
+      <div style={{ fontSize:14, fontWeight:400, color:C.ink, marginTop:12, lineHeight:1.5 }}><Linkify text={p.text} /></div>
 
       {/* Poll */}
       {pollOptions && pollOptions.length >= 2 && (() => {
@@ -3022,21 +3028,21 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         );
       })()}
 
-      {/* Image(s) — matches X/Twitter's own multi-photo layout: photos sit
-          side by side sharing the row's width, but each one's height is
-          its own (capped only for an extreme portrait), so nothing gets
-          cropped -- a taller photo next to a shorter one just makes that
-          one column taller, exactly like a real X post with mixed-ratio
-          photos. Each photo's own wrapper (not the flex row itself) carries
-          overflow:hidden + borderRadius -- putting overflow:hidden and
-          borderRadius directly on a flex *container* is a known WebKit/iOS
-          bug that fails to clip a child larger than the container, which
-          silently undid an earlier attempt at this same fix. */}
+      {/* Image(s) — a multi-photo post scrolls horizontally in one row, each
+          photo's own width following its own aspect ratio at a shared row
+          height, so nothing gets cropped and a wide photo just takes more
+          horizontal space than a narrow one (rather than being squeezed
+          into an equal-width column like a fixed grid would). Each photo's
+          own wrapper (not the flex row itself) carries overflow:hidden +
+          borderRadius -- putting overflow:hidden and borderRadius directly
+          on a flex *container* is a known WebKit/iOS bug that fails to clip
+          a child larger than the container, which silently undid an
+          earlier attempt at this same fix. */}
       {Array.isArray(p.images) && p.images.length > 1 ? (
-        <div style={{ display:'flex', flexWrap:'wrap', alignItems:'flex-start', gap:6, marginTop:11 }}>
+        <div data-hscroll="true" style={{ display:'flex', overflowX:'auto', gap:6, marginTop:11, paddingBottom:2 }}>
           {p.images.map((url, i) => (
-            <div key={i} style={{ flex:'1 1 calc(50% - 3px)', borderRadius:14, overflow:'hidden', maxHeight:MAX_POST_IMAGE_HEIGHT }}>
-              <img src={url} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:14 }} />
+            <div key={i} style={{ flexShrink:0, height:GALLERY_ROW_HEIGHT, borderRadius:14, overflow:'hidden' }}>
+              <img src={url} alt="" style={{ height:'100%', width:'auto', display:'block', objectFit:'contain', borderRadius:14 }} />
             </div>
           ))}
         </div>

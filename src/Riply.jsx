@@ -3022,54 +3022,27 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         );
       })()}
 
-      {/* Image(s) — an X/Twitter-style adaptive gallery. A single photo keeps
-          its own aspect ratio (capped by maxHeight for an extreme portrait)
-          instead of being force-cropped into a fixed box, so nothing gets
-          cut off; 2-4 photos lay out in a grid shaped to the photo count
-          (matching X's 2-up / big-left-plus-two-stacked / 2x2 patterns),
-          each cell still using objectFit:cover since a uniform grid --
-          unlike the single-photo case -- inherently needs equal-size cells.
-          5+ photos fall back to the pre-existing horizontal scroll. */}
+      {/* Image(s) — each photo keeps its own aspect ratio (capped by
+          maxHeight only for an extreme portrait) instead of being
+          force-cropped into a fixed-height grid/row cell, so nothing ever
+          gets cut off scrolling through a post's photos; a multi-image post
+          can have one taller photo and one shorter one, exactly as
+          uploaded. Centering is done via plain block layout + margin:'0
+          auto' rather than a flex container -- overflow:hidden +
+          border-radius on a display:flex container is a known WebKit/iOS
+          bug that fails to clip a child larger than the container, which
+          silently undid an earlier attempt at this same fix. */}
       {Array.isArray(p.images) && p.images.length > 1 ? (
-        p.images.length <= 4 ? (
-          <div style={{
-            display:'grid', gap:4, marginTop:11, borderRadius:14, overflow:'hidden', height:280,
-            gridTemplateColumns: p.images.length === 3 ? '1.2fr 1fr' : '1fr 1fr',
-            gridTemplateRows: p.images.length === 2 ? '1fr' : '1fr 1fr',
-          }}>
-            {p.images.slice(0, 4).map((url, i) => (
-              <div key={i} style={{
-                overflow:'hidden',
-                ...(p.images.length === 3 && i === 0 ? { gridColumn:'1', gridRow:'1 / 3' } : {}),
-              }}>
-                <img src={url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div data-hscroll="true" style={{ display:'flex', gap:8, overflowX:'auto', marginTop:11, paddingBottom:2 }}>
-            {p.images.map((url, i) => (
-              <div key={i} style={{ borderRadius:14, overflow:'hidden', flexShrink:0, width:220, height:220 }}>
-                <img src={url} alt="" style={{ width:'100%', height:'100%', display:'block', objectFit:'cover' }} />
-              </div>
-            ))}
-          </div>
-        )
+        <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:11 }}>
+          {p.images.map((url, i) => (
+            <div key={i} style={{ borderRadius:14, overflow:'hidden', maxHeight:MAX_POST_IMAGE_HEIGHT }}>
+              <img src={url} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:14 }} />
+            </div>
+          ))}
+        </div>
       ) : (p.image_url || p.images?.[0]) && (
-        // width:'100%' is kept (not maxWidth) so a low-res image still
-        // stretches to fill the card exactly as before -- only the missing
-        // centering was the actual bug. Per spec, a replaced element's own
-        // max-height still overrides that 100% width and recomputes it down
-        // via the image's ratio once an extreme-portrait photo (tall,
-        // narrow) actually hits the cap, so it previously rendered visibly
-        // narrower than the card (unwanted gutters) with no centering to
-        // make that look intentional. The container's borderRadius stops
-        // clipping once the image no longer reaches its edges, so the
-        // radius is repeated directly on the img to keep the corners
-        // rounded either way.
-        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:MAX_POST_IMAGE_HEIGHT,
-                      display:'flex', justifyContent:'center' }}>
-          <img src={p.image_url || p.images?.[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', objectFit:'contain', borderRadius:14 }} />
+        <div style={{ borderRadius:14, overflow:'hidden', marginTop:11, maxHeight:MAX_POST_IMAGE_HEIGHT }}>
+          <img src={p.image_url || p.images?.[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:14 }} />
         </div>
       )}
 

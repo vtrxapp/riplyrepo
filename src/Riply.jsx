@@ -12735,7 +12735,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
 // ─────────────────────────────────────────────────────────────
 function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
   const [ev, setEv] = useState(null);
-  const [tickets, setTickets] = useState([]);
+  const [ticketTotals, setTicketTotals] = useState({ revenue: 0, total_qty: 0, checked_in_qty: 0 });
   const [counts, setCounts] = useState({ likes: 0, shares: 0, saves: 0 });
   const [trendingRank, setTrendingRank] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12743,6 +12743,7 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
   // Which Mon-Sun week the chart shows -- 0 is the current week, -1 last
   // week, etc. Capped at 0 since there's no data past "now" to show.
   const [weekOffset, setWeekOffset] = useState(0);
+  const [dayBuckets, setDayBuckets] = useState([0, 0, 0, 0, 0, 0, 0]);
   const genRef = useRef(0);
 
   useEffect(() => {
@@ -12763,33 +12764,40 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
           return;
         }
         return Promise.all([
-          supabase.from('tickets').select('amount_paid,qty,checked_in_at,purchased_at').eq('event_id', eventId),
+          // Aggregated server-side (get_event_ticket_totals) rather than
+          // fetching every `tickets` row, which would silently truncate at
+          // Postgrest's default 1000-row cap for any event popular enough
+          // to exceed it.
+          supabase.rpc('get_event_ticket_totals', { event_id_arg: eventId }),
           supabase.from('event_likes').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
           supabase.from('event_shares').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
           supabase.from('event_saves').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
           // This organizer's other published events, ranked by views --
           // gives a real "how does this one compare" signal for the
           // Trending stat, instead of a fabricated trending score (there's
-          // no actual trending concept anywhere else in the app).
-          supabase.from('events').select('id,views_count').eq('user_id', eventRow.user_id)
-            .or('status.is.null,status.eq.published'),
-        ]).then(([ticketsRes, likesRes, sharesRes, savesRes, ownEventsRes]) => {
+          // no actual trending concept anywhere else in the app). A count
+          // query (rather than fetching every row to sort on the client)
+          // keeps this correct past the 1000-row cap too.
+          supabase.from('events').select('*', { count: 'exact', head: true }).eq('user_id', eventRow.user_id)
+            .or('status.is.null,status.eq.published').gt('views_count', eventRow.views_count || 0),
+        ]).then(([totalsRes, likesRes, sharesRes, savesRes, higherRankedRes]) => {
           if (gen !== genRef.current) return;
           // The event itself loaded fine, so still render with whatever
           // partial data came back rather than blanking the whole screen --
           // but log each failure so a backend/RLS issue on one of these
           // doesn't silently read as "counts are just zero".
-          if (ticketsRes.error)    console.error('[event-analytics] failed to load tickets:', ticketsRes.error);
-          if (likesRes.error)      console.error('[event-analytics] failed to load likes:', likesRes.error);
-          if (sharesRes.error)     console.error('[event-analytics] failed to load shares:', sharesRes.error);
-          if (savesRes.error)      console.error('[event-analytics] failed to load saves:', savesRes.error);
-          if (ownEventsRes.error)  console.error('[event-analytics] failed to load organizer events for ranking:', ownEventsRes.error);
-          const ranked = [...(ownEventsRes.data || [])].sort((a, b) => (b.views_count || 0) - (a.views_count || 0));
-          const rank = ranked.findIndex(e => e.id === eventId) + 1; // 0 (falsy) if not found
+          if (totalsRes.error)       console.error('[event-analytics] failed to load ticket totals:', totalsRes.error);
+          if (likesRes.error)        console.error('[event-analytics] failed to load likes:', likesRes.error);
+          if (sharesRes.error)       console.error('[event-analytics] failed to load shares:', sharesRes.error);
+          if (savesRes.error)        console.error('[event-analytics] failed to load saves:', savesRes.error);
+          if (higherRankedRes.error) console.error('[event-analytics] failed to load organizer rank:', higherRankedRes.error);
+          const totalsRow = totalsRes.data?.[0];
           setEv(eventRow);
-          setTickets(ticketsRes.data || []);
+          setTicketTotals(totalsRow
+            ? { revenue: totalsRow.revenue || 0, total_qty: totalsRow.total_qty || 0, checked_in_qty: totalsRow.checked_in_qty || 0 }
+            : { revenue: 0, total_qty: 0, checked_in_qty: 0 });
           setCounts({ likes: likesRes.count || 0, shares: sharesRes.count || 0, saves: savesRes.count || 0 });
-          setTrendingRank(rank || null);
+          setTrendingRank(higherRankedRes.error ? null : (higherRankedRes.count || 0) + 1);
           setLoading(false);
         });
       }).catch((err) => {
@@ -12802,6 +12810,32 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
         setLoading(false);
       });
   }, [eventId]);
+
+  // Weekly view counts, for whichever Mon-Sun calendar week the chart
+  // navigator is on. Aggregated server-side (get_event_view_week_buckets)
+  // so this stays correct regardless of how many views an event has
+  // accumulated, rather than fetching raw event_view_events rows and
+  // bucketing them on the client.
+  useEffect(() => {
+    if (!eventId) return;
+    const gen = ++genRef.current;
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const mondayOffset = (todayStart.getDay() + 6) % 7; // 0=Mon .. 6=Sun
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - mondayOffset + weekOffset * 7);
+    supabase.rpc('get_event_view_week_buckets', { event_id_arg: eventId, week_start_arg: weekStart.toISOString() })
+      .then(({ data, error }) => {
+        if (gen !== genRef.current) return;
+        if (error) {
+          console.error('[event-analytics] failed to load weekly view buckets:', error);
+          setDayBuckets([0, 0, 0, 0, 0, 0, 0]);
+          return;
+        }
+        const buckets = [0, 0, 0, 0, 0, 0, 0];
+        (data || []).forEach(row => { buckets[row.day_index] = Number(row.view_count) || 0; });
+        setDayBuckets(buckets);
+      });
+  }, [eventId, weekOffset]);
 
   if (loading) return <div style={{ height:'100%', background:C.pageBg }} />;
   if (notFound) {
@@ -12836,36 +12870,23 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
     );
   }
 
-  const revenue     = tickets.reduce((s, t) => s + (t.amount_paid || 0), 0);
+  const revenue     = ticketTotals.revenue;
   const ticketsSold = ev.attendee_count || 0;
   // Weighted by qty, same as ticketsSold (attendee_count) -- a plain row
   // count would understate both sides equally for single-qty purchases but
   // silently misrepresent the rate the moment a multi-qty order is involved,
   // since checked_in_at is only ever set once per row regardless of qty.
-  const totalQty    = tickets.reduce((s, t) => s + (t.qty || 1), 0);
-  const checkedInQty = tickets.filter(t => t.checked_in_at).reduce((s, t) => s + (t.qty || 1), 0);
+  const totalQty     = ticketTotals.total_qty;
+  const checkedInQty = ticketTotals.checked_in_qty;
   const checkInRate = totalQty > 0 ? Math.round((checkedInQty / totalQty) * 100) : null;
 
-  // Ticket sales per weekday, for whichever Mon-Sun calendar week the chart
-  // navigator is on (weekOffset 0 = this week). Anchored to that week's
-  // Monday (not a rolling "last 168 hours" window) so each bucket represents
-  // exactly one calendar day -- a rolling window would double up whatever
-  // weekday "now" falls on (e.g. on a Wednesday, both last Wednesday's and
-  // today's sales would land in the same "Wed" bar, while every other bar
-  // only ever covers a single day).
+  // weekStart/weekEndExclusive still computed here (not just in the fetch
+  // effect above) since weekRangeLabel below needs them for display.
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const mondayOffset = (todayStart.getDay() + 6) % 7; // 0=Mon .. 6=Sun
   const weekStart = new Date(todayStart);
   weekStart.setDate(weekStart.getDate() - mondayOffset + weekOffset * 7);
   const weekEndExclusive = new Date(weekStart); weekEndExclusive.setDate(weekEndExclusive.getDate() + 7);
-  const dayBuckets = [0, 0, 0, 0, 0, 0, 0];
-  tickets.forEach(t => {
-    if (!t.purchased_at) return;
-    const d = new Date(t.purchased_at);
-    if (isNaN(d) || d < weekStart || d >= weekEndExclusive) return;
-    const day = d.getDay(); // 0=Sun
-    dayBuckets[day === 0 ? 6 : day - 1] += (t.qty || 1);
-  });
   const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const maxBar = Math.max(...dayBuckets, 1);
 
@@ -12881,7 +12902,7 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
   const STATS = [
     { value: fmtCount(ev.views_count || 0), label:'Event Views', iconBg:'#FFF0F4',
       icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" stroke="#FF5A8A" strokeWidth="2" strokeLinejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="#FF5A8A" strokeWidth="2"/></svg> },
-    { value: fmtCount(ticketsSold), label:'Ticket Sold', iconBg:'#E9F6FF',
+    { value: fmtCount(ticketsSold), label:'Tickets Sold', iconBg:'#E9F6FF',
       icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 6 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-6Z" stroke={C.primary} strokeWidth="2" strokeLinejoin="round"/><path d="M10 7v10" stroke={C.primary} strokeWidth="2" strokeDasharray="2.4 2.4" strokeLinecap="round"/></svg> },
     // Real signal (this event's rank by views among the organizer's own
     // published events), not a fabricated trending score -- there's no
@@ -12947,7 +12968,7 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
         {/* Weekly ticket sales trend */}
         <div style={{ background:'#fff', borderRadius:20,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:18 }}>
-          <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:4 }}>Weekly Ticket Sales</div>
+          <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:4 }}>Weekly Event Views</div>
           <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between',
                         gap:6, height:128, padding:'14px 2px 0' }}>
             {dayBuckets.map((v, i) => (

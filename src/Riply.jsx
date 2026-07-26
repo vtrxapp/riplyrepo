@@ -4337,6 +4337,19 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   const { event: dbEvent, loading: eventLoading, error: eventError } = useEvent(eventId);
   const [expanded, setExpanded] = useState(false);
 
+  // Real view count for the organizer's Event Analytics screen -- fire once
+  // per open, not per render. Fire-and-forget: a failed/slow increment must
+  // never block or affect what the viewer sees.
+  useEffect(() => {
+    if (!eventId) return;
+    // PostgrestBuilder only implements `.then()` (PromiseLike), not `.catch()`
+    // -- chaining `.catch()` directly here (with no preceding `.then()`)
+    // would throw "catch is not a function" at runtime instead of silently
+    // logging the failure.
+    supabase.rpc('increment_event_views', { event_id_arg: eventId })
+      .then(({ error }) => { if (error) console.debug('[event-view] increment_event_views failed', error); });
+  }, [eventId]);
+
   // Real "You may also like": other published events in the same category,
   // not the static mock EVENTS array (which always surfaced whatever mock
   // event happened to share a tag, regardless of what's actually posted).
@@ -12602,7 +12615,8 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
             ? fmtDate(e.full_date || e.date) + (e.start_time ? ` · ${e.start_time}` : '')
             : 'Not scheduled';
           return (
-            <div key={e.id} style={{ background:'#fff', borderRadius:20,
+            <div key={e.id} onClick={() => navigate('event-analytics', { eventId: e.id })}
+                 style={{ background:'#fff', borderRadius:20, cursor:'pointer',
                                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)' }}>
               {/* Top */}
               <div style={{ display:'flex', gap:13, padding:14 }}>
@@ -12669,7 +12683,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
               {/* Action row */}
               <div style={{ display:'flex', gap:9, padding:'0 14px 14px' }}>
                 {tab === 'live' && (
-                  <button onClick={() => navigate('check-in', {eventId: e.id})} style={{
+                  <button onClick={(evt) => { evt.stopPropagation(); navigate('check-in', {eventId: e.id}); }} style={{
                     flex:1, height:46, border:'none', borderRadius:12, padding:'0 14px',
                     background:'#E9F6FF', color:C.primary,
                     fontSize:12.5, fontWeight:800, cursor:'pointer',
@@ -12683,7 +12697,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                     Check-in
                   </button>
                 )}
-                <button onClick={() => navigate('create-event', { eventId: e.id })} style={{
+                <button onClick={(evt) => { evt.stopPropagation(); navigate('create-event', { eventId: e.id }); }} style={{
                   flex:1, height:46, border:'none', borderRadius:12, padding:'0 14px',
                   background:'#F1F3F7', color:C.muted,
                   fontSize:12.5, fontWeight:800, cursor:'pointer',
@@ -12696,7 +12710,7 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
                   </svg>
                   Edit
                 </button>
-                <button onClick={() => handleDelete(e)} style={{
+                <button onClick={(evt) => { evt.stopPropagation(); handleDelete(e); }} style={{
                   width:46, height:46, border:'none', borderRadius:12, flexShrink:0,
                   background:'#FFF1ED', display:'flex', alignItems:'center',
                   justifyContent:'center', cursor:'pointer',
@@ -12711,6 +12725,226 @@ function EventManagerScreen({ goBack, navigate, showToast, currentUser }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// SCREEN: EVENT ANALYTICS
+// ─────────────────────────────────────────────────────────────
+function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
+  const [ev, setEv] = useState(null);
+  const [tickets, setTickets] = useState([]);
+  const [counts, setCounts] = useState({ likes: 0, shares: 0, saves: 0 });
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const genRef = useRef(0);
+
+  useEffect(() => {
+    if (!eventId) return;
+    const gen = ++genRef.current;
+    setLoading(true);
+    setNotFound(false);
+    Promise.all([
+      supabase.from('events').select('id,user_id,title,date,full_date,start_time,views_count,attendee_count').eq('id', eventId).single(),
+      supabase.from('tickets').select('amount_paid,qty,checked_in_at,purchased_at').eq('event_id', eventId),
+      supabase.from('event_likes').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+      supabase.from('event_shares').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+      supabase.from('event_saves').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+    ]).then(([evRes, ticketsRes, likesRes, sharesRes, savesRes]) => {
+      if (gen !== genRef.current) return;
+      if (evRes.error || !evRes.data) {
+        if (evRes.error) console.error('[event-analytics] failed to load event:', evRes.error);
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      // The event itself loaded fine, so still render with whatever partial
+      // data came back rather than blanking the whole screen -- but log each
+      // failure so a backend/RLS issue on one of these doesn't silently read
+      // as "counts are just zero".
+      if (ticketsRes.error) console.error('[event-analytics] failed to load tickets:', ticketsRes.error);
+      if (likesRes.error)   console.error('[event-analytics] failed to load likes:', likesRes.error);
+      if (sharesRes.error)  console.error('[event-analytics] failed to load shares:', sharesRes.error);
+      if (savesRes.error)   console.error('[event-analytics] failed to load saves:', savesRes.error);
+      setEv(evRes.data);
+      setTickets(ticketsRes.data || []);
+      setCounts({ likes: likesRes.count || 0, shares: sharesRes.count || 0, saves: savesRes.count || 0 });
+      setLoading(false);
+    }).catch((err) => {
+      // Belt-and-suspenders for a rejected (not just error-resolved) promise
+      // in the batch, e.g. a network drop -- without this the UI would be
+      // stuck on the loading skeleton forever instead of showing a retry.
+      if (gen !== genRef.current) return;
+      console.error('[event-analytics] unexpected error loading analytics:', err);
+      setNotFound(true);
+      setLoading(false);
+    });
+  }, [eventId]);
+
+  if (loading) return <div style={{ height:'100%', background:C.pageBg }} />;
+  if (notFound) {
+    return (
+      <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', gap:12, padding:24, textAlign:'center',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Couldn't load analytics</div>
+        <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
+          borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
+      </div>
+    );
+  }
+  // Belt-and-suspenders alongside RLS (tickets_select already scopes ticket
+  // rows to the event's own organizer, so a non-owner sees $0 revenue/no
+  // check-in data regardless) -- this stops a non-owner from even seeing the
+  // screen shell for someone else's event, same gate GroupAnalyticsScreen
+  // uses for admin-only access.
+  // Fail closed: if currentUser hasn't resolved yet (or ev has no owner on
+  // record), deny rather than let the gate silently no-op and render the
+  // shell for a viewer we can't actually confirm is the organizer.
+  if (!currentUser?.userId || ev.user_id !== currentUser.userId) {
+    return (
+      <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', gap:12, padding:24, textAlign:'center',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+        <div style={{ fontSize:16, fontWeight:800, color:C.ink }}>Organizers only</div>
+        <div style={{ fontSize:13, color:C.subtle }}>You need to be this event's organizer to view its analytics.</div>
+        <button onClick={goBack} style={{ marginTop:8, height:44, padding:'0 22px', border:'none',
+          borderRadius:999, background:C.ink, color:'#fff', fontWeight:700, cursor:'pointer' }}>Go back</button>
+      </div>
+    );
+  }
+
+  const revenue     = tickets.reduce((s, t) => s + (t.amount_paid || 0), 0);
+  const ticketsSold = ev.attendee_count || 0;
+  // Weighted by qty, same as ticketsSold (attendee_count) -- a plain row
+  // count would understate both sides equally for single-qty purchases but
+  // silently misrepresent the rate the moment a multi-qty order is involved,
+  // since checked_in_at is only ever set once per row regardless of qty.
+  const totalQty    = tickets.reduce((s, t) => s + (t.qty || 1), 0);
+  const checkedInQty = tickets.filter(t => t.checked_in_at).reduce((s, t) => s + (t.qty || 1), 0);
+  const checkInRate = totalQty > 0 ? Math.round((checkedInQty / totalQty) * 100) : null;
+
+  // Ticket sales per weekday, for the current Mon-Sun calendar week. Anchored
+  // to this week's Monday (not a rolling "last 168 hours" window) so each
+  // bucket represents exactly one calendar day -- a rolling window would
+  // double up whatever weekday "now" falls on (e.g. on a Wednesday, both
+  // last Wednesday's and today's sales would land in the same "Wed" bar,
+  // while every other bar only ever covers a single day).
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+  const mondayOffset = (todayStart.getDay() + 6) % 7; // 0=Mon .. 6=Sun
+  const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - mondayOffset);
+  const dayBuckets = [0, 0, 0, 0, 0, 0, 0];
+  tickets.forEach(t => {
+    if (!t.purchased_at) return;
+    const d = new Date(t.purchased_at);
+    if (isNaN(d) || d < weekStart) return;
+    const day = d.getDay(); // 0=Sun
+    dayBuckets[day === 0 ? 6 : day - 1] += (t.qty || 1);
+  });
+  const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const maxBar = Math.max(...dayBuckets, 1);
+
+  const fmtMoney = (n) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n.toLocaleString()}`;
+  const fmtCount = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
+
+  const d = new Date(ev.full_date || ev.date || '');
+  const when = !isNaN(d) ? fmtDate(ev.full_date || ev.date) + (ev.start_time ? ` · ${ev.start_time}` : '') : 'Not scheduled';
+
+  const STATS = [
+    { value: fmtCount(ev.views_count || 0), label:'Event Views', iconBg:'#FFF0F4',
+      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" stroke="#FF5A8A" strokeWidth="2" strokeLinejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="#FF5A8A" strokeWidth="2"/></svg> },
+    { value: fmtCount(ticketsSold), label:'Tickets Sold', iconBg:'#E9F6FF',
+      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 6 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-6Z" stroke={C.primary} strokeWidth="2" strokeLinejoin="round"/><path d="M10 7v10" stroke={C.primary} strokeWidth="2" strokeDasharray="2.4 2.4" strokeLinecap="round"/></svg> },
+    { value: fmtMoney(revenue), label:'Ticket Sales', iconBg:'#E4F7EC',
+      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10B981" strokeWidth="2"/><path d="M12 6.5v11M15 9.2c0-1.2-1.3-2.2-3-2.2s-3 .9-3 2.2 1.3 1.8 3 2 3 .8 3 2-1.3 2.2-3 2.2-3-1-3-2.2" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/></svg> },
+    { value: checkInRate === null ? '—' : `${checkInRate}%`, label:'Check-in Rate', iconBg:'#F1ECFF',
+      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7C5CFF" strokeWidth="2"/><path d="M8 12.5l2.6 2.6L16 9.5" stroke="#7C5CFF" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    { value: fmtCount(counts.likes), label:'Likes', iconBg:'#E6FBFA',
+      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" stroke="#0D9488" strokeWidth="2" strokeLinejoin="round"/></svg> },
+    { value: fmtCount(counts.shares), label:'Shares', iconBg:'#FFF6EC',
+      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="#F59E0B" strokeWidth="1.8"/><circle cx="6" cy="12" r="2.6" stroke="#F59E0B" strokeWidth="1.8"/><circle cx="18" cy="19" r="2.6" stroke="#F59E0B" strokeWidth="1.8"/><line x1="8.3" y1="13.3" x2="15.7" y2="17.2" stroke="#F59E0B" strokeWidth="1.8"/><line x1="15.7" y1="6.8" x2="8.3" y2="10.7" stroke="#F59E0B" strokeWidth="1.8"/></svg> },
+    { value: fmtCount(counts.saves), label:'Saves', iconBg:'#FDF1E7',
+      icon:<svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill="none" stroke="#D97706" strokeWidth="1.9" strokeLinejoin="round"/></svg> },
+  ];
+
+  return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column',
+                  background:C.pageBg, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+
+      {/* Header */}
+      <div style={{ flexShrink:0, background:'rgba(255,255,255,0.96)',
+                    backdropFilter:'blur(16px)', padding:'52px 14px 12px',
+                    display:'flex', alignItems:'center', gap:8,
+                    boxShadow:'0 1px 0 rgba(16,24,40,0.07)', zIndex:4 }}>
+        <button onClick={goBack} style={{ width:40, height:40, border:'none',
+          borderRadius:13, background:C.chip, display:'flex', alignItems:'center',
+          justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M15 6l-6 6 6 6" stroke="#39414F" strokeWidth="2.2"
+                  strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <div style={{ flex:1, minWidth:0, textAlign:'center' }}>
+          <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>Event Analytics</div>
+          <div style={{ fontSize:11.5, fontWeight:600, color:C.subtle, marginTop:1,
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.title}</div>
+        </div>
+        <div style={{ width:40 }}/>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 30px' }}>
+
+        {/* Weekly ticket sales trend */}
+        <div style={{ background:'#fff', borderRadius:20,
+                      boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:18 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Weekly Ticket Sales</span>
+            <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}>{when}</span>
+          </div>
+          <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between',
+                        gap:6, height:128, padding:'14px 2px 0' }}>
+            {dayBuckets.map((v, i) => (
+              <div key={i} style={{ flex:1, display:'flex', flexDirection:'column',
+                                     alignItems:'center', gap:7 }}>
+                <div style={{ width:'100%', display:'flex', justifyContent:'center',
+                              alignItems:'flex-end', height:96 }}>
+                  <div style={{
+                    width:7, borderRadius:999,
+                    height: Math.round((v / maxBar) * 96),
+                    background: v === maxBar && v > 0
+                      ? 'linear-gradient(180deg,#19BFFF,#0098F0)'
+                      : '#E4E8EF',
+                    transition:'height .3s ease',
+                  }}/>
+                </div>
+                <span style={{ fontSize:10, fontWeight:600, color:C.subtle }}>{labels[i]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stat grid */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginTop:14 }}>
+          {STATS.map(s => (
+            <div key={s.label} style={{ background:'#fff', borderRadius:18,
+                                         boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
+                                         padding:'16px 8px', display:'flex',
+                                         flexDirection:'column', alignItems:'center',
+                                         textAlign:'center' }}>
+              <div style={{ width:42, height:42, borderRadius:'50%', flexShrink:0,
+                            background:s.iconBg, display:'flex', alignItems:'center',
+                            justifyContent:'center' }}>{s.icon}</div>
+              <div style={{ fontSize:16, fontWeight:800, letterSpacing:-0.5,
+                            color:C.ink, marginTop:10 }}>{s.value}</div>
+              <div style={{ fontSize:10, fontWeight:600, color:C.subtle,
+                            marginTop:2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
       </div>
     </div>
   );
@@ -13777,6 +14011,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'group-analytics':  return <GroupAnalyticsScreen groupId={navParams.groupId} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'group-edit':       return <GroupEditScreen key={navParams.groupId} groupId={navParams.groupId} editTab={navParams.editTab} goBack={goBack} showToast={showToast} currentUser={currentUser} />;
       case 'event-manager': return <EventManagerScreen goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} />;
+      case 'event-analytics': return <EventAnalyticsScreen eventId={navParams.eventId} goBack={goBack} currentUser={currentUser} />;
       case 'weekly-digest': return <WeeklyDigestScreen goBack={goBack} navigate={navigate} showToast={showToast} />;
       default:          return <HomeScreen liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} filters={filters} setFilters={setFilters} activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery} role={role} navigate={navigate} currentUser={currentUser} />;
     }

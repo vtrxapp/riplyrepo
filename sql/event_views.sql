@@ -13,8 +13,7 @@ create table if not exists public.event_view_events (
   event_id uuid not null references public.events(id) on delete cascade,
   viewed_at timestamptz not null default now()
 );
-create index if not exists event_view_events_event_id_viewed_at_idx
-  on public.event_view_events (event_id, viewed_at);
+create index if not exists event_view_events_event_id_viewed_at_idx on public.event_view_events (event_id, viewed_at);
 
 alter table public.event_view_events enable row level security;
 drop policy if exists event_view_events_select on public.event_view_events;

@@ -12737,8 +12737,12 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
   const [ev, setEv] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [counts, setCounts] = useState({ likes: 0, shares: 0, saves: 0 });
+  const [trendingRank, setTrendingRank] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // Which Mon-Sun week the chart shows -- 0 is the current week, -1 last
+  // week, etc. Capped at 0 since there's no data past "now" to show.
+  const [weekOffset, setWeekOffset] = useState(0);
   const genRef = useRef(0);
 
   useEffect(() => {
@@ -12746,41 +12750,57 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
     const gen = ++genRef.current;
     setLoading(true);
     setNotFound(false);
-    Promise.all([
-      supabase.from('events').select('id,user_id,title,date,full_date,start_time,views_count,attendee_count').eq('id', eventId).single(),
-      supabase.from('tickets').select('amount_paid,qty,checked_in_at,purchased_at').eq('event_id', eventId),
-      supabase.from('event_likes').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
-      supabase.from('event_shares').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
-      supabase.from('event_saves').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
-    ]).then(([evRes, ticketsRes, likesRes, sharesRes, savesRes]) => {
-      if (gen !== genRef.current) return;
-      if (evRes.error || !evRes.data) {
-        if (evRes.error) console.error('[event-analytics] failed to load event:', evRes.error);
+    // Event fetched first (not in the same Promise.all as the rest) because
+    // the "trending" ranking query below needs the event's own user_id,
+    // which isn't known until this resolves.
+    supabase.from('events').select('id,user_id,title,date,full_date,start_time,views_count,attendee_count').eq('id', eventId).single()
+      .then(({ data: eventRow, error: evErr }) => {
+        if (gen !== genRef.current) return;
+        if (evErr || !eventRow) {
+          if (evErr) console.error('[event-analytics] failed to load event:', evErr);
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        return Promise.all([
+          supabase.from('tickets').select('amount_paid,qty,checked_in_at,purchased_at').eq('event_id', eventId),
+          supabase.from('event_likes').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+          supabase.from('event_shares').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+          supabase.from('event_saves').select('*', { count: 'exact', head: true }).eq('event_id', eventId),
+          // This organizer's other published events, ranked by views --
+          // gives a real "how does this one compare" signal for the
+          // Trending stat, instead of a fabricated trending score (there's
+          // no actual trending concept anywhere else in the app).
+          supabase.from('events').select('id,views_count').eq('user_id', eventRow.user_id)
+            .or('status.is.null,status.eq.published'),
+        ]).then(([ticketsRes, likesRes, sharesRes, savesRes, ownEventsRes]) => {
+          if (gen !== genRef.current) return;
+          // The event itself loaded fine, so still render with whatever
+          // partial data came back rather than blanking the whole screen --
+          // but log each failure so a backend/RLS issue on one of these
+          // doesn't silently read as "counts are just zero".
+          if (ticketsRes.error)    console.error('[event-analytics] failed to load tickets:', ticketsRes.error);
+          if (likesRes.error)      console.error('[event-analytics] failed to load likes:', likesRes.error);
+          if (sharesRes.error)     console.error('[event-analytics] failed to load shares:', sharesRes.error);
+          if (savesRes.error)      console.error('[event-analytics] failed to load saves:', savesRes.error);
+          if (ownEventsRes.error)  console.error('[event-analytics] failed to load organizer events for ranking:', ownEventsRes.error);
+          const ranked = [...(ownEventsRes.data || [])].sort((a, b) => (b.views_count || 0) - (a.views_count || 0));
+          const rank = ranked.findIndex(e => e.id === eventId) + 1; // 0 (falsy) if not found
+          setEv(eventRow);
+          setTickets(ticketsRes.data || []);
+          setCounts({ likes: likesRes.count || 0, shares: sharesRes.count || 0, saves: savesRes.count || 0 });
+          setTrendingRank(rank || null);
+          setLoading(false);
+        });
+      }).catch((err) => {
+        // Belt-and-suspenders for a rejected (not just error-resolved) promise
+        // in the batch, e.g. a network drop -- without this the UI would be
+        // stuck on the loading skeleton forever instead of showing a retry.
+        if (gen !== genRef.current) return;
+        console.error('[event-analytics] unexpected error loading analytics:', err);
         setNotFound(true);
         setLoading(false);
-        return;
-      }
-      // The event itself loaded fine, so still render with whatever partial
-      // data came back rather than blanking the whole screen -- but log each
-      // failure so a backend/RLS issue on one of these doesn't silently read
-      // as "counts are just zero".
-      if (ticketsRes.error) console.error('[event-analytics] failed to load tickets:', ticketsRes.error);
-      if (likesRes.error)   console.error('[event-analytics] failed to load likes:', likesRes.error);
-      if (sharesRes.error)  console.error('[event-analytics] failed to load shares:', sharesRes.error);
-      if (savesRes.error)   console.error('[event-analytics] failed to load saves:', savesRes.error);
-      setEv(evRes.data);
-      setTickets(ticketsRes.data || []);
-      setCounts({ likes: likesRes.count || 0, shares: sharesRes.count || 0, saves: savesRes.count || 0 });
-      setLoading(false);
-    }).catch((err) => {
-      // Belt-and-suspenders for a rejected (not just error-resolved) promise
-      // in the batch, e.g. a network drop -- without this the UI would be
-      // stuck on the loading skeleton forever instead of showing a retry.
-      if (gen !== genRef.current) return;
-      console.error('[event-analytics] unexpected error loading analytics:', err);
-      setNotFound(true);
-      setLoading(false);
-    });
+      });
   }, [eventId]);
 
   if (loading) return <div style={{ height:'100%', background:C.pageBg }} />;
@@ -12826,48 +12846,58 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
   const checkedInQty = tickets.filter(t => t.checked_in_at).reduce((s, t) => s + (t.qty || 1), 0);
   const checkInRate = totalQty > 0 ? Math.round((checkedInQty / totalQty) * 100) : null;
 
-  // Ticket sales per weekday, for the current Mon-Sun calendar week. Anchored
-  // to this week's Monday (not a rolling "last 168 hours" window) so each
-  // bucket represents exactly one calendar day -- a rolling window would
-  // double up whatever weekday "now" falls on (e.g. on a Wednesday, both
-  // last Wednesday's and today's sales would land in the same "Wed" bar,
-  // while every other bar only ever covers a single day).
-  const now = new Date();
-  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+  // Ticket sales per weekday, for whichever Mon-Sun calendar week the chart
+  // navigator is on (weekOffset 0 = this week). Anchored to that week's
+  // Monday (not a rolling "last 168 hours" window) so each bucket represents
+  // exactly one calendar day -- a rolling window would double up whatever
+  // weekday "now" falls on (e.g. on a Wednesday, both last Wednesday's and
+  // today's sales would land in the same "Wed" bar, while every other bar
+  // only ever covers a single day).
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const mondayOffset = (todayStart.getDay() + 6) % 7; // 0=Mon .. 6=Sun
-  const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - mondayOffset);
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(weekStart.getDate() - mondayOffset + weekOffset * 7);
+  const weekEndExclusive = new Date(weekStart); weekEndExclusive.setDate(weekEndExclusive.getDate() + 7);
   const dayBuckets = [0, 0, 0, 0, 0, 0, 0];
   tickets.forEach(t => {
     if (!t.purchased_at) return;
     const d = new Date(t.purchased_at);
-    if (isNaN(d) || d < weekStart) return;
+    if (isNaN(d) || d < weekStart || d >= weekEndExclusive) return;
     const day = d.getDay(); // 0=Sun
     dayBuckets[day === 0 ? 6 : day - 1] += (t.qty || 1);
   });
   const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const maxBar = Math.max(...dayBuckets, 1);
 
+  const weekEnd = new Date(weekEndExclusive); weekEnd.setDate(weekEnd.getDate() - 1);
+  const monShort = (dt) => dt.toLocaleDateString('en-GB', { month:'short' });
+  const weekRangeLabel = monShort(weekStart) === monShort(weekEnd)
+    ? `${monShort(weekStart)} ${weekStart.getDate()} - ${weekEnd.getDate()}`
+    : `${monShort(weekStart)} ${weekStart.getDate()} - ${monShort(weekEnd)} ${weekEnd.getDate()}`;
+
   const fmtMoney = (n) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n.toLocaleString()}`;
   const fmtCount = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
-  const d = new Date(ev.full_date || ev.date || '');
-  const when = !isNaN(d) ? fmtDate(ev.full_date || ev.date) + (ev.start_time ? ` · ${ev.start_time}` : '') : 'Not scheduled';
-
   const STATS = [
     { value: fmtCount(ev.views_count || 0), label:'Event Views', iconBg:'#FFF0F4',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" stroke="#FF5A8A" strokeWidth="2" strokeLinejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="#FF5A8A" strokeWidth="2"/></svg> },
-    { value: fmtCount(ticketsSold), label:'Tickets Sold', iconBg:'#E9F6FF',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 6 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-6Z" stroke={C.primary} strokeWidth="2" strokeLinejoin="round"/><path d="M10 7v10" stroke={C.primary} strokeWidth="2" strokeDasharray="2.4 2.4" strokeLinecap="round"/></svg> },
+      icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" stroke="#FF5A8A" strokeWidth="2" strokeLinejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="#FF5A8A" strokeWidth="2"/></svg> },
+    { value: fmtCount(ticketsSold), label:'Ticket Sold', iconBg:'#E9F6FF',
+      icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 6 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-6Z" stroke={C.primary} strokeWidth="2" strokeLinejoin="round"/><path d="M10 7v10" stroke={C.primary} strokeWidth="2" strokeDasharray="2.4 2.4" strokeLinecap="round"/></svg> },
+    // Real signal (this event's rank by views among the organizer's own
+    // published events), not a fabricated trending score -- there's no
+    // actual "trending" concept anywhere else in the app to compute from.
+    { value: trendingRank === null ? '—' : `#${trendingRank}`, label:'Trending', iconBg:'#FFF6EC',
+      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="#F59E0B"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg> },
     { value: fmtMoney(revenue), label:'Ticket Sales', iconBg:'#E4F7EC',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10B981" strokeWidth="2"/><path d="M12 6.5v11M15 9.2c0-1.2-1.3-2.2-3-2.2s-3 .9-3 2.2 1.3 1.8 3 2 3 .8 3 2-1.3 2.2-3 2.2-3-1-3-2.2" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/></svg> },
+      icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10B981" strokeWidth="2"/><path d="M12 6.5v11M15 9.2c0-1.2-1.3-2.2-3-2.2s-3 .9-3 2.2 1.3 1.8 3 2 3 .8 3 2-1.3 2.2-3 2.2-3-1-3-2.2" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round"/></svg> },
     { value: checkInRate === null ? '—' : `${checkInRate}%`, label:'Check-in Rate', iconBg:'#F1ECFF',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7C5CFF" strokeWidth="2"/><path d="M8 12.5l2.6 2.6L16 9.5" stroke="#7C5CFF" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+      icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7C5CFF" strokeWidth="2"/><path d="M8 12.5l2.6 2.6L16 9.5" stroke="#7C5CFF" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg> },
     { value: fmtCount(counts.likes), label:'Likes', iconBg:'#E6FBFA',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" stroke="#0D9488" strokeWidth="2" strokeLinejoin="round"/></svg> },
-    { value: fmtCount(counts.shares), label:'Shares', iconBg:'#FFF6EC',
-      icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke="#F59E0B" strokeWidth="1.8"/><circle cx="6" cy="12" r="2.6" stroke="#F59E0B" strokeWidth="1.8"/><circle cx="18" cy="19" r="2.6" stroke="#F59E0B" strokeWidth="1.8"/><line x1="8.3" y1="13.3" x2="15.7" y2="17.2" stroke="#F59E0B" strokeWidth="1.8"/><line x1="15.7" y1="6.8" x2="8.3" y2="10.7" stroke="#F59E0B" strokeWidth="1.8"/></svg> },
+      icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" stroke="#0D9488" strokeWidth="2" strokeLinejoin="round"/></svg> },
     { value: fmtCount(counts.saves), label:'Saves', iconBg:'#FDF1E7',
-      icon:<svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill="none" stroke="#D97706" strokeWidth="1.9" strokeLinejoin="round"/></svg> },
+      icon:<svg width="22" height="22" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill="none" stroke="#D97706" strokeWidth="1.9" strokeLinejoin="round"/></svg> },
+    { value: fmtCount(counts.shares), label:'Shares', iconBg:'#E9F6FF',
+      icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.6" stroke={C.primary} strokeWidth="1.8"/><circle cx="6" cy="12" r="2.6" stroke={C.primary} strokeWidth="1.8"/><circle cx="18" cy="19" r="2.6" stroke={C.primary} strokeWidth="1.8"/><line x1="8.3" y1="13.3" x2="15.7" y2="17.2" stroke={C.primary} strokeWidth="1.8"/><line x1="15.7" y1="6.8" x2="8.3" y2="10.7" stroke={C.primary} strokeWidth="1.8"/></svg> },
   ];
 
   return (
@@ -12889,58 +12919,71 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
         </button>
         <div style={{ flex:1, minWidth:0, textAlign:'center' }}>
           <div style={{ fontSize:17, fontWeight:800, letterSpacing:-0.3, color:C.ink }}>Event Analytics</div>
-          <div style={{ fontSize:11.5, fontWeight:600, color:C.subtle, marginTop:1,
-                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ev.title}</div>
         </div>
         <div style={{ width:40 }}/>
       </div>
 
       <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 30px' }}>
 
+        {/* Week navigator */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 2px 12px' }}>
+          <span style={{ fontSize:15, fontWeight:800, color:C.ink }}>{weekRangeLabel}</span>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <button onClick={() => setWeekOffset(w => w - 1)} aria-label="Previous week" style={{
+              width:30, height:30, border:'none', borderRadius:10, background:C.chip,
+              display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke={C.body} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <button onClick={() => setWeekOffset(w => Math.min(0, w + 1))} disabled={weekOffset >= 0}
+              aria-label="Next week" style={{
+              width:30, height:30, border:'none', borderRadius:10, background:C.chip,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              cursor: weekOffset >= 0 ? 'default' : 'pointer', opacity: weekOffset >= 0 ? 0.4 : 1 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke={C.body} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+
         {/* Weekly ticket sales trend */}
         <div style={{ background:'#fff', borderRadius:20,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:18 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-            <span style={{ fontSize:16, fontWeight:800, color:C.ink }}>Weekly Ticket Sales</span>
-            <span style={{ fontSize:11, fontWeight:600, color:C.subtle }}>{when}</span>
-          </div>
+          <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:4 }}>Weekly Ticket Sales</div>
           <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between',
                         gap:6, height:128, padding:'14px 2px 0' }}>
             {dayBuckets.map((v, i) => (
-              <div key={i} style={{ flex:1, display:'flex', flexDirection:'column',
+              <div key={labels[i]} style={{ flex:1, display:'flex', flexDirection:'column',
                                      alignItems:'center', gap:7 }}>
+                <div style={{ fontSize:10, fontWeight:600, color:C.subtle }}>{labels[i]}</div>
                 <div style={{ width:'100%', display:'flex', justifyContent:'center',
                               alignItems:'flex-end', height:96 }}>
                   <div style={{
-                    width:7, borderRadius:999,
-                    height: Math.round((v / maxBar) * 96),
-                    background: v === maxBar && v > 0
-                      ? 'linear-gradient(180deg,#19BFFF,#0098F0)'
-                      : '#E4E8EF',
+                    width:14, borderRadius:7,
+                    height: Math.max(6, Math.round((v / maxBar) * 96)),
+                    background:'#19BFFF',
                     transition:'height .3s ease',
                   }}/>
                 </div>
-                <span style={{ fontSize:10, fontWeight:600, color:C.subtle }}>{labels[i]}</span>
+                <span style={{ fontSize:11, fontWeight:800, color:'#FF5A8A' }}>{v}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Stat grid */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginTop:14 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:14 }}>
           {STATS.map(s => (
             <div key={s.label} style={{ background:'#fff', borderRadius:18,
                                          boxShadow:'0 4px 14px rgba(16,24,40,0.05)',
-                                         padding:'16px 8px', display:'flex',
+                                         padding:'22px 12px', display:'flex',
                                          flexDirection:'column', alignItems:'center',
                                          textAlign:'center' }}>
-              <div style={{ width:42, height:42, borderRadius:'50%', flexShrink:0,
+              <div style={{ width:48, height:48, borderRadius:'50%', flexShrink:0,
                             background:s.iconBg, display:'flex', alignItems:'center',
                             justifyContent:'center' }}>{s.icon}</div>
-              <div style={{ fontSize:16, fontWeight:800, letterSpacing:-0.5,
-                            color:C.ink, marginTop:10 }}>{s.value}</div>
-              <div style={{ fontSize:10, fontWeight:600, color:C.subtle,
-                            marginTop:2 }}>{s.label}</div>
+              <div style={{ fontSize:20, fontWeight:800, letterSpacing:-0.5,
+                            color:C.ink, marginTop:12 }}>{s.value}</div>
+              <div style={{ fontSize:12, fontWeight:600, color:C.subtle,
+                            marginTop:3 }}>{s.label}</div>
             </div>
           ))}
         </div>

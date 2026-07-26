@@ -9193,12 +9193,37 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
   // group's Events tab, even for an admin who obviously meant it to.
   const [myAdminGroups, setMyAdminGroups] = useState([]);
   const [pickedGroupId, setPickedGroupId] = useState(null);
+  // The group an event being edited is already attached to (loadedGroupId)
+  // may not be one of myAdminGroups any more -- e.g. the organizer was
+  // since demoted, or removed, from that group. The <select> below still
+  // needs to show it as the current selection (not silently drop it the
+  // moment the picker renders with no matching <option>), so fetch its
+  // name separately whenever it isn't already in myAdminGroups.
+  const [currentGroupFallback, setCurrentGroupFallback] = useState(null);
   useEffect(() => {
     if (sourceGroupId || !currentUser?.userId) return;
+    let cancelled = false;
     supabase.from('group_members').select('group_id, groups(id, name)')
       .eq('user_id', currentUser.userId).eq('status', 'approved').in('role', ['admin', 'owner'])
-      .then(({ data }) => setMyAdminGroups((data || []).filter(r => r.groups).map(r => r.groups)));
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { console.error('[CreateEventScreen] failed to load admin groups:', error); return; }
+        setMyAdminGroups((data || []).filter(r => r.groups).map(r => r.groups));
+      });
+    return () => { cancelled = true; };
   }, [sourceGroupId, currentUser?.userId]);
+  useEffect(() => {
+    if (!loadedGroupId || myAdminGroups.some(g => g.id === loadedGroupId)) { setCurrentGroupFallback(null); return; }
+    let cancelled = false;
+    supabase.from('groups').select('id, name').eq('id', loadedGroupId).maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { console.error('[CreateEventScreen] failed to load current group:', error); return; }
+        setCurrentGroupFallback(data || null);
+      });
+    return () => { cancelled = true; };
+  }, [loadedGroupId, myAdminGroups]);
+  const groupOptions = currentGroupFallback ? [...myAdminGroups, currentGroupFallback] : myAdminGroups;
   const effectiveGroupId = sourceGroupId || pickedGroupId;
 
   // Converts a stored "6:00 PM"-style string back to the 24-hour "18:00"
@@ -9553,7 +9578,7 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
             opened from inside a group (sourceGroupId set), and only among
             groups this organizer actually admins/owns. Optional: leaving it
             on "No group" keeps the event a personal one, same as before. */}
-        {!sourceGroupId && myAdminGroups.length > 0 && (
+        {!sourceGroupId && groupOptions.length > 0 && (
           <div style={{ marginTop:20 }}>
             <EventLabel>Post to Group (optional)</EventLabel>
             <select value={pickedGroupId || ''} onChange={e => setPickedGroupId(e.target.value || null)}
@@ -9561,7 +9586,7 @@ function CreateEventScreen({ goBack, navigate, navigateReplace, showToast, curre
                        background:C.card, padding:'0 14px', fontSize:13, fontWeight:600, color:C.body,
                        fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
               <option value="">No group (personal event)</option>
-              {myAdminGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              {groupOptions.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
           </div>
         )}

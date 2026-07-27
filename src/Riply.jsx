@@ -13007,7 +13007,16 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
   // week, etc. Capped at 0 since there's no data past "now" to show.
   const [weekOffset, setWeekOffset] = useState(0);
   const [dayBuckets, setDayBuckets] = useState([0, 0, 0, 0, 0, 0, 0]);
+  // Separate ref per effect -- sharing one genRef between the main fetch
+  // effect and the weekly-buckets effect meant the buckets effect's mount
+  // run (which fires right after the main effect's own mount run, in the
+  // same commit) bumped the counter out from under the main effect before
+  // its async fetch had even resolved. The main effect's `gen !== genRef.
+  // current` staleness check then always failed, so it silently returned
+  // before ever calling setLoading(false) -- the screen was stuck on the
+  // loading skeleton (blank/white) forever, every single time.
   const genRef = useRef(0);
+  const bucketsGenRef = useRef(0);
 
   useEffect(() => {
     if (!eventId) return;
@@ -13081,14 +13090,14 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
   // bucketing them on the client.
   useEffect(() => {
     if (!eventId) return;
-    const gen = ++genRef.current;
+    const gen = ++bucketsGenRef.current;
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const mondayOffset = (todayStart.getDay() + 6) % 7; // 0=Mon .. 6=Sun
     const weekStart = new Date(todayStart);
     weekStart.setDate(weekStart.getDate() - mondayOffset + weekOffset * 7);
     supabase.rpc('get_event_view_week_buckets', { event_id_arg: eventId, week_start_arg: weekStart.toISOString() })
       .then(({ data, error }) => {
-        if (gen !== genRef.current) return;
+        if (gen !== bucketsGenRef.current) return;
         if (error) {
           console.error('[event-analytics] failed to load weekly view buckets:', error);
           setDayBuckets([0, 0, 0, 0, 0, 0, 0]);

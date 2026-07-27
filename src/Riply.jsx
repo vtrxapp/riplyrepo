@@ -13249,7 +13249,7 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
         {/* Weekly ticket sales trend */}
         <div style={{ background:'#fff', borderRadius:20,
                       boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:18 }}>
-          <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:4 }}>Weekly Event Views</div>
+          <div style={{ fontSize:16, fontWeight:800, color:C.ink, marginBottom:16 }}>Weekly Event Views</div>
           <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between',
                         gap:6, height:128, padding:'14px 2px 0' }}>
             {dayBuckets.map((v, i) => (

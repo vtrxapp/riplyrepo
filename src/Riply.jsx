@@ -13106,6 +13106,15 @@ function EventAnalyticsScreen({ eventId, goBack, currentUser }) {
         const buckets = [0, 0, 0, 0, 0, 0, 0];
         (data || []).forEach(row => { buckets[row.day_index] = Number(row.view_count) || 0; });
         setDayBuckets(buckets);
+      })
+      // Belt-and-suspenders for a rejected (not just error-resolved) promise,
+      // e.g. a network drop -- without this the chart would be silently left
+      // showing whatever the previous week's buckets were, with no unhandled-
+      // rejection warning to even hint at what went wrong.
+      .catch((err) => {
+        if (gen !== bucketsGenRef.current) return;
+        console.error('[event-analytics] unexpected error loading weekly view buckets:', err);
+        setDayBuckets([0, 0, 0, 0, 0, 0, 0]);
       });
   }, [eventId, weekOffset]);
 

@@ -3056,13 +3056,20 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
       {Array.isArray(p.images) && p.images.length > 1 ? (
         <div data-hscroll="true" style={{ display:'flex', overflowX:'auto', gap:6, marginTop:11, paddingBottom:2 }}>
           {p.images.map((url, i) => (
-            <div key={i} style={{ flexShrink:0, height:GALLERY_ROW_HEIGHT, borderRadius:20, overflow:'hidden' }}>
+            <div key={i} style={{ flexShrink:0, height:GALLERY_ROW_HEIGHT, borderRadius:20, overflow:'hidden',
+                                   WebkitMaskImage:'-webkit-radial-gradient(white, black)' }}>
               <img src={url} alt="" style={{ height:'100%', width:'auto', display:'block', objectFit:'contain', borderRadius:20 }} />
             </div>
           ))}
         </div>
       ) : (p.image_url || p.images?.[0]) && (
-        <div style={{ borderRadius:20, overflow:'hidden', marginTop:11, maxHeight:MAX_POST_IMAGE_HEIGHT }}>
+        // WebkitMaskImage forces Safari to clip via its masking path instead
+        // of the border-radius+overflow:hidden combo, which iOS WebKit is
+        // known to silently ignore once this card sits inside a scrolling
+        // feed's GPU-composited layer -- the rounding is correct in every
+        // other browser/inspector but can still render square on-device.
+        <div style={{ borderRadius:20, overflow:'hidden', marginTop:11, maxHeight:MAX_POST_IMAGE_HEIGHT,
+                      WebkitMaskImage:'-webkit-radial-gradient(white, black)' }}>
           <img src={p.image_url || p.images?.[0]} alt="" style={{ width:'100%', height:'auto', maxHeight:MAX_POST_IMAGE_HEIGHT, display:'block', margin:'0 auto', objectFit:'contain', borderRadius:20 }} />
         </div>
       )}

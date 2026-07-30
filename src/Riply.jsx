@@ -5186,11 +5186,9 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   }, [spaceId]);
   const sp = dbSpace || SPACES.find(s => s.id === spaceId) || null;
   const [joined,   setJoined]   = useState(false);
-  const [liked,    setLiked]    = useState(false);
   const [followed, setFollowed] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [realParticipants, setRealParticipants] = useState([]);
 
   useEffect(() => {
@@ -5307,13 +5305,6 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                   stroke={spaceSaved?.[spaceId] ? C.primary : '#39414F'} strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
-        <HeaderBtn onClick={() => setLiked(v => !v)}>
-          <svg width="17" height="17" viewBox="0 0 24 24">
-            <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
-                  fill={liked ? '#FF3B6B' : 'rgba(0,0,0,0)'}
-                  stroke={liked ? '#FF3B6B' : '#39414F'} strokeWidth="1.8" strokeLinejoin="round"/>
-          </svg>
-        </HeaderBtn>
       </div>
 
       {/* ── Body ─────────────────────────────────────────── */}
@@ -5358,50 +5349,30 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{hostName || 'Organizer'}</div>
             <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Space Host</div>
           </div>
-          <div style={{ position:'relative', flexShrink:0 }}>
-            <button onClick={() => setMoreOpen(v => !v)} style={{
-              width:34, height:34, border:`1.5px solid ${C.border}`, borderRadius:999,
-              background:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="5" cy="12" r="1.5" fill={C.muted}/><circle cx="12" cy="12" r="1.5" fill={C.muted}/><circle cx="19" cy="12" r="1.5" fill={C.muted}/>
-              </svg>
-            </button>
-            {moreOpen && (
-              <div style={{ position:'absolute', right:0, top:40, background:'#fff', borderRadius:12,
-                            boxShadow:'0 8px 24px rgba(16,24,40,0.14)', border:`1px solid ${C.border}`,
-                            zIndex:99, minWidth:130, overflow:'hidden' }}>
-                <button onClick={async () => {
-                  setMoreOpen(false);
-                  if (!sp.host_id || !currentUser?.userId) { showToast('Sign in to message the host'); return; }
-                  if (sp.host_id === currentUser.userId) { showToast("That's you!"); return; }
-                  try {
-                    const { data: chatId, error } = await supabase.rpc('create_direct_chat', { p_other_user_id: sp.host_id });
-                    if (error || !chatId) { showToast('Failed to start chat'); return; }
-                    navigate('chat', {
-                      chatId,
-                      chatName: hostName || 'Organizer',
-                      chatInitial: (hostName || 'O')[0].toUpperCase(),
-                      chatColor: sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
-                    });
-                  } catch {
-                    showToast('Failed to start chat');
-                  }
-                }} style={{
-                  width:'100%', padding:'12px 16px', border:'none', background:'none',
-                  textAlign:'left', fontSize:13, fontWeight:700, color:C.body,
-                  cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  display:'flex', alignItems:'center', gap:8,
-                }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                      stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Message
-                </button>
-              </div>
-            )}
-          </div>
+          <button onClick={async () => {
+            if (!sp.host_id || !currentUser?.userId) { showToast('Sign in to message the host'); return; }
+            if (sp.host_id === currentUser.userId) { showToast("That's you!"); return; }
+            try {
+              const { data: chatId, error } = await supabase.rpc('create_direct_chat', { p_other_user_id: sp.host_id });
+              if (error || !chatId) { showToast('Failed to start chat'); return; }
+              navigate('chat', {
+                chatId,
+                chatName: hostName || 'Organizer',
+                chatInitial: (hostName || 'O')[0].toUpperCase(),
+                chatColor: sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+              });
+            } catch {
+              showToast('Failed to start chat');
+            }
+          }} style={{
+            width:34, height:34, border:`1.5px solid ${C.border}`, borderRadius:999, flexShrink:0,
+            background:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
 
         {/* Capacity card */}

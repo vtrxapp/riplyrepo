@@ -1594,7 +1594,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     if (postingLocked) { showToast('Only admins can post in this group'); return; }
     if (photosUploading) { showToast('Photos are still uploading'); return; }
     setPosting(true);
-    const authorName = currentUser.name || user?.username || 'Member';
+    // A group admin posting into their own group reads as the group itself,
+    // not their personal account — same attribution the auto-generated
+    // event-alert post already uses (see CreateEventScreen further down).
+    const postingAsGroup = isGroupAdminHere && selectedGroup;
+    const authorName = postingAsGroup
+      ? (selectedGroup.name || 'Group')
+      : (currentUser.name || user?.username || 'Member');
 
     // Build insert payload — only include extra columns if we have values,
     // so missing columns don't cause failures when SQL hasn't been run yet
@@ -1606,9 +1612,10 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       likes_count:    0,
       comment_count:  0,
       author_name:    authorName,
-      author_initial: authorName[0]?.toUpperCase() || 'M',
-      author_color:   currentUser?.avatarColor || deriveAvatarColor(user?.id || ''),
-      avatar_url:     currentUser?.avatarUrl || null,
+      author_initial: authorName[0]?.toUpperCase() || (postingAsGroup ? 'G' : 'M'),
+      author_color:   postingAsGroup ? (selectedGroup.logo_color || deriveAvatarColor(selectedGroupId)) : (currentUser?.avatarColor || deriveAvatarColor(user?.id || '')),
+      avatar_url:     postingAsGroup ? (selectedGroup.avatar_url || null) : (currentUser?.avatarUrl || null),
+      author_is_group: !!postingAsGroup,
     };
     if (uploadedImageUrls.length) {
       payload.image_url = uploadedImageUrls[0];
@@ -5180,7 +5187,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
           if (err?.code === 'PGRST116') evictCached('space', spaceId);
           return;
         }
-        if (data.host_id) {
+        // A group-attributed space (host_is_group) keeps the group's
+        // name/avatar/color it was created with -- refreshing from the
+        // admin's personal users row here would overwrite it right back to
+        // their personal identity on every load.
+        if (data.host_id && !data.host_is_group) {
           const { data: u } = await supabase.from('users').select('name,avatar_url,avatar_color').eq('id', data.host_id).single();
           if (cancelled) return;
           if (u) {
@@ -5370,7 +5381,13 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                 chatId,
                 chatName: hostName || 'Organizer',
                 chatInitial: (hostName || 'O')[0].toUpperCase(),
-                chatColor: sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+                chatAvatarUrl: sp.host_avatar || null,
+                chatColor: sp.host_color || sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+                // The space's host reads as the group itself when it was
+                // created on the group's behalf, so this DM's incoming
+                // messages should always show the group's name/avatar, not
+                // whatever the admin's live personal profile says.
+                chatOtherIsGroup: !!sp.host_is_group,
               });
             } catch {
               showToast('Failed to start chat');
@@ -5746,7 +5763,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
-function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, isGroup, goBack, showToast, currentUser, deleteChat }) {
+function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, isGroup, chatOtherIsGroup, goBack, showToast, currentUser, deleteChat }) {
   const found = CHATS.find(c => c.id === chatId);
   const chat = found || {
     id: chatId,
@@ -5802,11 +5819,18 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   const messages = rawMessages.map(msg => {
     const isOut = msg.sender_id === currentUserId
     const profile = msg._senderProfile || null
+    // chatOtherIsGroup means this 1:1 DM's other party (a group admin acting
+    // on the group's behalf) should always read as the group, not their
+    // personal account -- so the group name/avatar/color passed in via nav
+    // params wins over that admin's live personal profile.
     const senderName = isOut
       ? (currentUser?.name || profile?.name || 'You')
-      : (profile?.name || (isGroupChat ? 'Member' : chatName) || '?')
-    const senderAvatar = isOut ? (currentUser?.avatarUrl || profile?.avatar_url || null) : (profile?.avatar_url || null)
-    const senderColor  = (isOut ? currentUser?.avatarColor : null) || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)'
+      : (!isGroupChat && chatOtherIsGroup ? (chatName || 'Group') : (profile?.name || (isGroupChat ? 'Member' : chatName) || '?'))
+    const senderAvatar = isOut
+      ? (currentUser?.avatarUrl || profile?.avatar_url || null)
+      : (!isGroupChat && chatOtherIsGroup ? (chatAvatarUrl || null) : (profile?.avatar_url || null))
+    const senderColor  = (!isOut && !isGroupChat && chatOtherIsGroup ? chatColor : null)
+      || (isOut ? currentUser?.avatarColor : null) || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)'
     const createdDate  = new Date(msg.created_at)
     return {
       id:         msg.id,
@@ -9142,12 +9166,29 @@ function CreateSpaceScreen({ goBack, navigateReplace, showToast, currentUser, gr
             const hrs = parseFloat(duration) || 1;
             endsAt = new Date(start.getTime() + hrs * 3600000).toISOString();
           }
+          // A space created from within a group reads as hosted by the
+          // group itself, not the admin's personal account -- effectiveGroupId
+          // is only ever set here via sourceGroupId (opened from a group's
+          // Spaces tab) or a picked entry from myAdminGroups, both admin-only.
+          let hostText = currentUser.name || 'Host';
+          let hostAvatar = null;
+          let hostColor = null;
+          if (effectiveGroupId) {
+            const { data: groupRow } = await supabase.from('groups')
+              .select('name, avatar_url, logo_color').eq('id', effectiveGroupId).single();
+            hostText = groupRow?.name || hostText;
+            hostAvatar = groupRow?.avatar_url || null;
+            hostColor = groupRow?.logo_color || null;
+          }
           const { data: space, error } = await supabase.from('spaces').insert({
             title: title.trim(),
             description: about.trim(),
             group_id: effectiveGroupId || null,
             host_id: currentUser.userId,
-            host_text: currentUser.name || 'Host',
+            host_text: hostText,
+            host_avatar: hostAvatar,
+            host_color: hostColor,
+            host_is_group: !!effectiveGroupId,
             category: cat,
             location: location || null,
             is_online: isOnline,
@@ -14314,7 +14355,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
-      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
+      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} chatOtherIsGroup={navParams.chatOtherIsGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
       case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} groupJoined={groupJoined} setGroupJoined={setGroupJoined} />;

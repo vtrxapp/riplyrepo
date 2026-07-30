@@ -4425,9 +4425,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
           display:'flex', alignItems:'center', justifyContent:'center',
           cursor:'pointer', boxShadow:'0 10px 24px rgba(2,162,240,0.45)', zIndex:6,
         }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
-            <path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
           </svg>
         </button>
       )}

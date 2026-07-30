@@ -6404,7 +6404,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
 
   const name = cu.name || 'Student';
   const email = cu.email || '';
-  const [profileRole, setProfileRole] = useState(cu.role || 'student');
+  const profileRole = cu.role || 'student';
   const [draftName, setDraftName] = useState('');
   const [draftUniversity, setDraftUniversity] = useState('');
   const [draftYear, setDraftYear] = useState('');

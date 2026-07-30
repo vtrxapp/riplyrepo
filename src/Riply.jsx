@@ -4230,7 +4230,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
               {/* EVENTS */}
               {activeTab === 'events' && (
                 <>
-                {isJoined && (
+                {isGroupAdmin && (
                   <button onClick={() => navigate('create-event', { groupId })}
                     style={{ width:'100%', height:44, border:`1.5px dashed ${C.primary}`, borderRadius:14,
                              background:'rgba(2,162,240,0.05)', color:C.primary, fontSize:13,

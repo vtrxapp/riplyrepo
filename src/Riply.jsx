@@ -697,8 +697,8 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
   const hasMyEvents = !!myEventIds && myEventIds.size > 0;
 
   const CATS = [
-    {id:'all',label:'All'},
     ...(hasMyEvents ? [{id:'mine',label:'My Events'}] : []),
+    {id:'all',label:'All'},
     {id:'thisweek',label:'This Week'},{id:'new',label:'New'},
     ...APP_CATEGORIES.map(c => ({ id:c.id, label:c.label })),
   ];
@@ -946,8 +946,8 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
   // the user's only space -- check for a truthy entry instead.
   const hasMySpaces = Object.values(spaceJoined || {}).some(Boolean);
   const TABS = [
-    {id:'all',label:'All'},
     ...(hasMySpaces ? [{id:'mine',label:'My Spaces'}] : []),
+    {id:'all',label:'All'},
     {id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'},
   ];
   const [spaceQuery, setSpaceQuery] = useState('');
@@ -1137,8 +1137,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   // entry to false rather than deleting it, so this needs a truthy check.
   const hasMyGroups = Object.values(groupJoined || {}).some(Boolean);
   const TABS = [
-    {id:'all',label:'All'},
     ...(hasMyGroups ? [{id:'mine',label:'My Groups'}] : []),
+    {id:'all',label:'All'},
     {id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'},
   ];
   const [discoverQuery, setDiscoverQuery] = useState('');
@@ -5939,7 +5939,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   // color -- no blue/"active" implication for either case.
   const memberCount = chat.memberCount || chat.members;
   const onlineLabel = isGroupChat
-    ? memberCount ? `${memberCount} members` : 'Group'
+    ? memberCount ? `${memberCount} member${memberCount === 1 ? '' : 's'}` : 'Group'
     : 'Direct message';
   const statusColor = C.subtle;
 
@@ -6403,7 +6403,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [editOpen, setEditOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
-  const [roleOpen, setRoleOpen] = useState(false);
   const [push, setPush] = useState(() => {
     if (typeof Notification === 'undefined') return false;
     return Notification.permission === 'granted';
@@ -6591,21 +6590,12 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           <div style={{ fontSize:19, fontWeight:800, letterSpacing:-0.5, color:textColor, marginTop:13 }}>{name}</div>
           <div style={{ display:'flex', alignItems:'center', gap:7, marginTop:7, flexWrap:'wrap', justifyContent:'center' }}>
             <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:'#E9F6FF', fontSize:9.5, fontWeight:700, color:C.primary }}>{[currentUser.year, currentUser.program].filter(Boolean).join(' · ') || currentUser.university || 'Student'}</div>
-            <button onClick={()=>setRoleOpen(r=>!r)} style={{ display:'inline-flex', alignItems:'center', gap:5, height:24, padding:'0 11px', border:'none', borderRadius:999, background:rc.bg, fontSize:9.5, fontWeight:800, color:rc.color, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+            {/* Static -- role is no longer user-switchable (was previously
+                a dropdown that let anyone self-assign Group Admin). */}
+            <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:rc.bg, fontSize:9.5, fontWeight:800, color:rc.color, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
               {rc.label}
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d={`m6 9 6 6 6-6`} stroke={rc.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-          </div>
-          {roleOpen && (
-            <div style={{ background:cardBg, borderRadius:14, boxShadow:'0 8px 24px rgba(16,24,40,0.16)', overflow:'hidden', marginTop:9, width:200 }}>
-              {Object.entries(roleConfig).map(([k,v]) => (
-                <button key={k} onClick={async ()=>{ setRoleOpen(false); const {error}=await currentUser.updateProfile({role:k}); if(error) showToast('Failed to update role'); else showToast(`Role updated to ${v.label}`); }} style={{ display:'flex', width:'100%', padding:'12px 16px', border:'none', background: profileRole===k?v.bg:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:11.5, fontWeight:800, color: profileRole===k?v.color:textColor, textAlign:'left', alignItems:'center', justifyContent:'space-between' }}>
-                  {v.label}
-                  {profileRole===k && <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4 4L19 7" stroke={v.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </button>
-              ))}
             </div>
-          )}
+          </div>
           <div style={{ fontSize:10.5, color:subColor, marginTop:6 }}>{email}</div>
         </div>
 

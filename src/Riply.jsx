@@ -1395,8 +1395,18 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                 <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>All caught up</div>
                 <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>No notifications yet</div>
               </div>
-            ) : notifications.map(n => (
-              <SwipeToDeleteRow key={n.id} onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
+            ) : notifications.map((n, i) => {
+              const prev = notifications[i - 1];
+              const showDateHeader = !prev || new Date(prev.created_at).toDateString() !== new Date(n.created_at).toDateString();
+              return (
+              <Fragment key={n.id}>
+                {showDateHeader && (
+                  <div style={{ fontSize:11, fontWeight:800, color:'#7B8499', textTransform:'uppercase',
+                                letterSpacing:0.4, margin: i===0 ? '0 0 8px 2px' : '18px 0 8px 2px' }}>
+                    {formatDateSeparator(n.created_at)}
+                  </div>
+                )}
+                <SwipeToDeleteRow onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
                 <div onClick={() => markRead(n.id)}
                   style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
                            boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
@@ -1420,8 +1430,10 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                     </div>
                   </div>
                 </div>
-              </SwipeToDeleteRow>
-            ))}
+                </SwipeToDeleteRow>
+              </Fragment>
+              );
+            })}
           </div>
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:11 }}>

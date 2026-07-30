@@ -4494,7 +4494,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
-function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, navigate, goBack, showToast, role }) {
+function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, navigate, goBack, showToast, role, currentUser }) {
   // useEvent() already resolves the organizer correctly (group name/avatar
   // when the event is group-linked, else the creator's own profile) via the
   // same attachUserProfiles() used everywhere else -- this screen used to
@@ -4517,6 +4517,24 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
     supabase.rpc('increment_event_views', { event_id_arg: eventId })
       .then(({ error }) => { if (error) console.debug('[event-view] increment_event_views failed', error); });
   }, [eventId]);
+
+  // The Zoom/meeting link only appears once a ticket is actually purchased
+  // -- same "do I hold a ticket" query HomeScreen uses for myEventIds,
+  // scoped to just this one event, and also true for the event's own
+  // organizer (who never needs to buy a ticket to their own event).
+  const [hasTicket, setHasTicket] = useState(false);
+  useEffect(() => {
+    if (!eventId || !currentUser?.userId) { setHasTicket(false); return; }
+    let cancelled = false;
+    supabase.from('tickets').select('id').eq('event_id', eventId).eq('user_id', currentUser.userId).limit(1)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { console.error('[event-details] failed to check ticket ownership:', error); return; }
+        setHasTicket((data || []).length > 0);
+      });
+    return () => { cancelled = true; };
+  }, [eventId, currentUser?.userId]);
+  const canSeeMeetingLink = hasTicket || (!!currentUser?.userId && currentUser.userId === dbEvent?.user_id);
 
   // Real "You may also like": other published events in the same category,
   // not the static mock EVENTS array (which always surfaced whatever mock
@@ -4774,11 +4792,16 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                 </div>
                 {/* Re-validated at render time (not just at save time) so a
                     legacy row saved before link validation existed can't
-                    produce an unsafe href here. */}
-                {!parseMeetingUrl(ev.meeting_link) && (
+                    produce an unsafe href here. The link itself is only
+                    exposed once a ticket is purchased -- everyone else sees
+                    a locked message instead. */}
+                {!canSeeMeetingLink && (
+                  <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link shared after you get a ticket</div>
+                )}
+                {canSeeMeetingLink && !parseMeetingUrl(ev.meeting_link) && (
                   <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link not available yet</div>
                 )}
-                {parseMeetingUrl(ev.meeting_link) && (
+                {canSeeMeetingLink && parseMeetingUrl(ev.meeting_link) && (
                   <a href={ev.meeting_link} target="_blank" rel="noopener noreferrer" style={{
                     marginTop:10, display:'flex', alignItems:'center', justifyContent:'center',
                     height:40, borderRadius:10, background:C.primary, color:'#fff',
@@ -14356,7 +14379,7 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
       case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} chatOtherIsGroup={navParams.chatOtherIsGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
-      case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
+      case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} currentUser={currentUser} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} />;
       case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} groupJoined={groupJoined} setGroupJoined={setGroupJoined} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;

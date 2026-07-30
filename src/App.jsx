@@ -41,14 +41,21 @@ class ErrorBoundary extends Component {
   }
 }
 
-function SplashScreen({ onDone }) {
+function SplashScreen({ ready, onDone }) {
   const [fading, setFading] = useState(false)
 
+  // Fades out as soon as auth is actually ready, instead of always waiting
+  // out a fixed 2.5s regardless of how fast (or slow) Clerk resolves --
+  // that fixed floor was pure added latency on a fast connection, and on a
+  // slow one it left a blank white gap between the splash's own fade and
+  // the app underneath actually being ready. onDone fires after the fade
+  // transition finishes, not on an independent timer.
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setFading(true), 2000)
-    const doneTimer = setTimeout(onDone, 2500)
-    return () => { clearTimeout(fadeTimer); clearTimeout(doneTimer) }
-  }, [onDone])
+    if (!ready) return
+    setFading(true)
+    const doneTimer = setTimeout(onDone, 500)
+    return () => clearTimeout(doneTimer)
+  }, [ready, onDone])
 
   return (
     <div style={{
@@ -78,14 +85,14 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [isLoaded])
 
-  // Show splash until both the timer AND Clerk are ready (or Clerk timed out)
-  const ready = splashDone && (isLoaded || clerkTimedOut)
+  const authReady = isLoaded || clerkTimedOut
+  const ready = splashDone
 
   // Boundary wraps both branches so it also catches crashes during splash.
   return (
     <ErrorBoundary>
       {!ready
-        ? <SplashScreen onDone={() => setSplashDone(true)} />
+        ? <SplashScreen ready={authReady} onDone={() => setSplashDone(true)} />
         : <RiplyApp clerkTimedOut={clerkTimedOut} />}
     </ErrorBoundary>
   )

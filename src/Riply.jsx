@@ -14360,9 +14360,12 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
         // centered mark on screen, instead of a plain C.pageBg rectangle --
         // that mismatched gray plus zero content was the "flash to a blank
         // screen" between splash fading out and Home actually being ready.
+        // Logo size (660x330) also matches App.jsx's SplashScreen exactly --
+        // it previously shrank to 220x110 here, which read as the app
+        // "reloading" with a smaller icon rather than one continuous splash.
         <div style={{ width:'100%', height:'100%', background:C.card,
                       display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <img src="/logo.png" alt="" aria-hidden="true" style={{ width:220, height:110, objectFit:'contain', opacity:0.9 }}/>
+          <img src="/logo.png" alt="" aria-hidden="true" style={{ width:660, height:330, objectFit:'contain', opacity:0.9 }}/>
         </div>
       );
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;

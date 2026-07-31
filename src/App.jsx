@@ -1,4 +1,4 @@
-import { useState, useEffect, Component } from 'react'
+import { useState, useEffect, useCallback, Component } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import RiplyApp from './Riply.jsx'
 
@@ -93,12 +93,17 @@ export default function App() {
 
   const authReady = isLoaded || clerkTimedOut
   const ready = splashDone
+  // Stable across renders -- an inline arrow function here would give
+  // SplashScreen's effect a new onDone reference on every App re-render
+  // (e.g. clerkTimedOut flipping), re-running the effect and restarting
+  // the fade/dismiss timer even after auth was already ready.
+  const handleSplashDone = useCallback(() => setSplashDone(true), [])
 
   // Boundary wraps both branches so it also catches crashes during splash.
   return (
     <ErrorBoundary>
       {!ready
-        ? <SplashScreen ready={authReady} onDone={() => setSplashDone(true)} />
+        ? <SplashScreen ready={authReady} onDone={handleSplashDone} />
         : <RiplyApp clerkTimedOut={clerkTimedOut} />}
     </ErrorBoundary>
   )

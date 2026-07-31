@@ -1435,13 +1435,17 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                   </div>
                 )}
                 <SwipeToDeleteRow onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
-                <div onClick={() => markRead(n.id)} role="button" tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markRead(n.id); } }}
-                  style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
+                <div style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
                            boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
-                           cursor:'pointer', position:'relative',
+                           position:'relative',
                            borderLeft: n.read ? 'none' : `3px solid ${C.primary}` }}>
-                  <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                  {/* A separate sibling button for delete (not nested inside
+                      this one) -- nesting interactive controls, even via
+                      role="button" on a div, breaks assistive-tech semantics. */}
+                  <button onClick={() => markRead(n.id)}
+                    style={{ display:'flex', gap:12, alignItems:'flex-start', width:'100%',
+                             border:'none', background:'none', padding:0, paddingRight:34, textAlign:'left', cursor:'pointer',
+                             font:'inherit', color:'inherit' }}>
                     <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color,
                                   display:'flex', alignItems:'center', justifyContent:'center',
                                   color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
@@ -1452,11 +1456,11 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                       <div style={{ fontSize:13, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
                       <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
                     </div>
-                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
-                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
-                      <button onClick={e => { e.stopPropagation(); deleteNotification(n.id); }}
-                        style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
-                    </div>
+                  </button>
+                  <div style={{ position:'absolute', top:14, right:14, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+                    <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
+                    <button onClick={() => deleteNotification(n.id)} aria-label={`Delete notification: ${n.title}`}
+                      style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
                   </div>
                 </div>
                 </SwipeToDeleteRow>
@@ -3112,7 +3116,12 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
           the live fetch is in flight or if the event's since been deleted. */}
       {p.linked_event_title && (() => {
         const rawDate = linkedEventInfo?.full_date || linkedEventInfo?.date;
-        const d = rawDate ? new Date(rawDate) : null;
+        // A bare "YYYY-MM-DD" value parses as UTC midnight, which reads as
+        // the previous day for anyone west of UTC -- pin it to local
+        // midnight instead. Full timestamps parse as-is.
+        const d = rawDate
+          ? (/^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? new Date(`${rawDate}T00:00:00`) : new Date(rawDate))
+          : null;
         const validDate = d && !isNaN(d);
         const month = validDate ? d.toLocaleDateString('en-US', { month:'short' }).toUpperCase() : null;
         const day = validDate ? d.getDate() : null;

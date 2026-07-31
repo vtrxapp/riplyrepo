@@ -697,8 +697,8 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
   const hasMyEvents = !!myEventIds && myEventIds.size > 0;
 
   const CATS = [
-    {id:'all',label:'All'},
     ...(hasMyEvents ? [{id:'mine',label:'My Events'}] : []),
+    {id:'all',label:'All'},
     {id:'thisweek',label:'This Week'},{id:'new',label:'New'},
     ...APP_CATEGORIES.map(c => ({ id:c.id, label:c.label })),
   ];
@@ -866,12 +866,12 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                 {/* Metrics */}
                 <div style={{ display:'flex', alignItems:'center', gap:18 }}>
                   <button onClick={()=>toggleLike(ev.id)} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill={isLiked?'#FF3B6B':'rgba(0,0,0,0)'} stroke={isLiked?'#FF3B6B':C.ink} strokeWidth="1.8" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:isLiked?'#FF3B6B':C.ink }}>{fmt(ev.likes+(isLiked?1:0))}</span>
+                    <svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z" fill={isLiked?'#FF3B6B':'rgba(0,0,0,0)'} stroke={isLiked?'#FF3B6B':C.ink} strokeWidth="1.9" strokeLinejoin="round"/></svg>
+                    <span style={{ fontSize:12, fontWeight:400, color:isLiked?'#FF3B6B':C.ink }}>{fmt(ev.likes+(isLiked?1:0))}</span>
                   </button>
                   <button onClick={()=>toggleSave(ev.id)} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill={isSaved?'#0098F0':'rgba(0,0,0,0)'} stroke={isSaved?'#0098F0':C.ink} strokeWidth="1.7" strokeLinejoin="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:isSaved?C.primary:C.ink }}>{fmt(ev.saves+(isSaved?1:0))}</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" fill={isSaved?'#0098F0':'rgba(0,0,0,0)'} stroke={isSaved?'#0098F0':C.ink} strokeWidth="1.9" strokeLinejoin="round"/></svg>
+                    <span style={{ fontSize:12, fontWeight:400, color:isSaved?C.primary:C.ink }}>{fmt(ev.saves+(isSaved?1:0))}</span>
                   </button>
                   <button onClick={async (e) => {
                     e.stopPropagation();
@@ -892,17 +892,17 @@ function HomeScreen({ liked, toggleLike, saved, toggleSave, shared, recordShare,
                     if (didShare) recordShare(ev.id);
                   }} style={{ display:'flex', alignItems:'center', gap:6, border:'none', background:'none', padding:0, cursor:'pointer' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-                      <circle cx="18" cy="5" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
-                      <circle cx="6" cy="12" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
-                      <circle cx="18" cy="19" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
-                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
-                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.8"/>
+                      <circle cx="18" cy="5" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.9"/>
+                      <circle cx="6" cy="12" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.9"/>
+                      <circle cx="18" cy="19" r="3" fill={isSharedEv ? '#FF8A3D' : 'none'} stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.9"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.9"/>
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={isSharedEv ? '#FF8A3D' : C.ink} strokeWidth="1.9"/>
                     </svg>
-                    <span style={{ fontSize:11, fontWeight:700, color: isSharedEv ? '#FF8A3D' : C.ink }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
+                    <span style={{ fontSize:12, fontWeight:400, color: isSharedEv ? '#FF8A3D' : C.ink }}>{fmt((ev.shares || 0) + (isSharedEv ? 1 : 0))}</span>
                   </button>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:'auto' }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.8"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/></svg>
-                    <span style={{ fontSize:11, fontWeight:700, color:C.ink }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.ink, fontWeight:500 }}>going</span></span>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8.5" r="3" stroke={C.ink} strokeWidth="1.9"/><path d="M3.5 19c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5" stroke={C.ink} strokeWidth="1.9" strokeLinecap="round"/><path d="M16 6a3 3 0 0 1 0 5.5M17 14.6c2.6.3 4.5 1.8 4.5 4.4" stroke={C.ink} strokeWidth="1.9" strokeLinecap="round"/></svg>
+                    <span style={{ fontSize:12, fontWeight:400, color:C.ink }}>{(ev.attendee_count || ev.attendees) ? fmt(ev.attendee_count || ev.attendees) : '-'} <span style={{ color:C.ink, fontWeight:400 }}>going</span></span>
                   </div>
                 </div>
               </div>
@@ -946,8 +946,8 @@ function SpacesScreen({ spaceTab, setSpaceTab, spaceJoined, setSpaceJoined, spac
   // the user's only space -- check for a truthy entry instead.
   const hasMySpaces = Object.values(spaceJoined || {}).some(Boolean);
   const TABS = [
-    {id:'all',label:'All'},
     ...(hasMySpaces ? [{id:'mine',label:'My Spaces'}] : []),
+    {id:'all',label:'All'},
     {id:'today',label:'Today'},{id:'tomorrow',label:'Tomorrow'},{id:'academic',label:'Academic'},{id:'social',label:'Social'},{id:'sports',label:'Sports'},
   ];
   const [spaceQuery, setSpaceQuery] = useState('');
@@ -1137,8 +1137,8 @@ function DiscoverScreen({ discoverTab, setDiscoverTab, groupJoined, setGroupJoin
   // entry to false rather than deleting it, so this needs a truthy check.
   const hasMyGroups = Object.values(groupJoined || {}).some(Boolean);
   const TABS = [
-    {id:'all',label:'All'},
     ...(hasMyGroups ? [{id:'mine',label:'My Groups'}] : []),
+    {id:'all',label:'All'},
     {id:'culture',label:'Culture'},{id:'religion',label:'Religion'},{id:'social',label:'Social'},{id:'academic',label:'Academic'},{id:'sports',label:'Sports'},
   ];
   const [discoverQuery, setDiscoverQuery] = useState('');
@@ -1283,6 +1283,18 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
   const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = chatsData;
   const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification, refetch: refetchNotifs } = notifs;
   const { groupActivity, loading: groupActivityLoading, markGroupRead, refetch: refetchGroupActivity } = groupActivityData;
+  // groupActivity rows are also rendered under the Notifications tab, so
+  // their missed-post counts need to fold into the same badge/mark-all-read
+  // state as notifs.unreadCount -- otherwise an unread group post shows no
+  // badge at all, and "Mark all as read" leaves it unread.
+  const groupUnreadCount = groupActivity.reduce((sum, a) => sum + (a.missedCount || 0), 0);
+  const totalUnreadCount = unreadCount + groupUnreadCount;
+  const markAllReadIncludingGroups = async () => {
+    await Promise.all([
+      markAllRead(),
+      ...groupActivity.filter(a => a.missedCount > 0).map(a => markGroupRead(a.groupId)),
+    ]);
+  };
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
 
@@ -1322,12 +1334,12 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
         <div style={{ display:'flex', gap:26, marginBottom:11 }}>
           <button onClick={()=>setMsgTab('notifications')} style={isNotif?activeTabStyle:idleTabStyle}>
             Notifications
-            {unreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:10, fontWeight:800, verticalAlign:'middle' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            {totalUnreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:10, fontWeight:800, verticalAlign:'middle' }}>{totalUnreadCount > 99 ? '99+' : totalUnreadCount}</span>}
           </button>
           <button onClick={()=>setMsgTab('chats')} style={isNotif?idleTabStyle:activeTabStyle}>Chats</button>
         </div>
         {searchOpen && !isNotif && (
-          <div style={{ marginTop:12 }}>
+          <div style={{ marginTop:12, marginBottom:16 }}>
             <SearchBar placeholder="Search chats…" value={chatQuery} onChange={e=>setChatQuery(e.target.value)} />
           </div>
         )}
@@ -1339,8 +1351,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
         {isNotif ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {/* Mark all read */}
-            {unreadCount > 0 && (
-              <button onClick={markAllRead} style={{ alignSelf:'flex-end', border:'none', background:'none', fontSize:11, fontWeight:700, color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", padding:'2px 0' }}>
+            {totalUnreadCount > 0 && (
+              <button onClick={markAllReadIncludingGroups} style={{ alignSelf:'flex-end', border:'none', background:'none', fontSize:11, fontWeight:700, color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", padding:'2px 0' }}>
                 Mark all as read
               </button>
             )}
@@ -1361,17 +1373,33 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                     }
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                      <span style={{ fontSize:13, fontWeight:800, color:C.ink }}>{a.name}</span>
-                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{a.time}</span>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:5 }}>
-                      {a.missedCount > 0 && (
-                        <span style={{ display:'flex', alignItems:'center', justifyContent:'center', minWidth:22, height:22, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, flexShrink:0 }}>
-                          {a.missedCount > 99 ? '99+' : a.missedCount}
-                        </span>
-                      )}
-                      <span style={{ fontSize:11, lineHeight:1.4, color: a.missedCount > 0 ? C.primary : '#7B8499', fontWeight: a.missedCount > 0 ? 700 : 500, fontStyle: a.missedCount > 0 ? 'italic' : 'normal', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{a.name}</div>
+                    {a.description && (
+                      <div style={{ fontSize:11.5, fontWeight:500, color:'#7B8499', marginTop:2,
+                                    lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:2,
+                                    WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                        {a.description}
+                      </div>
+                    )}
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8 }}>
+                      <div style={{ position:'relative', flexShrink:0 }}>
+                        <div style={{ width:32, height:32, borderRadius:'50%', background:'#F1F3F7',
+                                      display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z" stroke={C.ink} strokeWidth="1.8" strokeLinejoin="round"/>
+                            <path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                        {a.missedCount > 0 && (
+                          <span style={{ position:'absolute', top:-3, right:-3, display:'flex', alignItems:'center',
+                                         justifyContent:'center', minWidth:18, height:18, padding:'0 4px',
+                                         borderRadius:999, background:C.primary, color:'#fff', fontSize:10,
+                                         fontWeight:700, border:'2px solid '+(a.missedCount > 0 ? '#F0F8FF' : C.card) }}>
+                            {a.missedCount > 99 ? '99+' : a.missedCount}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ flex:1, minWidth:0, fontSize:11.5, lineHeight:1.4, color: a.missedCount > 0 ? C.primary : '#7B8499', fontStyle:'italic', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                         {a.preview}
                       </span>
                     </div>
@@ -1395,14 +1423,29 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                 <div style={{ fontSize:14, fontWeight:700, color:C.ink }}>All caught up</div>
                 <div style={{ fontSize:12, color:C.subtle, marginTop:6 }}>No notifications yet</div>
               </div>
-            ) : notifications.map(n => (
-              <SwipeToDeleteRow key={n.id} onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
-                <div onClick={() => markRead(n.id)}
-                  style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
+            ) : notifications.map((n, i) => {
+              const prev = notifications[i - 1];
+              const showDateHeader = !prev || new Date(prev.created_at).toDateString() !== new Date(n.created_at).toDateString();
+              return (
+              <Fragment key={n.id}>
+                {showDateHeader && (
+                  <div style={{ fontSize:11, fontWeight:800, color:'#7B8499', textTransform:'uppercase',
+                                letterSpacing:0.4, margin: i===0 ? '0 0 8px 2px' : '18px 0 8px 2px' }}>
+                    {formatDateSeparator(n.created_at)}
+                  </div>
+                )}
+                <SwipeToDeleteRow onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
+                <div style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
                            boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
-                           cursor:'pointer', position:'relative',
+                           position:'relative',
                            borderLeft: n.read ? 'none' : `3px solid ${C.primary}` }}>
-                  <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                  {/* A separate sibling button for delete (not nested inside
+                      this one) -- nesting interactive controls, even via
+                      role="button" on a div, breaks assistive-tech semantics. */}
+                  <button onClick={() => markRead(n.id)}
+                    style={{ display:'flex', gap:12, alignItems:'flex-start', width:'100%',
+                             border:'none', background:'none', padding:0, paddingRight:34, textAlign:'left', cursor:'pointer',
+                             font:'inherit', color:'inherit' }}>
                     <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0, background:n.color,
                                   display:'flex', alignItems:'center', justifyContent:'center',
                                   color:'#fff', fontSize:16, position:'relative', overflow:'hidden' }}>
@@ -1413,15 +1456,17 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                       <div style={{ fontSize:13, fontWeight: n.read ? 700 : 800, color:C.ink }}>{n.title}</div>
                       <div style={{ fontSize:11, lineHeight:1.45, color:'#7B8499', marginTop:3 }}>{n.body}</div>
                     </div>
-                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
-                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
-                      <button onClick={e => { e.stopPropagation(); deleteNotification(n.id); }}
-                        style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
-                    </div>
+                  </button>
+                  <div style={{ position:'absolute', top:14, right:14, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+                    <span style={{ fontSize:9, color:C.subtle, fontWeight:600 }}>{n.time}</span>
+                    <button onClick={() => deleteNotification(n.id)} aria-label={`Delete notification: ${n.title}`}
+                      style={{ border:'none', background:'none', cursor:'pointer', padding:2, color:C.subtle, fontSize:14, lineHeight:1 }}>×</button>
                   </div>
                 </div>
-              </SwipeToDeleteRow>
-            ))}
+                </SwipeToDeleteRow>
+              </Fragment>
+              );
+            })}
           </div>
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
@@ -1457,7 +1502,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                      <span style={{ fontSize:13, fontWeight:800, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
+                      <span style={{ fontSize:14, fontWeight:600, color:C.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
                       <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{c.time}</span>
                     </div>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginTop:3 }}>
@@ -1467,13 +1512,13 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                             the last message" from "they did" without opening the chat. */}
                         {c.lastMessageIsMine && (
                           <svg width="14" height="10" viewBox="0 0 16 11" fill="none" style={{ flexShrink:0 }}>
-                            <path d="M1 5.5 4.5 9 11 1.5" stroke="#8A93A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                            <path d="M5.5 5.5 9 9 15.5 1.5" stroke="#8A93A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M1 5.5 4.5 9 11 1.5" stroke="#8A93A6" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M5.5 5.5 9 9 15.5 1.5" stroke="#8A93A6" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
                         )}
                         <span style={{ fontSize:11, color: c.unread?C.body:'#8A93A6', fontWeight: c.unread?700:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.preview}</span>
                       </span>
-                      {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
+                      {c.unread && <span style={{ flexShrink:0, minWidth:20, height:20, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:12, fontWeight:400, display:'flex', alignItems:'center', justifyContent:'center' }}>{c.unreadCount}</span>}
                     </div>
                   </div>
                 </div>
@@ -1572,6 +1617,9 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const isGroupAdminHere = selectedGroup?.myRole === 'admin' || selectedGroup?.myRole === 'owner';
   const membersCanPost = selectedGroup?.permissions?.membersPost !== false;
   const postingLocked = !!selectedGroup && !isGroupAdminHere && !membersCanPost;
+  // Admins' own posts always go live immediately -- "Approve posts first"
+  // only holds back the members whose posting it was meant to review.
+  const needsApproval = !!selectedGroup && !isGroupAdminHere && selectedGroup?.permissions?.requireApproval === true;
 
   const handlePost = async () => {
     if (!canPost) {
@@ -1582,7 +1630,13 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     if (postingLocked) { showToast('Only admins can post in this group'); return; }
     if (photosUploading) { showToast('Photos are still uploading'); return; }
     setPosting(true);
-    const authorName = currentUser.name || user?.username || 'Member';
+    // A group admin posting into their own group reads as the group itself,
+    // not their personal account — same attribution the auto-generated
+    // event-alert post already uses (see CreateEventScreen further down).
+    const postingAsGroup = isGroupAdminHere && selectedGroup;
+    const authorName = postingAsGroup
+      ? (selectedGroup.name || 'Group')
+      : (currentUser.name || user?.username || 'Member');
 
     // Build insert payload — only include extra columns if we have values,
     // so missing columns don't cause failures when SQL hasn't been run yet
@@ -1594,9 +1648,11 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       likes_count:    0,
       comment_count:  0,
       author_name:    authorName,
-      author_initial: authorName[0]?.toUpperCase() || 'M',
-      author_color:   currentUser?.avatarColor || deriveAvatarColor(user?.id || ''),
-      avatar_url:     currentUser?.avatarUrl || null,
+      author_initial: authorName[0]?.toUpperCase() || (postingAsGroup ? 'G' : 'M'),
+      author_color:   postingAsGroup ? (selectedGroup.logo_color || deriveAvatarColor(selectedGroupId)) : (currentUser?.avatarColor || deriveAvatarColor(user?.id || '')),
+      avatar_url:     postingAsGroup ? (selectedGroup.avatar_url || null) : (currentUser?.avatarUrl || null),
+      author_is_group: !!postingAsGroup,
+      status:         needsApproval ? 'pending' : 'published',
     };
     if (uploadedImageUrls.length) {
       payload.image_url = uploadedImageUrls[0];
@@ -1617,7 +1673,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     const { error } = await supabase.from('posts').insert(payload);
     setPosting(false);
     if (error) { showToast('Failed to post: ' + error.message); return; }
-    showToast(`Posted to ${selectedGroup?.name || 'group'}`);
+    showToast(needsApproval ? 'Submitted for admin approval' : `Posted to ${selectedGroup?.name || 'group'}`);
     goBack();
   };
 
@@ -2836,6 +2892,20 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
   const isOwner = !!(currentUser?.userId && p.user_id === currentUser.userId);
   const canModerate = isOwner || isGroupAdmin;
 
+  // Live event details for the linked-event card -- reads the event's
+  // current date/time/location/photo rather than the snapshot strings
+  // stored on the post at link time, so an event that's since been
+  // rescheduled shows correctly here too.
+  const [linkedEventInfo, setLinkedEventInfo] = useState(null);
+  useEffect(() => {
+    if (!p.linked_event_id) { setLinkedEventInfo(null); return; }
+    let cancelled = false;
+    supabase.from('events').select('date, full_date, start_time, time_range, location, venue, image_url')
+      .eq('id', p.linked_event_id).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setLinkedEventInfo(data || null); });
+    return () => { cancelled = true; };
+  }, [p.linked_event_id]);
+
   const handleDeletePost = async () => {
     setShowOptions(false);
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
@@ -2954,6 +3024,12 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
           </div>
           <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{p.time}</div>
         </div>
+        {p.status === 'pending' && (
+          <div style={{ flexShrink:0, marginRight:6, padding:'3px 9px', borderRadius:999,
+                        background:'#FFF6EC', color:'#B45309', fontSize:10.5, fontWeight:800 }}>
+            Pending approval
+          </div>
+        )}
         {p.is_pinned && (
           <div style={{ display:'flex', alignItems:'center', gap:4, marginRight:6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -3043,6 +3119,59 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         );
       })()}
 
+      {/* Linked event card -- date badge + title + location/time, tapping
+          through to the real Event Details screen. Prefers the event's live
+          date/time/location (linkedEventInfo) over the snapshot strings
+          stored on the post at link time, falling back to those only while
+          the live fetch is in flight or if the event's since been deleted. */}
+      {p.linked_event_title && (() => {
+        const rawDate = linkedEventInfo?.full_date || linkedEventInfo?.date;
+        // A bare "YYYY-MM-DD" value parses as UTC midnight, which reads as
+        // the previous day for anyone west of UTC -- pin it to local
+        // midnight instead. Full timestamps parse as-is.
+        const d = rawDate
+          ? (/^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? new Date(`${rawDate}T00:00:00`) : new Date(rawDate))
+          : null;
+        const validDate = d && !isNaN(d);
+        const month = validDate ? d.toLocaleDateString('en-US', { month:'short' }).toUpperCase() : null;
+        const day = validDate ? d.getDate() : null;
+        const timeStr = linkedEventInfo?.time_range ? fmtRange(linkedEventInfo.time_range)
+          : linkedEventInfo?.start_time ? fmt12(linkedEventInfo.start_time)
+          : p.linked_event_time || null;
+        const locationStr = linkedEventInfo?.location || linkedEventInfo?.venue || null;
+        const subtitle = [locationStr, timeStr].filter(Boolean).join(' · ') || p.linked_event_date || '';
+        return (
+          <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
+            style={{ display:'flex', alignItems:'center', gap:14, marginTop:11, width:'100%',
+                     background:'#F1F3F7', border:'none', borderRadius:18, padding:12, cursor:'pointer', textAlign:'left' }}>
+            <div style={{ flexShrink:0, width:56, height:56, borderRadius:14, background:'#7C5CFF',
+                          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+              {validDate ? (
+                <>
+                  <span style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.85)', letterSpacing:0.4 }}>{month}</span>
+                  <span style={{ fontSize:22, fontWeight:800, color:'#fff', lineHeight:1.1 }}>{day}</span>
+                </>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="1.9"/>
+                  <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+                </svg>
+              )}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:15, fontWeight:800, color:C.ink, fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {p.linked_event_title}
+              </div>
+              {subtitle && (
+                <div style={{ fontSize:12.5, fontWeight:500, color:C.subtle, fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {subtitle}
+                </div>
+              )}
+            </div>
+          </button>
+        );
+      })()}
+
       {/* Image(s) — a multi-photo post scrolls horizontally in one row, each
           photo's own width following its own aspect ratio at a shared row
           height, so nothing gets cropped and a wide photo just takes more
@@ -3107,30 +3236,6 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         </a>
       )}
 
-      {/* Linked event chip */}
-      {p.linked_event_title && (
-        <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
-          style={{ display:'flex', alignItems:'center', gap:10, marginTop:10, width:'100%',
-                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:20, padding:'10px 12px', cursor:'pointer' }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-            <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
-            <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
-          </svg>
-          <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
-            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-              {p.linked_event_title}
-            </div>
-            {(p.linked_event_date || p.linked_event_time) && (
-              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:2 }}>
-                {[p.linked_event_date, p.linked_event_time].filter(Boolean).join(' · ')}
-              </div>
-            )}
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-            <path d="M9 6l6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
 
       {/* Like / Comment / Share */}
       <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13 }}>
@@ -3440,7 +3545,13 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
 // ─────────────────────────────────────────────────────────────
 // SCREEN: GROUP PROFILE  (public & private)
 // ─────────────────────────────────────────────────────────────
-function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, recordPostShare, goBack, navigate, showToast, currentUser, markGroupRead, unreadChatCount, unreadPostCount, groupJoined, setGroupJoined }) {
+function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, recordPostShare, goBack, navigate, showToast, currentUser, markGroupRead, chats, unreadPostCount, groupJoined, setGroupJoined }) {
+  // The admin-facing chat icon should reflect this group's own admin/UMSU-support
+  // thread specifically (chats.group_id), not the admin's unrelated personal DM
+  // unread count -- otherwise it lit up for messages that have nothing to do
+  // with this group.
+  const groupThreadChat = chats?.find(c => c.group_id === groupId) || null;
+  const groupThreadUnread = groupThreadChat?.unreadCount || 0;
   // Opening a group's feed counts as seeing its posts, so the group
   // activity row in Notifications stops counting them as missed.
   useEffect(() => { markGroupRead?.(groupId); }, [groupId, markGroupRead]);
@@ -3600,6 +3711,21 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
   const g = dbGroup || staticG;
   const { posts: livePosts, loading: postsLoading, deletePost, togglePinPost } = usePosts(groupId);
 
+  // Real admin name for the private-group "Group Details" card -- it
+  // previously showed a hardcoded "Emma Thompson" regardless of who
+  // actually admins the group.
+  const [groupAdminName, setGroupAdminName] = useState(null);
+  useEffect(() => {
+    if (!g.admin_id) {
+      const frame = requestAnimationFrame(() => setGroupAdminName(null));
+      return () => cancelAnimationFrame(frame);
+    }
+    let cancelled = false;
+    supabase.from('users').select('name').eq('id', g.admin_id).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setGroupAdminName(data?.name || null); });
+    return () => { cancelled = true; };
+  }, [g.admin_id]);
+
 
   const [joinState,  setJoinState]  = useState(staticG.state || "join");
   const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
@@ -3664,7 +3790,14 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
   const isJoined     = joinState === 'joined';
   const isRequested  = joinState === 'requested';
   const canSee       = isJoined || (g.state || "join") === 'joined';
-  const mediaImages  = useMemo(() => livePosts.filter(p => p.image_url), [livePosts]);
+  // A post held for "Approve posts first" only shows to its own author
+  // (so they know it's awaiting review) and to admins (who approve it from
+  // the Pending Requests screen) -- everyone else shouldn't see it in the
+  // feed until it's published.
+  const visiblePosts = useMemo(() => livePosts.filter(p =>
+    p.status !== 'pending' || isGroupAdmin || p.user_id === currentUser?.userId
+  ), [livePosts, isGroupAdmin, currentUser?.userId]);
+  const mediaImages  = useMemo(() => visiblePosts.filter(p => p.image_url), [visiblePosts]);
 
   // Guards against a rapid second click launching the opposite mutation
   // (e.g. Join immediately followed by Leave) while the first is in flight.
@@ -3943,23 +4076,29 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
               </svg>
             </button>
 
-            {/* Messages */}
-            <button onClick={() => navigate('messages')} style={{
+            {/* Messages — opens this group's own admin/support thread directly
+                rather than the generic Messages tab, and its badge reflects
+                only that thread's unread state (e.g. UMSU support replying),
+                not the admin's unrelated personal DMs. */}
+            <button onClick={() => groupThreadChat
+              ? navigate('chat', { chatId: groupThreadChat.id, chatName: groupThreadChat.name, chatInitial: groupThreadChat.initial, chatColor: groupThreadChat.color, chatAvatarUrl: groupThreadChat.avatar_url, isGroup: true })
+              : navigate('messages')
+            } style={{
               position:'relative', width:46, height:46, border:'none',
               borderRadius:'50%', flexShrink:0, background:'#fff', cursor:'pointer',
               display:'flex', alignItems:'center', justifyContent:'center',
             }}>
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
-                      fill={unreadChatCount > 0 ? C.primary : 'none'}
-                      stroke={unreadChatCount > 0 ? C.primary : C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+                      fill={groupThreadUnread > 0 ? C.primary : 'none'}
+                      stroke={groupThreadUnread > 0 ? C.primary : C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              {unreadChatCount > 0 && (
+              {groupThreadUnread > 0 && (
                 <span style={{ position:'absolute', top:-2, right:-2, minWidth:18, height:18,
                                padding:'0 4px', borderRadius:999, background:'#FF3B6B',
                                color:'#fff', fontSize:10, fontWeight:800,
                                display:'flex', alignItems:'center', justifyContent:'center',
-                               border:'2px solid #F4F6FA' }}>{unreadChatCount > 99 ? '99+' : unreadChatCount}</span>
+                               border:'2px solid #F4F6FA' }}>{groupThreadUnread > 99 ? '99+' : groupThreadUnread}</span>
               )}
             </button>
           </>
@@ -4095,11 +4234,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                 },
                 {
                   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7B8499" strokeWidth="1.8"/><path d="M12 7.5V12l3 2" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-                  label:'Created', val:'March 2023', valColor:C.body,
+                  label:'Created', val: g.created_at ? new Date(g.created_at).toLocaleDateString('en-US', { month:'long', year:'numeric' }) : '—', valColor:C.body,
                 },
                 {
                   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#7B8499" strokeWidth="1.8"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-                  label:'Admin', val:'Emma Thompson', valColor:C.body,
+                  label:'Admin', val: groupAdminName || '—', valColor:C.body,
                 },
               ].map((row,i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:11,
@@ -4199,9 +4338,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
 
                 {postsLoading ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>Loading posts…</div>
-                ) : livePosts.length === 0 ? (
+                ) : visiblePosts.length === 0 ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
-                ) : livePosts.map((p) => (
+                ) : visiblePosts.map((p) => (
                   <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} currentUser={currentUser} showToast={showToast}
                     navigate={navigate} isGroupAdmin={isGroupAdmin} deletePost={deletePost} togglePinPost={togglePinPost} />
                 ))}
@@ -4211,7 +4350,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
               {/* EVENTS */}
               {activeTab === 'events' && (
                 <>
-                {isJoined && (
+                {isGroupAdmin && (
                   <button onClick={() => navigate('create-event', { groupId })}
                     style={{ width:'100%', height:44, border:`1.5px dashed ${C.primary}`, borderRadius:14,
                              background:'rgba(2,162,240,0.05)', color:C.primary, fontSize:13,
@@ -4413,9 +4552,8 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
           display:'flex', alignItems:'center', justifyContent:'center',
           cursor:'pointer', boxShadow:'0 10px 24px rgba(2,162,240,0.45)', zIndex:6,
         }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M5 19h3l9-9-3-3-9 9v3Z" stroke="#fff" strokeWidth="1.9" strokeLinejoin="round"/>
-            <path d="m14.5 6.5 3 3" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
           </svg>
         </button>
       )}
@@ -4437,9 +4575,23 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
               { label: notifyOn ? 'Turn off notifications' : 'Turn on notifications',
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z" stroke={C.body} strokeWidth="1.9" strokeLinejoin="round"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/></svg>,
                 action: () => { setNotifyOn(v => !v); showToast(notifyOn ? 'Notifications off' : 'Notifications on'); setShowOptionsSheet(false); } },
-              { label:'Share Group',
+              // "Members can invite" only governs members, not the group's own
+              // admins/owners -- and non-members browsing a public group can
+              // always share it regardless of the toggle.
+              ...((!isJoined || isGroupAdmin || g.permissions?.allowInvites !== false) ? [{ label:'Share Group',
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/><path d="M16 6l-4-4-4 4M12 2v13" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-                action: () => { if (navigator.share) { navigator.share({ title: g.name, text: g.description || '' }); } else { showToast('Link copied!'); } setShowOptionsSheet(false); } },
+                action: async () => {
+                  const shareData = { title: g.name, text: g.description || `Check out ${g.name} on Riply`, url: window.location.href };
+                  if (navigator.share) {
+                    try { await navigator.share(shareData); } catch {}
+                  } else {
+                    try {
+                      await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                      showToast('Group link copied to clipboard');
+                    } catch { showToast('Could not share'); }
+                  }
+                  setShowOptionsSheet(false);
+                } }] : []),
               ...(isJoined ? [{ label:'Leave Group', danger:true,
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
                 action: async () => {
@@ -4476,7 +4628,7 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
 // ─────────────────────────────────────────────────────────────
 // SCREEN: EVENT DETAILS
 // ─────────────────────────────────────────────────────────────
-function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, navigate, goBack, showToast, role }) {
+function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, shared, recordShare, navigate, goBack, showToast, role, currentUser }) {
   // useEvent() already resolves the organizer correctly (group name/avatar
   // when the event is group-linked, else the creator's own profile) via the
   // same attachUserProfiles() used everywhere else -- this screen used to
@@ -4499,6 +4651,27 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
     supabase.rpc('increment_event_views', { event_id_arg: eventId })
       .then(({ error }) => { if (error) console.debug('[event-view] increment_event_views failed', error); });
   }, [eventId]);
+
+  // The Zoom/meeting link only appears once a ticket is actually purchased
+  // -- same "do I hold a ticket" query HomeScreen uses for myEventIds,
+  // scoped to just this one event, and also true for the event's own
+  // organizer (who never needs to buy a ticket to their own event).
+  const [hasTicket, setHasTicket] = useState(false);
+  useEffect(() => {
+    if (!eventId || !currentUser?.userId) {
+      const frame = requestAnimationFrame(() => setHasTicket(false));
+      return () => cancelAnimationFrame(frame);
+    }
+    let cancelled = false;
+    supabase.from('tickets').select('id').eq('event_id', eventId).eq('user_id', currentUser.userId).limit(1)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) { console.error('[event-details] failed to check ticket ownership:', error); return; }
+        setHasTicket((data || []).length > 0);
+      });
+    return () => { cancelled = true; };
+  }, [eventId, currentUser?.userId]);
+  const canSeeMeetingLink = hasTicket || (!!currentUser?.userId && currentUser.userId === dbEvent?.user_id);
 
   // Real "You may also like": other published events in the same category,
   // not the static mock EVENTS array (which always surfaced whatever mock
@@ -4756,11 +4929,16 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
                 </div>
                 {/* Re-validated at render time (not just at save time) so a
                     legacy row saved before link validation existed can't
-                    produce an unsafe href here. */}
-                {!parseMeetingUrl(ev.meeting_link) && (
+                    produce an unsafe href here. The link itself is only
+                    exposed once a ticket is purchased -- everyone else sees
+                    a locked message instead. */}
+                {!canSeeMeetingLink && (
+                  <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link shared after you get a ticket</div>
+                )}
+                {canSeeMeetingLink && !parseMeetingUrl(ev.meeting_link) && (
                   <div style={{ fontSize:11, color:'#6B7385', marginTop:1 }}>Link not available yet</div>
                 )}
-                {parseMeetingUrl(ev.meeting_link) && (
+                {canSeeMeetingLink && parseMeetingUrl(ev.meeting_link) && (
                   <a href={ev.meeting_link} target="_blank" rel="noopener noreferrer" style={{
                     marginTop:10, display:'flex', alignItems:'center', justifyContent:'center',
                     height:40, borderRadius:10, background:C.primary, color:'#fff',
@@ -5169,7 +5347,11 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
           if (err?.code === 'PGRST116') evictCached('space', spaceId);
           return;
         }
-        if (data.host_id) {
+        // A group-attributed space (host_is_group) keeps the group's
+        // name/avatar/color it was created with -- refreshing from the
+        // admin's personal users row here would overwrite it right back to
+        // their personal identity on every load.
+        if (data.host_id && !data.host_is_group) {
           const { data: u } = await supabase.from('users').select('name,avatar_url,avatar_color').eq('id', data.host_id).single();
           if (cancelled) return;
           if (u) {
@@ -5186,11 +5368,9 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
   }, [spaceId]);
   const sp = dbSpace || SPACES.find(s => s.id === spaceId) || null;
   const [joined,   setJoined]   = useState(false);
-  const [liked,    setLiked]    = useState(false);
   const [followed, setFollowed] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [realParticipants, setRealParticipants] = useState([]);
 
   useEffect(() => {
@@ -5307,13 +5487,6 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
                   stroke={spaceSaved?.[spaceId] ? C.primary : '#39414F'} strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         </HeaderBtn>
-        <HeaderBtn onClick={() => setLiked(v => !v)}>
-          <svg width="17" height="17" viewBox="0 0 24 24">
-            <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5Z"
-                  fill={liked ? '#FF3B6B' : 'rgba(0,0,0,0)'}
-                  stroke={liked ? '#FF3B6B' : '#39414F'} strokeWidth="1.8" strokeLinejoin="round"/>
-          </svg>
-        </HeaderBtn>
       </div>
 
       {/* ── Body ─────────────────────────────────────────── */}
@@ -5358,50 +5531,36 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
             <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{hostName || 'Organizer'}</div>
             <div style={{ fontSize:11, color:'#8A93A6', marginTop:2 }}>Space Host</div>
           </div>
-          <div style={{ position:'relative', flexShrink:0 }}>
-            <button onClick={() => setMoreOpen(v => !v)} style={{
-              width:34, height:34, border:`1.5px solid ${C.border}`, borderRadius:999,
-              background:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="5" cy="12" r="1.5" fill={C.muted}/><circle cx="12" cy="12" r="1.5" fill={C.muted}/><circle cx="19" cy="12" r="1.5" fill={C.muted}/>
-              </svg>
-            </button>
-            {moreOpen && (
-              <div style={{ position:'absolute', right:0, top:40, background:'#fff', borderRadius:12,
-                            boxShadow:'0 8px 24px rgba(16,24,40,0.14)', border:`1px solid ${C.border}`,
-                            zIndex:99, minWidth:130, overflow:'hidden' }}>
-                <button onClick={async () => {
-                  setMoreOpen(false);
-                  if (!sp.host_id || !currentUser?.userId) { showToast('Sign in to message the host'); return; }
-                  if (sp.host_id === currentUser.userId) { showToast("That's you!"); return; }
-                  try {
-                    const { data: chatId, error } = await supabase.rpc('create_direct_chat', { p_other_user_id: sp.host_id });
-                    if (error || !chatId) { showToast('Failed to start chat'); return; }
-                    navigate('chat', {
-                      chatId,
-                      chatName: hostName || 'Organizer',
-                      chatInitial: (hostName || 'O')[0].toUpperCase(),
-                      chatColor: sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
-                    });
-                  } catch {
-                    showToast('Failed to start chat');
-                  }
-                }} style={{
-                  width:'100%', padding:'12px 16px', border:'none', background:'none',
-                  textAlign:'left', fontSize:13, fontWeight:700, color:C.body,
-                  cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
-                  display:'flex', alignItems:'center', gap:8,
-                }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                      stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Message
-                </button>
-              </div>
-            )}
-          </div>
+          <button onClick={async () => {
+            if (!sp.host_id || !currentUser?.userId) { showToast('Sign in to message the host'); return; }
+            if (sp.host_id === currentUser.userId) { showToast("That's you!"); return; }
+            try {
+              const { data: chatId, error } = await supabase.rpc('create_direct_chat', { p_other_user_id: sp.host_id });
+              if (error || !chatId) { showToast('Failed to start chat'); return; }
+              navigate('chat', {
+                chatId,
+                chatName: hostName || 'Organizer',
+                chatInitial: (hostName || 'O')[0].toUpperCase(),
+                chatAvatarUrl: sp.host_avatar || null,
+                chatColor: sp.host_color || sp.avatarColor || sp.avatar_color || 'linear-gradient(135deg,#19BFFF,#0098F0)',
+                // The space's host reads as the group itself when it was
+                // created on the group's behalf, so this DM's incoming
+                // messages should always show the group's name/avatar, not
+                // whatever the admin's live personal profile says.
+                chatOtherIsGroup: !!sp.host_is_group,
+              });
+            } catch {
+              showToast('Failed to start chat');
+            }
+          }} style={{
+            width:34, height:34, border:`1.5px solid ${C.border}`, borderRadius:999, flexShrink:0,
+            background:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                stroke={C.primary} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
 
         {/* Capacity card */}
@@ -5764,7 +5923,7 @@ function SpaceDetailsScreen({ spaceId, goBack, navigate, showToast, spaceSaved, 
 // ─────────────────────────────────────────────────────────────
 // SCREEN: CHAT
 // ─────────────────────────────────────────────────────────────
-function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, isGroup, goBack, showToast, currentUser, deleteChat }) {
+function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, isGroup, chatOtherIsGroup, goBack, showToast, currentUser, deleteChat }) {
   const found = CHATS.find(c => c.id === chatId);
   const chat = found || {
     id: chatId,
@@ -5820,11 +5979,18 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   const messages = rawMessages.map(msg => {
     const isOut = msg.sender_id === currentUserId
     const profile = msg._senderProfile || null
+    // chatOtherIsGroup means this 1:1 DM's other party (a group admin acting
+    // on the group's behalf) should always read as the group, not their
+    // personal account -- so the group name/avatar/color passed in via nav
+    // params wins over that admin's live personal profile.
     const senderName = isOut
       ? (currentUser?.name || profile?.name || 'You')
-      : (profile?.name || (isGroupChat ? 'Member' : chatName) || '?')
-    const senderAvatar = isOut ? (currentUser?.avatarUrl || profile?.avatar_url || null) : (profile?.avatar_url || null)
-    const senderColor  = (isOut ? currentUser?.avatarColor : null) || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)'
+      : (!isGroupChat && chatOtherIsGroup ? (chatName || 'Group') : (profile?.name || (isGroupChat ? 'Member' : chatName) || '?'))
+    const senderAvatar = isOut
+      ? (currentUser?.avatarUrl || profile?.avatar_url || null)
+      : (!isGroupChat && chatOtherIsGroup ? (chatAvatarUrl || null) : (profile?.avatar_url || null))
+    const senderColor  = (!isOut && !isGroupChat && chatOtherIsGroup ? chatColor : null)
+      || (isOut ? currentUser?.avatarColor : null) || profile?.avatar_color || 'linear-gradient(135deg,#7C5CFF,#02B6FE)'
     const createdDate  = new Date(msg.created_at)
     return {
       id:         msg.id,
@@ -5939,7 +6105,7 @@ function ChatScreen({ chatId, chatName, chatInitial, chatColor, chatAvatarUrl, i
   // color -- no blue/"active" implication for either case.
   const memberCount = chat.memberCount || chat.members;
   const onlineLabel = isGroupChat
-    ? memberCount ? `${memberCount} members` : 'Group'
+    ? memberCount ? `${memberCount} member${memberCount === 1 ? '' : 's'}` : 'Group'
     : 'Direct message';
   const statusColor = C.subtle;
 
@@ -6403,7 +6569,6 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
   const [editOpen, setEditOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
-  const [roleOpen, setRoleOpen] = useState(false);
   const [push, setPush] = useState(() => {
     if (typeof Notification === 'undefined') return false;
     return Notification.permission === 'granted';
@@ -6434,7 +6599,7 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
 
   const name = cu.name || 'Student';
   const email = cu.email || '';
-  const [profileRole, setProfileRole] = useState(cu.role || 'student');
+  const profileRole = cu.role || 'student';
   const [draftName, setDraftName] = useState('');
   const [draftUniversity, setDraftUniversity] = useState('');
   const [draftYear, setDraftYear] = useState('');
@@ -6591,21 +6756,12 @@ function ProfileScreen({ navigate, showToast, currentUser, saved }) {
           <div style={{ fontSize:19, fontWeight:800, letterSpacing:-0.5, color:textColor, marginTop:13 }}>{name}</div>
           <div style={{ display:'flex', alignItems:'center', gap:7, marginTop:7, flexWrap:'wrap', justifyContent:'center' }}>
             <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:'#E9F6FF', fontSize:9.5, fontWeight:700, color:C.primary }}>{[currentUser.year, currentUser.program].filter(Boolean).join(' · ') || currentUser.university || 'Student'}</div>
-            <button onClick={()=>setRoleOpen(r=>!r)} style={{ display:'inline-flex', alignItems:'center', gap:5, height:24, padding:'0 11px', border:'none', borderRadius:999, background:rc.bg, fontSize:9.5, fontWeight:800, color:rc.color, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
+            {/* Static -- role is no longer user-switchable (was previously
+                a dropdown that let anyone self-assign Group Admin). */}
+            <div style={{ display:'inline-flex', alignItems:'center', height:24, padding:'0 11px', borderRadius:999, background:rc.bg, fontSize:9.5, fontWeight:800, color:rc.color, fontFamily:"'Montserrat',-apple-system,sans-serif" }}>
               {rc.label}
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d={`m6 9 6 6 6-6`} stroke={rc.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-          </div>
-          {roleOpen && (
-            <div style={{ background:cardBg, borderRadius:14, boxShadow:'0 8px 24px rgba(16,24,40,0.16)', overflow:'hidden', marginTop:9, width:200 }}>
-              {Object.entries(roleConfig).map(([k,v]) => (
-                <button key={k} onClick={async ()=>{ setRoleOpen(false); const {error}=await currentUser.updateProfile({role:k}); if(error) showToast('Failed to update role'); else showToast(`Role updated to ${v.label}`); }} style={{ display:'flex', width:'100%', padding:'12px 16px', border:'none', background: profileRole===k?v.bg:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:11.5, fontWeight:800, color: profileRole===k?v.color:textColor, textAlign:'left', alignItems:'center', justifyContent:'space-between' }}>
-                  {v.label}
-                  {profileRole===k && <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4 4L19 7" stroke={v.color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </button>
-              ))}
             </div>
-          )}
+          </div>
           <div style={{ fontSize:10.5, color:subColor, marginTop:6 }}>{email}</div>
         </div>
 
@@ -9170,12 +9326,41 @@ function CreateSpaceScreen({ goBack, navigateReplace, showToast, currentUser, gr
             const hrs = parseFloat(duration) || 1;
             endsAt = new Date(start.getTime() + hrs * 3600000).toISOString();
           }
+          // A space created from within a group reads as hosted by the
+          // group itself, not the admin's personal account -- effectiveGroupId
+          // is only ever set here via sourceGroupId (opened from a group's
+          // Spaces tab) or a picked entry from myAdminGroups, both admin-only.
+          let hostText = currentUser.name || 'Host';
+          let hostAvatar = null;
+          let hostColor = null;
+          // Tracks whether the group lookup actually resolved, not just
+          // whether a groupId was requested -- a failed/missing lookup must
+          // not stamp host_is_group true while host_text etc. are still the
+          // personal fallback (SpaceDetailsScreen would then never refresh
+          // it, since it skips the personal-profile refresh for
+          // host_is_group spaces).
+          let groupAttributed = false;
+          if (effectiveGroupId) {
+            const { data: groupRow, error: groupErr } = await supabase.from('groups')
+              .select('name, avatar_url, logo_color').eq('id', effectiveGroupId).single();
+            if (groupErr || !groupRow) {
+              showToast('Could not load group info — creating as a personal space instead.');
+            } else {
+              hostText = groupRow.name || hostText;
+              hostAvatar = groupRow.avatar_url || null;
+              hostColor = groupRow.logo_color || null;
+              groupAttributed = true;
+            }
+          }
           const { data: space, error } = await supabase.from('spaces').insert({
             title: title.trim(),
             description: about.trim(),
-            group_id: effectiveGroupId || null,
+            group_id: groupAttributed ? effectiveGroupId : null,
             host_id: currentUser.userId,
-            host_text: currentUser.name || 'Host',
+            host_text: hostText,
+            host_avatar: hostAvatar,
+            host_color: hostColor,
+            host_is_group: groupAttributed,
             category: cat,
             location: location || null,
             is_online: isOnline,
@@ -10303,7 +10488,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
       const dayAgo = new Date(Date.now() - 86400000).toISOString();
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-      const [membersRes, postsRes, reportsRes, pendingRes] = await Promise.all([
+      const [membersRes, postsRes, reportsRes, pendingRes, pendingPostsRes] = await Promise.all([
         supabase.from('group_members').select('*', { count: 'exact', head: true })
           .eq('group_id', groupId).in('role', ['member', 'admin', 'owner']).gte('joined_at', dayAgo),
         supabase.from('posts').select('id').eq('group_id', groupId),
@@ -10311,6 +10496,10 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
           .eq('group_id', groupId).eq('status', 'open'),
         supabase.from('group_members').select('*', { count: 'exact', head: true })
           .eq('group_id', groupId).eq('role', 'pending'),
+        // "Pending Requests" now also covers posts held by "Approve posts
+        // first", not just membership requests.
+        supabase.from('posts').select('*', { count: 'exact', head: true })
+          .eq('group_id', groupId).eq('status', 'pending'),
       ]);
       if (cancelled) return;
 
@@ -10326,7 +10515,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
         membersToday: membersRes.count || 0,
         commentsWeek,
         openReports: reportsRes.count || 0,
-        pending: pendingRes.count || 0,
+        pending: (pendingRes.count || 0) + (pendingPostsRes.count || 0),
       });
     })();
     return () => { cancelled = true; };
@@ -10699,6 +10888,12 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [done, setDone] = useState({});
+  // Posts held back by a group's "Approve posts first" privacy setting --
+  // shown here alongside membership requests since they're both "things
+  // this admin needs to act on before they go live".
+  const [pendingPosts, setPendingPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [donePosts, setDonePosts] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -10723,7 +10918,37 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
     return () => { cancelled = true; };
   }, [groupId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setPostsLoading(true);
+      const { data, error } = await supabase.from('posts')
+        .select('id, content, text, author_name, author_initial, author_color, created_at')
+        .eq('group_id', groupId).eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      if (error) { console.error('[pending-requests] pending posts load failed:', error); setPendingPosts([]); setPostsLoading(false); return; }
+      setPendingPosts(data || []);
+      setPostsLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [groupId]);
+
   const open = requests.filter(r => !done[r.userId]);
+  const openPosts = pendingPosts.filter(p => !donePosts[p.id]);
+
+  const resolvePost = async (post, approve) => {
+    setDonePosts(s => ({ ...s, [post.id]: true }));
+    const { error } = approve
+      ? await supabase.from('posts').update({ status: 'published' }).eq('id', post.id)
+      : await supabase.from('posts').delete().eq('id', post.id);
+    if (error) {
+      setDonePosts(s => { const n = { ...s }; delete n[post.id]; return n; });
+      showToast(`Failed to ${approve ? 'approve' : 'reject'} post: ` + error.message);
+      return;
+    }
+    showToast(approve ? 'Post approved' : 'Post rejected');
+  };
 
   // notify_membership_decision now performs the accept/decline mutation
   // itself (atomically with the notification) so the two can never diverge
@@ -10801,9 +11026,9 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'13px 16px 30px',
                     display:'flex', flexDirection:'column', gap:12 }}>
 
-        {loading && <SkeletonRows />}
+        {(loading || postsLoading) && <SkeletonRows />}
 
-        {!loading && open.length === 0 && (
+        {!loading && !postsLoading && open.length === 0 && openPosts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                         textAlign:'center', padding:'60px 30px' }}>
             <div style={{ width:78, height:78, borderRadius:24, background:'#E4F7EC',
@@ -10817,9 +11042,66 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
               No pending requests
             </div>
             <div style={{ fontSize:13, color:C.subtle, marginTop:6, maxWidth:230 }}>
-              You're all caught up. New join requests will appear here.
+              You're all caught up. New join requests and posts awaiting approval will appear here.
             </div>
           </div>
+        )}
+
+        {!postsLoading && openPosts.length > 0 && (
+          <>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.subtle, textTransform:'uppercase', letterSpacing:0.4 }}>
+              Posts Awaiting Approval
+            </div>
+            {openPosts.map(p => (
+              <div key={p.id} style={{ background:'#fff', borderRadius:18,
+                                        boxShadow:'0 4px 14px rgba(16,24,40,0.05)', padding:14 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0,
+                                background: p.author_color || 'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                fontSize:15, fontWeight:800, color:'#fff' }}>
+                    {p.author_initial || (p.author_name?.[0] || 'M').toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>{p.author_name || 'Member'}</div>
+                    <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, overflow:'hidden', textOverflow:'ellipsis',
+                                  display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+                      {p.text || p.content}
+                    </div>
+                  </div>
+                  <span style={{ fontSize:11, color:'#B6BCC8', flexShrink:0 }}>{relTime(p.created_at)}</span>
+                </div>
+                <div style={{ display:'flex', gap:9, marginTop:12 }}>
+                  <button onClick={() => resolvePost(p, true)} style={{
+                    flex:1, height:42, border:'none', borderRadius:12,
+                    background:'linear-gradient(135deg,#19BFFF,#008FF0)',
+                    color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif",
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                    boxShadow:'0 4px 12px rgba(2,162,240,0.28)',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="m5 12.5 4 4L19 7" stroke="#fff" strokeWidth="2.4"
+                            strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Approve
+                  </button>
+                  <button onClick={() => resolvePost(p, false)} style={{
+                    flex:1, height:42, border:`1.5px solid ${C.border}`, borderRadius:12,
+                    background:'#fff', color:C.muted, fontSize:13, fontWeight:800,
+                    cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  }}>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+            {open.length > 0 && (
+              <div style={{ fontSize:12.5, fontWeight:800, color:C.subtle, textTransform:'uppercase', letterSpacing:0.4, marginTop:6 }}>
+                Membership Requests
+              </div>
+            )}
+          </>
         )}
 
         {open.map(r => (
@@ -11056,6 +11338,7 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
 // ─────────────────────────────────────────────────────────────
 function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
   const PERIODS = ['7 Days', '30 Days', '90 Days'];
+  const PERIOD_DAYS = [7, 30, 90];
 
   const [periodIdx, setPeriodIdx] = useState(0);
   const [stats, setStats] = useState(null);
@@ -11081,17 +11364,20 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
   useEffect(() => {
     if (!groupId || isAuthorized !== true) return;
 
-    // Real stats
+    const periodDays = PERIOD_DAYS[periodIdx];
+    const now = new Date();
+    const periodStart = new Date(now - periodDays * 86400000);
+    const weekAgo = new Date(now - 7 * 86400000);
+
+    // Real stats, scoped to the selected period
     Promise.all([
       supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId).in('role', ['member', 'admin', 'owner']),
-      supabase.from('posts').select('likes_count, comment_count, created_at').eq('group_id', groupId),
+      supabase.from('posts').select('user_id, author_name, author_initial, author_color, likes_count, comment_count, created_at').eq('group_id', groupId).gte('created_at', periodStart.toISOString()),
       supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId),
     ]).then(([members, posts, events]) => {
       const ps = posts.data || [];
       const totalLikes = ps.reduce((s, p) => s + (p.likes_count || 0), 0);
       const totalComments = ps.reduce((s, p) => s + (p.comment_count || 0), 0);
-      const now = new Date();
-      const weekAgo = new Date(now - 7 * 86400000);
       const newPosts = ps.filter(p => new Date(p.created_at) > weekAgo).length;
       setStats({
         members: members.count ?? 0,
@@ -11102,29 +11388,37 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
         newPosts,
       });
 
-      // Bar chart: posts per weekday for last 7 days
-      const dayBuckets = [0,0,0,0,0,0,0];
-      ps.filter(p => new Date(p.created_at) > weekAgo).forEach(p => {
-        const day = new Date(p.created_at).getDay(); // 0=Sun
-        dayBuckets[day === 0 ? 6 : day - 1]++;
+      // Bar chart: bucket the selected period into bars. 7 Days keeps one bar
+      // per day (weekday labels); 30/90 Days group into fewer, wider buckets
+      // (short date labels) since a per-day chart would be unreadable.
+      const bucketCount = periodDays <= 7 ? 7 : (periodDays <= 30 ? 6 : 9);
+      const bucketMs = (periodDays * 86400000) / bucketCount;
+      const buckets = new Array(bucketCount).fill(0);
+      ps.forEach(p => {
+        const t = new Date(p.created_at).getTime();
+        const idx = Math.min(bucketCount - 1, Math.max(0, Math.floor((t - periodStart.getTime()) / bucketMs)));
+        buckets[idx]++;
       });
-      setBarData({ bars: dayBuckets, labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] });
-    });
+      const labels = Array.from({ length: bucketCount }, (_, i) => {
+        const bucketEnd = new Date(periodStart.getTime() + (i + 1) * bucketMs);
+        return periodDays <= 7
+          ? bucketEnd.toLocaleDateString('en-US', { weekday: 'short' })
+          : bucketEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+      setBarData({ bars: buckets, labels });
 
-    // Top contributors
-    supabase.from('posts').select('user_id, author_name, author_initial, author_color, likes_count')
-      .eq('group_id', groupId).then(({ data }) => {
-        if (!data?.length) return;
-        const byUser = {};
-        data.forEach(p => {
-          const uid = p.user_id || 'unknown';
-          if (!byUser[uid]) byUser[uid] = { name: p.author_name || 'Member', initial: p.author_initial || '?', color: p.author_color || C.grad, posts: 0, likes: 0 };
-          byUser[uid].posts++;
-          byUser[uid].likes += (p.likes_count || 0);
-        });
-        const sorted = Object.values(byUser).sort((a,b) => b.posts - a.posts).slice(0, 3);
-        setContributors(sorted);
+      // Top contributors, scoped to the same period
+      if (!ps.length) { setContributors([]); return; }
+      const byUser = {};
+      ps.forEach(p => {
+        const uid = p.user_id || 'unknown';
+        if (!byUser[uid]) byUser[uid] = { name: p.author_name || 'Member', initial: p.author_initial || '?', color: p.author_color || C.grad, posts: 0, likes: 0 };
+        byUser[uid].posts++;
+        byUser[uid].likes += (p.likes_count || 0);
       });
+      const sorted = Object.values(byUser).sort((a,b) => b.posts - a.posts).slice(0, 3);
+      setContributors(sorted);
+    });
   }, [groupId, periodIdx, isAuthorized]);
 
   if (isAuthorized === false) {
@@ -14324,9 +14618,12 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
         // centered mark on screen, instead of a plain C.pageBg rectangle --
         // that mismatched gray plus zero content was the "flash to a blank
         // screen" between splash fading out and Home actually being ready.
+        // Logo size (660x330) also matches App.jsx's SplashScreen exactly --
+        // it previously shrank to 220x110 here, which read as the app
+        // "reloading" with a smaller icon rather than one continuous splash.
         <div style={{ width:'100%', height:'100%', background:C.card,
                       display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <img src="/logo.png" alt="" aria-hidden="true" style={{ width:220, height:110, objectFit:'contain', opacity:0.9 }}/>
+          <img src="/logo.png" alt="" aria-hidden="true" style={{ width:660, height:330, objectFit:'contain', opacity:0.9 }}/>
         </div>
       );
       case 'welcome':   return <WelcomeScreen navigate={navigate} setScreen={setScreen} />;
@@ -14342,10 +14639,10 @@ export default function RiplyApp({ clerkTimedOut } = {}) {
       case 'create-space':  return <CreateSpaceScreen goBack={goBack} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} groupId={navParams.groupId} />;
       case 'create-group':  return <CreateGroupScreen goBack={goBack} navigate={navigate} navigateReplace={navigateReplace} showToast={showToast} currentUser={currentUser} />;
       case 'creation-success': return <CreationSuccessScreen kind={navParams.kind} id={navParams.id} title={navParams.title} navigate={navigate} setScreen={setScreen} />;
-      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
-      case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} />;
+      case 'chat':          return <ChatScreen chatId={navParams.chatId} chatName={navParams.chatName} chatInitial={navParams.chatInitial} chatColor={navParams.chatColor} chatAvatarUrl={navParams.chatAvatarUrl} isGroup={navParams.isGroup} chatOtherIsGroup={navParams.chatOtherIsGroup} goBack={goBack} showToast={showToast} currentUser={currentUser} deleteChat={chatsData.deleteChat} />;
+      case 'event-details': return <EventDetailsScreen key={navParams.eventId} eventId={navParams.eventId} liked={liked} toggleLike={toggleLike} saved={saved} toggleSave={toggleSave} shared={shared} recordShare={recordShare} navigate={navigate} goBack={goBack} showToast={showToast} role={role} currentUser={currentUser} />;
       case 'space-details': return <SpaceDetailsScreen spaceId={navParams.spaceId} goBack={goBack} navigate={navigate} showToast={showToast} spaceSaved={spaceSaved} toggleSaveSpace={toggleSaveSpace} currentUser={currentUser} spaceJoined={spaceJoined} setSpaceJoined={setSpaceJoined} />;
-      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} unreadChatCount={chatsData.unreadChatCount} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} groupJoined={groupJoined} setGroupJoined={setGroupJoined} />;
+      case 'group-profile':  return <GroupProfileScreen groupId={navParams.groupId} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} goBack={goBack} navigate={navigate} showToast={showToast} currentUser={currentUser} markGroupRead={groupActivityData.markGroupRead} chats={chatsData.chats} unreadPostCount={groupActivityData.groupActivity.find(a => a.groupId === navParams.groupId)?.missedCount || 0} groupJoined={groupJoined} setGroupJoined={setGroupJoined} />;
       case 'filters':       return <FiltersScreen from={navParams.from} filters={navParams.filters} setFilters={navParams.setFilters} goBack={goBack} showToast={showToast} />;
       case 'create-post':   return <CreatePostScreen goBack={goBack} groupId={navParams.groupId} showToast={showToast} />;
       case 'help-center':   return <HelpCenterScreen goBack={goBack} navigate={navigate} showToast={showToast} />;

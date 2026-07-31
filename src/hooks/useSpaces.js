@@ -9,6 +9,12 @@ async function attachUserProfiles(rows, idField = 'host_id') {
   const { data: users } = await supabase.from('users').select('id,name,avatar_url,avatar_color').in('id', ids)
   const map = Object.fromEntries((users || []).map(u => [u.id, u]))
   return rows.map(r => {
+    // A group-attributed space (host_is_group) keeps the group's own
+    // name/avatar/color it was created with -- overwriting it from the
+    // admin's personal profile here would show the wrong host on every
+    // space list (Spaces tab, group Spaces tab), even though
+    // SpaceDetailsScreen already gets this right.
+    if (r.host_is_group) return r
     const u = map[r[idField]]
     if (!u) return r
     return {

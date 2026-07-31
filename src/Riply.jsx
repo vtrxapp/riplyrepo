@@ -3619,6 +3619,18 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
   const g = dbGroup || staticG;
   const { posts: livePosts, loading: postsLoading, deletePost, togglePinPost } = usePosts(groupId);
 
+  // Real admin name for the private-group "Group Details" card -- it
+  // previously showed a hardcoded "Emma Thompson" regardless of who
+  // actually admins the group.
+  const [groupAdminName, setGroupAdminName] = useState(null);
+  useEffect(() => {
+    if (!g.admin_id) { setGroupAdminName(null); return; }
+    let cancelled = false;
+    supabase.from('users').select('name').eq('id', g.admin_id).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setGroupAdminName(data?.name || null); });
+    return () => { cancelled = true; };
+  }, [g.admin_id]);
+
 
   const [joinState,  setJoinState]  = useState(staticG.state || "join");
   const [notifyOn,   setNotifyOn]   = useState((staticG.state || "join") === 'joined');
@@ -4114,11 +4126,11 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
                 },
                 {
                   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7B8499" strokeWidth="1.8"/><path d="M12 7.5V12l3 2" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-                  label:'Created', val:'March 2023', valColor:C.body,
+                  label:'Created', val: g.created_at ? new Date(g.created_at).toLocaleDateString('en-US', { month:'long', year:'numeric' }) : '—', valColor:C.body,
                 },
                 {
                   icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="#7B8499" strokeWidth="1.8"/><path d="M5 20c0-3.6 3-5.6 7-5.6s7 2 7 5.6" stroke="#7B8499" strokeWidth="1.8" strokeLinecap="round"/></svg>,
-                  label:'Admin', val:'Emma Thompson', valColor:C.body,
+                  label:'Admin', val: groupAdminName || '—', valColor:C.body,
                 },
               ].map((row,i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:11,

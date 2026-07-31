@@ -41,7 +41,7 @@ export function useGroupActivity() {
       { data: latestPosts, error: latestErr },
       { data: unreadCounts, error: unreadErr },
     ] = await Promise.all([
-      supabase.from('groups').select('id, name, initial, logo_color, avatar_url').in('id', groupIds),
+      supabase.from('groups').select('id, name, description, initial, logo_color, avatar_url').in('id', groupIds),
       supabase.rpc('get_latest_group_posts'),
       supabase.rpc('get_group_unread_post_counts'),
     ])
@@ -68,6 +68,7 @@ export function useGroupActivity() {
           id,
           groupId: id,
           name: g.name,
+          description: g.description || '',
           initial: g.initial || g.name?.[0]?.toUpperCase() || '?',
           color: g.logo_color || 'linear-gradient(135deg,#2F6BFF,#6C4DF2)',
           avatarUrl: g.avatar_url || null,

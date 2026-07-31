@@ -1361,17 +1361,33 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                     }
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                      <span style={{ fontSize:13, fontWeight:800, color:C.ink }}>{a.name}</span>
-                      <span style={{ fontSize:9, color:C.subtle, fontWeight:600, flexShrink:0 }}>{a.time}</span>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:5 }}>
-                      {a.missedCount > 0 && (
-                        <span style={{ display:'flex', alignItems:'center', justifyContent:'center', minWidth:22, height:22, padding:'0 6px', borderRadius:999, background:C.primary, color:'#fff', fontSize:11, fontWeight:800, flexShrink:0 }}>
-                          {a.missedCount > 99 ? '99+' : a.missedCount}
-                        </span>
-                      )}
-                      <span style={{ fontSize:11, lineHeight:1.4, color: a.missedCount > 0 ? C.primary : '#7B8499', fontWeight: a.missedCount > 0 ? 700 : 500, fontStyle: a.missedCount > 0 ? 'italic' : 'normal', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    <div style={{ fontSize:14, fontWeight:800, color:C.ink }}>{a.name}</div>
+                    {a.description && (
+                      <div style={{ fontSize:11.5, fontWeight:500, color:'#7B8499', marginTop:2,
+                                    lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:2,
+                                    WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                        {a.description}
+                      </div>
+                    )}
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8 }}>
+                      <div style={{ position:'relative', flexShrink:0 }}>
+                        <div style={{ width:32, height:32, borderRadius:'50%', background:'#F1F3F7',
+                                      display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z" stroke={C.ink} strokeWidth="1.8" strokeLinejoin="round"/>
+                            <path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke={C.ink} strokeWidth="1.8" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                        {a.missedCount > 0 && (
+                          <span style={{ position:'absolute', top:-3, right:-3, display:'flex', alignItems:'center',
+                                         justifyContent:'center', minWidth:18, height:18, padding:'0 4px',
+                                         borderRadius:999, background:C.primary, color:'#fff', fontSize:10,
+                                         fontWeight:700, border:'2px solid '+(a.missedCount > 0 ? '#F0F8FF' : C.card) }}>
+                            {a.missedCount > 99 ? '99+' : a.missedCount}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ flex:1, minWidth:0, fontSize:11.5, lineHeight:1.4, color: a.missedCount > 0 ? C.primary : '#7B8499', fontStyle:'italic', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                         {a.preview}
                       </span>
                     </div>

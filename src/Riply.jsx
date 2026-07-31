@@ -1617,6 +1617,9 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
   const isGroupAdminHere = selectedGroup?.myRole === 'admin' || selectedGroup?.myRole === 'owner';
   const membersCanPost = selectedGroup?.permissions?.membersPost !== false;
   const postingLocked = !!selectedGroup && !isGroupAdminHere && !membersCanPost;
+  // Admins' own posts always go live immediately -- "Approve posts first"
+  // only holds back the members whose posting it was meant to review.
+  const needsApproval = !!selectedGroup && !isGroupAdminHere && selectedGroup?.permissions?.requireApproval === true;
 
   const handlePost = async () => {
     if (!canPost) {
@@ -1649,6 +1652,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
       author_color:   postingAsGroup ? (selectedGroup.logo_color || deriveAvatarColor(selectedGroupId)) : (currentUser?.avatarColor || deriveAvatarColor(user?.id || '')),
       avatar_url:     postingAsGroup ? (selectedGroup.avatar_url || null) : (currentUser?.avatarUrl || null),
       author_is_group: !!postingAsGroup,
+      status:         needsApproval ? 'pending' : 'published',
     };
     if (uploadedImageUrls.length) {
       payload.image_url = uploadedImageUrls[0];
@@ -1669,7 +1673,7 @@ function CreatePostScreen({ goBack, groupId, showToast }) {
     const { error } = await supabase.from('posts').insert(payload);
     setPosting(false);
     if (error) { showToast('Failed to post: ' + error.message); return; }
-    showToast(`Posted to ${selectedGroup?.name || 'group'}`);
+    showToast(needsApproval ? 'Submitted for admin approval' : `Posted to ${selectedGroup?.name || 'group'}`);
     goBack();
   };
 
@@ -3020,6 +3024,12 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
           </div>
           <div style={{ fontSize:11.5, color:C.subtle, marginTop:1 }}>{p.time}</div>
         </div>
+        {p.status === 'pending' && (
+          <div style={{ flexShrink:0, marginRight:6, padding:'3px 9px', borderRadius:999,
+                        background:'#FFF6EC', color:'#B45309', fontSize:10.5, fontWeight:800 }}>
+            Pending approval
+          </div>
+        )}
         {p.is_pinned && (
           <div style={{ display:'flex', alignItems:'center', gap:4, marginRight:6 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -3774,7 +3784,14 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
   const isJoined     = joinState === 'joined';
   const isRequested  = joinState === 'requested';
   const canSee       = isJoined || (g.state || "join") === 'joined';
-  const mediaImages  = useMemo(() => livePosts.filter(p => p.image_url), [livePosts]);
+  // A post held for "Approve posts first" only shows to its own author
+  // (so they know it's awaiting review) and to admins (who approve it from
+  // the Pending Requests screen) -- everyone else shouldn't see it in the
+  // feed until it's published.
+  const visiblePosts = useMemo(() => livePosts.filter(p =>
+    p.status !== 'pending' || isGroupAdmin || p.user_id === currentUser?.userId
+  ), [livePosts, isGroupAdmin, currentUser?.userId]);
+  const mediaImages  = useMemo(() => visiblePosts.filter(p => p.image_url), [visiblePosts]);
 
   // Guards against a rapid second click launching the opposite mutation
   // (e.g. Join immediately followed by Leave) while the first is in flight.
@@ -4309,9 +4326,9 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
 
                 {postsLoading ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>Loading posts…</div>
-                ) : livePosts.length === 0 ? (
+                ) : visiblePosts.length === 0 ? (
                   <div style={{ textAlign:'center', padding:32, color:C.subtle }}>No posts yet. Be the first!</div>
-                ) : livePosts.map((p) => (
+                ) : visiblePosts.map((p) => (
                   <PostCard key={p.id} p={p} postLiked={postLiked} togglePostLike={togglePostLike} postShared={postShared} recordPostShare={recordPostShare} currentUser={currentUser} showToast={showToast}
                     navigate={navigate} isGroupAdmin={isGroupAdmin} deletePost={deletePost} togglePinPost={togglePinPost} />
                 ))}
@@ -10445,7 +10462,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
       const dayAgo = new Date(Date.now() - 86400000).toISOString();
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-      const [membersRes, postsRes, reportsRes, pendingRes] = await Promise.all([
+      const [membersRes, postsRes, reportsRes, pendingRes, pendingPostsRes] = await Promise.all([
         supabase.from('group_members').select('*', { count: 'exact', head: true })
           .eq('group_id', groupId).in('role', ['member', 'admin', 'owner']).gte('joined_at', dayAgo),
         supabase.from('posts').select('id').eq('group_id', groupId),
@@ -10453,6 +10470,10 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
           .eq('group_id', groupId).eq('status', 'open'),
         supabase.from('group_members').select('*', { count: 'exact', head: true })
           .eq('group_id', groupId).eq('role', 'pending'),
+        // "Pending Requests" now also covers posts held by "Approve posts
+        // first", not just membership requests.
+        supabase.from('posts').select('*', { count: 'exact', head: true })
+          .eq('group_id', groupId).eq('status', 'pending'),
       ]);
       if (cancelled) return;
 
@@ -10468,7 +10489,7 @@ function GroupManageScreen({ groupId, goBack, navigate, showToast, currentUser }
         membersToday: membersRes.count || 0,
         commentsWeek,
         openReports: reportsRes.count || 0,
-        pending: pendingRes.count || 0,
+        pending: (pendingRes.count || 0) + (pendingPostsRes.count || 0),
       });
     })();
     return () => { cancelled = true; };
@@ -10841,6 +10862,12 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [done, setDone] = useState({});
+  // Posts held back by a group's "Approve posts first" privacy setting --
+  // shown here alongside membership requests since they're both "things
+  // this admin needs to act on before they go live".
+  const [pendingPosts, setPendingPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [donePosts, setDonePosts] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -10865,7 +10892,37 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
     return () => { cancelled = true; };
   }, [groupId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setPostsLoading(true);
+      const { data, error } = await supabase.from('posts')
+        .select('id, content, text, author_name, author_initial, author_color, created_at')
+        .eq('group_id', groupId).eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      if (error) { console.error('[pending-requests] pending posts load failed:', error); setPendingPosts([]); setPostsLoading(false); return; }
+      setPendingPosts(data || []);
+      setPostsLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [groupId]);
+
   const open = requests.filter(r => !done[r.userId]);
+  const openPosts = pendingPosts.filter(p => !donePosts[p.id]);
+
+  const resolvePost = async (post, approve) => {
+    setDonePosts(s => ({ ...s, [post.id]: true }));
+    const { error } = approve
+      ? await supabase.from('posts').update({ status: 'published' }).eq('id', post.id)
+      : await supabase.from('posts').delete().eq('id', post.id);
+    if (error) {
+      setDonePosts(s => { const n = { ...s }; delete n[post.id]; return n; });
+      showToast(`Failed to ${approve ? 'approve' : 'reject'} post: ` + error.message);
+      return;
+    }
+    showToast(approve ? 'Post approved' : 'Post rejected');
+  };
 
   // notify_membership_decision now performs the accept/decline mutation
   // itself (atomically with the notification) so the two can never diverge
@@ -10943,9 +11000,9 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
       <div style={{ flex:1, overflowY:'auto', padding:'13px 16px 30px',
                     display:'flex', flexDirection:'column', gap:12 }}>
 
-        {loading && <SkeletonRows />}
+        {(loading || postsLoading) && <SkeletonRows />}
 
-        {!loading && open.length === 0 && (
+        {!loading && !postsLoading && open.length === 0 && openPosts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center',
                         textAlign:'center', padding:'60px 30px' }}>
             <div style={{ width:78, height:78, borderRadius:24, background:'#E4F7EC',
@@ -10959,9 +11016,66 @@ function PendingRequestsScreen({ groupId, goBack, showToast }) {
               No pending requests
             </div>
             <div style={{ fontSize:13, color:C.subtle, marginTop:6, maxWidth:230 }}>
-              You're all caught up. New join requests will appear here.
+              You're all caught up. New join requests and posts awaiting approval will appear here.
             </div>
           </div>
+        )}
+
+        {!postsLoading && openPosts.length > 0 && (
+          <>
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.subtle, textTransform:'uppercase', letterSpacing:0.4 }}>
+              Posts Awaiting Approval
+            </div>
+            {openPosts.map(p => (
+              <div key={p.id} style={{ background:'#fff', borderRadius:18,
+                                        boxShadow:'0 4px 14px rgba(16,24,40,0.05)', padding:14 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <div style={{ width:46, height:46, borderRadius:'50%', flexShrink:0,
+                                background: p.author_color || 'linear-gradient(135deg,#7C5CFF,#B06BFF)',
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                fontSize:15, fontWeight:800, color:'#fff' }}>
+                    {p.author_initial || (p.author_name?.[0] || 'M').toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14.5, fontWeight:800, color:C.ink }}>{p.author_name || 'Member'}</div>
+                    <div style={{ fontSize:12.5, color:C.subtle, marginTop:2, overflow:'hidden', textOverflow:'ellipsis',
+                                  display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+                      {p.text || p.content}
+                    </div>
+                  </div>
+                  <span style={{ fontSize:11, color:'#B6BCC8', flexShrink:0 }}>{relTime(p.created_at)}</span>
+                </div>
+                <div style={{ display:'flex', gap:9, marginTop:12 }}>
+                  <button onClick={() => resolvePost(p, true)} style={{
+                    flex:1, height:42, border:'none', borderRadius:12,
+                    background:'linear-gradient(135deg,#19BFFF,#008FF0)',
+                    color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer',
+                    fontFamily:"'Montserrat',-apple-system,sans-serif",
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                    boxShadow:'0 4px 12px rgba(2,162,240,0.28)',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="m5 12.5 4 4L19 7" stroke="#fff" strokeWidth="2.4"
+                            strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Approve
+                  </button>
+                  <button onClick={() => resolvePost(p, false)} style={{
+                    flex:1, height:42, border:`1.5px solid ${C.border}`, borderRadius:12,
+                    background:'#fff', color:C.muted, fontSize:13, fontWeight:800,
+                    cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif",
+                  }}>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+            {open.length > 0 && (
+              <div style={{ fontSize:12.5, fontWeight:800, color:C.subtle, textTransform:'uppercase', letterSpacing:0.4, marginTop:6 }}>
+                Membership Requests
+              </div>
+            )}
+          </>
         )}
 
         {open.map(r => (

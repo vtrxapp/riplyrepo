@@ -1339,7 +1339,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
           <button onClick={()=>setMsgTab('chats')} style={isNotif?idleTabStyle:activeTabStyle}>Chats</button>
         </div>
         {searchOpen && !isNotif && (
-          <div style={{ marginTop:12 }}>
+          <div style={{ marginTop:12, marginBottom:16 }}>
             <SearchBar placeholder="Search chats…" value={chatQuery} onChange={e=>setChatQuery(e.target.value)} />
           </div>
         )}
@@ -4563,9 +4563,23 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
               { label: notifyOn ? 'Turn off notifications' : 'Turn on notifications',
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 14.5 18 8.5Z" stroke={C.body} strokeWidth="1.9" strokeLinejoin="round"/><path d="M10 19.5a2.2 2.2 0 0 0 4 0" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/></svg>,
                 action: () => { setNotifyOn(v => !v); showToast(notifyOn ? 'Notifications off' : 'Notifications on'); setShowOptionsSheet(false); } },
-              { label:'Share Group',
+              // "Members can invite" only governs members, not the group's own
+              // admins/owners -- and non-members browsing a public group can
+              // always share it regardless of the toggle.
+              ...((!isJoined || isGroupAdmin || g.permissions?.allowInvites !== false) ? [{ label:'Share Group',
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" stroke={C.body} strokeWidth="1.9" strokeLinecap="round"/><path d="M16 6l-4-4-4 4M12 2v13" stroke={C.body} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-                action: () => { if (navigator.share) { navigator.share({ title: g.name, text: g.description || '' }); } else { showToast('Link copied!'); } setShowOptionsSheet(false); } },
+                action: async () => {
+                  const shareData = { title: g.name, text: g.description || `Check out ${g.name} on Riply`, url: window.location.href };
+                  if (navigator.share) {
+                    try { await navigator.share(shareData); } catch {}
+                  } else {
+                    try {
+                      await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+                      showToast('Group link copied to clipboard');
+                    } catch { showToast('Could not share'); }
+                  }
+                  setShowOptionsSheet(false);
+                } }] : []),
               ...(isJoined ? [{ label:'Leave Group', danger:true,
                 icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="#C2493D" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/></svg>,
                 action: async () => {
@@ -11312,6 +11326,7 @@ function BannedMembersScreen({ groupId, goBack, showToast }) {
 // ─────────────────────────────────────────────────────────────
 function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
   const PERIODS = ['7 Days', '30 Days', '90 Days'];
+  const PERIOD_DAYS = [7, 30, 90];
 
   const [periodIdx, setPeriodIdx] = useState(0);
   const [stats, setStats] = useState(null);
@@ -11337,17 +11352,20 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
   useEffect(() => {
     if (!groupId || isAuthorized !== true) return;
 
-    // Real stats
+    const periodDays = PERIOD_DAYS[periodIdx];
+    const now = new Date();
+    const periodStart = new Date(now - periodDays * 86400000);
+    const weekAgo = new Date(now - 7 * 86400000);
+
+    // Real stats, scoped to the selected period
     Promise.all([
       supabase.from('group_members').select('*', { count:'exact', head:true }).eq('group_id', groupId).in('role', ['member', 'admin', 'owner']),
-      supabase.from('posts').select('likes_count, comment_count, created_at').eq('group_id', groupId),
+      supabase.from('posts').select('user_id, author_name, author_initial, author_color, likes_count, comment_count, created_at').eq('group_id', groupId).gte('created_at', periodStart.toISOString()),
       supabase.from('events').select('*', { count:'exact', head:true }).eq('group_id', groupId),
     ]).then(([members, posts, events]) => {
       const ps = posts.data || [];
       const totalLikes = ps.reduce((s, p) => s + (p.likes_count || 0), 0);
       const totalComments = ps.reduce((s, p) => s + (p.comment_count || 0), 0);
-      const now = new Date();
-      const weekAgo = new Date(now - 7 * 86400000);
       const newPosts = ps.filter(p => new Date(p.created_at) > weekAgo).length;
       setStats({
         members: members.count ?? 0,
@@ -11358,29 +11376,37 @@ function GroupAnalyticsScreen({ groupId, goBack, showToast, currentUser }) {
         newPosts,
       });
 
-      // Bar chart: posts per weekday for last 7 days
-      const dayBuckets = [0,0,0,0,0,0,0];
-      ps.filter(p => new Date(p.created_at) > weekAgo).forEach(p => {
-        const day = new Date(p.created_at).getDay(); // 0=Sun
-        dayBuckets[day === 0 ? 6 : day - 1]++;
+      // Bar chart: bucket the selected period into bars. 7 Days keeps one bar
+      // per day (weekday labels); 30/90 Days group into fewer, wider buckets
+      // (short date labels) since a per-day chart would be unreadable.
+      const bucketCount = periodDays <= 7 ? 7 : (periodDays <= 30 ? 6 : 9);
+      const bucketMs = (periodDays * 86400000) / bucketCount;
+      const buckets = new Array(bucketCount).fill(0);
+      ps.forEach(p => {
+        const t = new Date(p.created_at).getTime();
+        const idx = Math.min(bucketCount - 1, Math.max(0, Math.floor((t - periodStart.getTime()) / bucketMs)));
+        buckets[idx]++;
       });
-      setBarData({ bars: dayBuckets, labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] });
-    });
+      const labels = Array.from({ length: bucketCount }, (_, i) => {
+        const bucketEnd = new Date(periodStart.getTime() + (i + 1) * bucketMs);
+        return periodDays <= 7
+          ? bucketEnd.toLocaleDateString('en-US', { weekday: 'short' })
+          : bucketEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      });
+      setBarData({ bars: buckets, labels });
 
-    // Top contributors
-    supabase.from('posts').select('user_id, author_name, author_initial, author_color, likes_count')
-      .eq('group_id', groupId).then(({ data }) => {
-        if (!data?.length) return;
-        const byUser = {};
-        data.forEach(p => {
-          const uid = p.user_id || 'unknown';
-          if (!byUser[uid]) byUser[uid] = { name: p.author_name || 'Member', initial: p.author_initial || '?', color: p.author_color || C.grad, posts: 0, likes: 0 };
-          byUser[uid].posts++;
-          byUser[uid].likes += (p.likes_count || 0);
-        });
-        const sorted = Object.values(byUser).sort((a,b) => b.posts - a.posts).slice(0, 3);
-        setContributors(sorted);
+      // Top contributors, scoped to the same period
+      if (!ps.length) { setContributors([]); return; }
+      const byUser = {};
+      ps.forEach(p => {
+        const uid = p.user_id || 'unknown';
+        if (!byUser[uid]) byUser[uid] = { name: p.author_name || 'Member', initial: p.author_initial || '?', color: p.author_color || C.grad, posts: 0, likes: 0 };
+        byUser[uid].posts++;
+        byUser[uid].likes += (p.likes_count || 0);
       });
+      const sorted = Object.values(byUser).sort((a,b) => b.posts - a.posts).slice(0, 3);
+      setContributors(sorted);
+    });
   }, [groupId, periodIdx, isAuthorized]);
 
   if (isAuthorized === false) {

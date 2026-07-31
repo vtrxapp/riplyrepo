@@ -20,7 +20,7 @@ declare
   parent_author  text;
 begin
   select user_id into post_author from posts where id = NEW.post_id;
-  select coalesce(name, 'Someone') into commenter_name from users where id = NEW.user_id;
+  select coalesce((select name from users where id = NEW.user_id), 'Someone') into commenter_name;
   if post_author is not null and post_author <> NEW.user_id then
     insert into notifications(user_id, type, title, body)
     values (post_author, 'comment', commenter_name || ' commented on your post', coalesce(left(NEW.content, 80), ''));
@@ -48,7 +48,7 @@ begin
   if event_group is null then
     return NEW;
   end if;
-  select coalesce(name, 'Someone') into liker_name from users where id = NEW.user_id;
+  select coalesce((select name from users where id = NEW.user_id), 'Someone') into liker_name;
   for rec in
     select user_id from group_members
     where group_id = event_group and role in ('admin', 'owner') and user_id <> NEW.user_id

@@ -52,9 +52,9 @@ function SplashScreen({ ready, onDone }) {
   // transition finishes, not on an independent timer.
   useEffect(() => {
     if (!ready) return
-    setFading(true)
+    const fadeFrame = requestAnimationFrame(() => setFading(true))
     const doneTimer = setTimeout(onDone, 500)
-    return () => clearTimeout(doneTimer)
+    return () => { cancelAnimationFrame(fadeFrame); clearTimeout(doneTimer) }
   }, [ready, onDone])
 
   return (

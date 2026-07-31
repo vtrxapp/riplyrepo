@@ -3640,7 +3640,10 @@ function GroupProfileScreen({ groupId, postLiked, togglePostLike, postShared, re
   // actually admins the group.
   const [groupAdminName, setGroupAdminName] = useState(null);
   useEffect(() => {
-    if (!g.admin_id) { setGroupAdminName(null); return; }
+    if (!g.admin_id) {
+      const frame = requestAnimationFrame(() => setGroupAdminName(null));
+      return () => cancelAnimationFrame(frame);
+    }
     let cancelled = false;
     supabase.from('users').select('name').eq('id', g.admin_id).maybeSingle()
       .then(({ data }) => { if (!cancelled) setGroupAdminName(data?.name || null); });
@@ -4552,7 +4555,10 @@ function EventDetailsScreen({ eventId, liked, toggleLike, saved, toggleSave, sha
   // organizer (who never needs to buy a ticket to their own event).
   const [hasTicket, setHasTicket] = useState(false);
   useEffect(() => {
-    if (!eventId || !currentUser?.userId) { setHasTicket(false); return; }
+    if (!eventId || !currentUser?.userId) {
+      const frame = requestAnimationFrame(() => setHasTicket(false));
+      return () => cancelAnimationFrame(frame);
+    }
     let cancelled = false;
     supabase.from('tickets').select('id').eq('event_id', eventId).eq('user_id', currentUser.userId).limit(1)
       .then(({ data, error }) => {
@@ -9224,22 +9230,34 @@ function CreateSpaceScreen({ goBack, navigateReplace, showToast, currentUser, gr
           let hostText = currentUser.name || 'Host';
           let hostAvatar = null;
           let hostColor = null;
+          // Tracks whether the group lookup actually resolved, not just
+          // whether a groupId was requested -- a failed/missing lookup must
+          // not stamp host_is_group true while host_text etc. are still the
+          // personal fallback (SpaceDetailsScreen would then never refresh
+          // it, since it skips the personal-profile refresh for
+          // host_is_group spaces).
+          let groupAttributed = false;
           if (effectiveGroupId) {
-            const { data: groupRow } = await supabase.from('groups')
+            const { data: groupRow, error: groupErr } = await supabase.from('groups')
               .select('name, avatar_url, logo_color').eq('id', effectiveGroupId).single();
-            hostText = groupRow?.name || hostText;
-            hostAvatar = groupRow?.avatar_url || null;
-            hostColor = groupRow?.logo_color || null;
+            if (groupErr || !groupRow) {
+              showToast('Could not load group info — creating as a personal space instead.');
+            } else {
+              hostText = groupRow.name || hostText;
+              hostAvatar = groupRow.avatar_url || null;
+              hostColor = groupRow.logo_color || null;
+              groupAttributed = true;
+            }
           }
           const { data: space, error } = await supabase.from('spaces').insert({
             title: title.trim(),
             description: about.trim(),
-            group_id: effectiveGroupId || null,
+            group_id: groupAttributed ? effectiveGroupId : null,
             host_id: currentUser.userId,
             host_text: hostText,
             host_avatar: hostAvatar,
             host_color: hostColor,
-            host_is_group: !!effectiveGroupId,
+            host_is_group: groupAttributed,
             category: cat,
             location: location || null,
             is_online: isOnline,

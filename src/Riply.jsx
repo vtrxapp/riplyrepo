@@ -1283,6 +1283,18 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
   const { chats, loading: chatsLoading, deleteChat, refetch: refetchChats } = chatsData;
   const { notifications, loading: notifsLoading, unreadCount, markRead, markAllRead, deleteNotification, refetch: refetchNotifs } = notifs;
   const { groupActivity, loading: groupActivityLoading, markGroupRead, refetch: refetchGroupActivity } = groupActivityData;
+  // groupActivity rows are also rendered under the Notifications tab, so
+  // their missed-post counts need to fold into the same badge/mark-all-read
+  // state as notifs.unreadCount -- otherwise an unread group post shows no
+  // badge at all, and "Mark all as read" leaves it unread.
+  const groupUnreadCount = groupActivity.reduce((sum, a) => sum + (a.missedCount || 0), 0);
+  const totalUnreadCount = unreadCount + groupUnreadCount;
+  const markAllReadIncludingGroups = async () => {
+    await Promise.all([
+      markAllRead(),
+      ...groupActivity.filter(a => a.missedCount > 0).map(a => markGroupRead(a.groupId)),
+    ]);
+  };
   const activeTabStyle = { border:'none', background:'none', cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", fontSize:14, fontWeight:800, color:C.primary, padding:'0 0 4px' };
   const idleTabStyle = { ...activeTabStyle, fontWeight:700, color:C.subtle };
 
@@ -1322,7 +1334,7 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
         <div style={{ display:'flex', gap:26, marginBottom:11 }}>
           <button onClick={()=>setMsgTab('notifications')} style={isNotif?activeTabStyle:idleTabStyle}>
             Notifications
-            {unreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:10, fontWeight:800, verticalAlign:'middle' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            {totalUnreadCount > 0 && <span style={{ marginLeft:6, display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:18, height:18, padding:'0 5px', borderRadius:999, background:'#FF3B6B', color:'#fff', fontSize:10, fontWeight:800, verticalAlign:'middle' }}>{totalUnreadCount > 99 ? '99+' : totalUnreadCount}</span>}
           </button>
           <button onClick={()=>setMsgTab('chats')} style={isNotif?idleTabStyle:activeTabStyle}>Chats</button>
         </div>
@@ -1339,8 +1351,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
         {isNotif ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {/* Mark all read */}
-            {unreadCount > 0 && (
-              <button onClick={markAllRead} style={{ alignSelf:'flex-end', border:'none', background:'none', fontSize:11, fontWeight:700, color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", padding:'2px 0' }}>
+            {totalUnreadCount > 0 && (
+              <button onClick={markAllReadIncludingGroups} style={{ alignSelf:'flex-end', border:'none', background:'none', fontSize:11, fontWeight:700, color:C.primary, cursor:'pointer', fontFamily:"'Montserrat',-apple-system,sans-serif", padding:'2px 0' }}>
                 Mark all as read
               </button>
             )}
@@ -1423,7 +1435,8 @@ function MessagesScreen({ msgTab, setMsgTab, navigate, showToast, notifs, chatsD
                   </div>
                 )}
                 <SwipeToDeleteRow onDelete={() => deleteNotification(n.id)} deleteLabel={`Delete notification: ${n.title}`}>
-                <div onClick={() => markRead(n.id)}
+                <div onClick={() => markRead(n.id)} role="button" tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markRead(n.id); } }}
                   style={{ background: n.read ? C.card : '#F0F8FF', borderRadius:18,
                            boxShadow:'0 4px 16px rgba(16,24,40,0.06)', padding:14,
                            cursor:'pointer', position:'relative',
@@ -2871,6 +2884,20 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
   const isOwner = !!(currentUser?.userId && p.user_id === currentUser.userId);
   const canModerate = isOwner || isGroupAdmin;
 
+  // Live event details for the linked-event card -- reads the event's
+  // current date/time/location/photo rather than the snapshot strings
+  // stored on the post at link time, so an event that's since been
+  // rescheduled shows correctly here too.
+  const [linkedEventInfo, setLinkedEventInfo] = useState(null);
+  useEffect(() => {
+    if (!p.linked_event_id) { setLinkedEventInfo(null); return; }
+    let cancelled = false;
+    supabase.from('events').select('date, full_date, start_time, time_range, location, venue, image_url')
+      .eq('id', p.linked_event_id).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setLinkedEventInfo(data || null); });
+    return () => { cancelled = true; };
+  }, [p.linked_event_id]);
+
   const handleDeletePost = async () => {
     setShowOptions(false);
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
@@ -3078,6 +3105,54 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         );
       })()}
 
+      {/* Linked event card -- date badge + title + location/time, tapping
+          through to the real Event Details screen. Prefers the event's live
+          date/time/location (linkedEventInfo) over the snapshot strings
+          stored on the post at link time, falling back to those only while
+          the live fetch is in flight or if the event's since been deleted. */}
+      {p.linked_event_title && (() => {
+        const rawDate = linkedEventInfo?.full_date || linkedEventInfo?.date;
+        const d = rawDate ? new Date(rawDate) : null;
+        const validDate = d && !isNaN(d);
+        const month = validDate ? d.toLocaleDateString('en-US', { month:'short' }).toUpperCase() : null;
+        const day = validDate ? d.getDate() : null;
+        const timeStr = linkedEventInfo?.time_range ? fmtRange(linkedEventInfo.time_range)
+          : linkedEventInfo?.start_time ? fmt12(linkedEventInfo.start_time)
+          : p.linked_event_time || null;
+        const locationStr = linkedEventInfo?.location || linkedEventInfo?.venue || null;
+        const subtitle = [locationStr, timeStr].filter(Boolean).join(' · ') || p.linked_event_date || '';
+        return (
+          <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
+            style={{ display:'flex', alignItems:'center', gap:14, marginTop:11, width:'100%',
+                     background:'#F1F3F7', border:'none', borderRadius:18, padding:12, cursor:'pointer', textAlign:'left' }}>
+            <div style={{ flexShrink:0, width:56, height:56, borderRadius:14, background:'#7C5CFF',
+                          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
+              {validDate ? (
+                <>
+                  <span style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.85)', letterSpacing:0.4 }}>{month}</span>
+                  <span style={{ fontSize:22, fontWeight:800, color:'#fff', lineHeight:1.1 }}>{day}</span>
+                </>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="#fff" strokeWidth="1.9"/>
+                  <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="#fff" strokeWidth="1.9" strokeLinecap="round"/>
+                </svg>
+              )}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:15, fontWeight:800, color:C.ink, fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {p.linked_event_title}
+              </div>
+              {subtitle && (
+                <div style={{ fontSize:12.5, fontWeight:500, color:C.subtle, fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {subtitle}
+                </div>
+              )}
+            </div>
+          </button>
+        );
+      })()}
+
       {/* Image(s) — a multi-photo post scrolls horizontally in one row, each
           photo's own width following its own aspect ratio at a shared row
           height, so nothing gets cropped and a wide photo just takes more
@@ -3142,30 +3217,6 @@ function PostCard({ p, postLiked, togglePostLike, postShared, recordPostShare, c
         </a>
       )}
 
-      {/* Linked event chip */}
-      {p.linked_event_title && (
-        <button onClick={() => p.linked_event_id ? navigate?.('event-details', { eventId: p.linked_event_id }) : showToast('Event unavailable')}
-          style={{ display:'flex', alignItems:'center', gap:10, marginTop:10, width:'100%',
-                   background:'rgba(2,162,240,0.08)', border:'none', borderRadius:20, padding:'10px 12px', cursor:'pointer' }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-            <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke={C.primary} strokeWidth="1.9"/>
-            <path d="M3.5 9.5h17M8 3v4M16 3v4" stroke={C.primary} strokeWidth="1.9" strokeLinecap="round"/>
-          </svg>
-          <div style={{ flex:1, minWidth:0, textAlign:'left' }}>
-            <div style={{ fontSize:12.5, fontWeight:800, color:C.primary, fontFamily:"'Montserrat',-apple-system,sans-serif", overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-              {p.linked_event_title}
-            </div>
-            {(p.linked_event_date || p.linked_event_time) && (
-              <div style={{ fontSize:11, fontWeight:600, color:C.subtle, fontFamily:"'Montserrat',-apple-system,sans-serif", marginTop:2 }}>
-                {[p.linked_event_date, p.linked_event_time].filter(Boolean).join(' · ')}
-              </div>
-            )}
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0 }}>
-            <path d="M9 6l6 6-6 6" stroke={C.subtle} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
 
       {/* Like / Comment / Share */}
       <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:13 }}>
